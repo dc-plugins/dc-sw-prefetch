@@ -1,0 +1,41 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    name: SSH Deploy → dampcig.dk
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deploy via rsync
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          rsync -az --delete \
+            -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='.gitignore' \
+            --exclude='phpcs.xml' \
+            ./ ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.DEPLOY_PATH }}dc-sw-prefetch/
+
+      - name: Build wordpress.org ZIP
+        run: |
+          mkdir -p dist
+          zip -r dist/dc-sw-prefetch.zip . \
+            -x '*.git*' -x '.github/*' -x '.gitignore' \
+            -x 'phpcs.xml' -x 'dist/*'
+
+      - name: Upload ZIP artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dc-sw-prefetch-${{ github.sha }}
+          path: dist/dc-sw-prefetch.zip
+          retention-days: 30

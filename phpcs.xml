@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<ruleset name="DC Service Worker Prefetcher">
+    <description>PHPCS rules for DC Service Worker Prefetcher plugin.</description>
+
+    <file>.</file>
+    <arg value="sp"/>
+    <arg name="extensions" value="php"/>
+
+    <rule ref="WordPress">
+        <!-- JS output in SW endpoint cannot be escaped -->
+        <exclude name="WordPress.Security.EscapeOutput.OutputNotEscaped"/>
+    </rule>
+
+    <!-- Declare plugin prefix so NamingConventions don't flag dc_swp_ functions -->
+    <rule ref="WordPress.NamingConventions.PrefixAllGlobals">
+        <properties>
+            <property name="prefixes" type="array">
+                <element value="dc_swp"/>
+                <element value="DC_SWP"/>
+            </property>
+        </properties>
+    </rule>
+</ruleset>
