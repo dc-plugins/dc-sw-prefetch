@@ -94,7 +94,7 @@ add_action( 'template_redirect', 'dc_swp_footer_credit_start' );
 // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
 function dc_swp_footer_credit_start() {
 	if ( is_admin() ) return;
-	if ( get_option( 'dampcig_pwa_footer_credit', 'yes' ) !== 'yes' ) return;
+	if ( get_option( 'dampcig_pwa_footer_credit', 'no' ) !== 'yes' ) return;
 	// If the PNG→WebP plugin is active, it owns the footer credit — always defer
 	// to avoid duplicates, regardless of whether its setting has been saved to DB.
 	if ( class_exists( 'DC_WebP_Converter' ) ) return;

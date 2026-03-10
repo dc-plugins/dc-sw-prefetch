@@ -117,7 +117,7 @@ function dc_swp_admin_page_html() {
     $sw_enabled       = get_option( 'dampcig_pwa_sw_enabled',      'yes' ) === 'yes';
     $offline_page     = get_option( 'dampcig_pwa_offline_page',    '/offline/' );
     $preload_products = get_option( 'dampcig_pwa_preload_products', 'yes' ) === 'yes';
-    $footer_credit    = get_option( 'dampcig_pwa_footer_credit',   'yes' ) === 'yes';
+    $footer_credit    = get_option( 'dampcig_pwa_footer_credit',   'no' ) === 'yes';
     ?>
     <div class="wrap">
         <h1><?php echo esc_html( dc_swp_str( 'page_title' ) ); ?></h1>
