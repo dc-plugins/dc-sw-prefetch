@@ -296,6 +296,41 @@ function dc_swp_serve_partytown_files() {
 
 
 // ============================================================
+// PRODUCT BASE HELPER
+// Auto-detects WooCommerce product permalink slug and allows
+// manual override via the admin setting.
+// ============================================================
+
+/**
+ * Return the URL path segment used to identify product permalinks.
+ * e.g. "/product/" or "/produkt/" for localised installations.
+ *
+ * Priority:
+ *  1. Admin override (dampcig_pwa_product_base)
+ *  2. WooCommerce permalink setting (woocommerce_permalinks.product_base)
+ *  3. Hard fallback: /product/
+ */
+function dc_swp_get_product_base() {
+	$override = trim( get_option( 'dampcig_pwa_product_base', '' ) );
+	if ( $override !== '' ) {
+		// Normalise: ensure leading and trailing slash
+		return '/' . trim( $override, '/' ) . '/';
+	}
+
+	// Auto-detect from WooCommerce
+	$wc = get_option( 'woocommerce_permalinks', [] );
+	if ( ! empty( $wc['product_base'] ) ) {
+		$base  = trim( $wc['product_base'], '/' );
+		$parts = explode( '/', $base );
+		// Use only the first path segment (ignore %product_cat% suffixes)
+		return '/' . $parts[0] . '/';
+	}
+
+	return '/product/';
+}
+
+
+// ============================================================
 // PARTYTOWN SNIPPET + VIEWPORT/PAGINATION PREFETCHER IN FOOTER
 // ============================================================
 
@@ -357,11 +392,14 @@ function dc_swp_prefetch_footer() {
 
 	$preload_enabled = get_option( 'dampcig_pwa_preload_products', 'yes' ) === 'yes';
 	if ( ! $preload_enabled ) return;
+
+	$product_base = dc_swp_get_product_base();
 	?>
 	<script>
 	(function () {
 		'use strict';
 
+		const productBase    = <?php echo wp_json_encode( $product_base ); ?>;
 		const prefetchedUrls = new Set();
 
 		function prefetch(url) {
@@ -375,8 +413,8 @@ function dc_swp_prefetch_footer() {
 		}
 
 		function resolveProductLink(el) {
-			// Find any anchor whose href contains /product/ — universal across all themes.
-			// Falls back to any plain anchor if none match (e.g. custom post-type slugs).
+			// Find any anchor whose href contains the product base slug — universal
+			// across all themes and localised permalink configurations.
 			const anchors = Array.from( el.querySelectorAll('a[href]') );
 			const bad = (href) => !href
 				|| href.includes('add-to-cart')
@@ -385,8 +423,8 @@ function dc_swp_prefetch_footer() {
 				|| href.includes('?added-to-cart')
 				|| href.includes('#');
 
-			// Prefer a link that looks like a product permalink
-			let a = anchors.find(a => a.href.includes('/product/') && !bad(a.href));
+			// Prefer a link matching the (auto-detected or overridden) product slug
+			let a = anchors.find(a => a.href.includes(productBase) && !bad(a.href));
 			// Fallback: first non-utility anchor inside the item
 			if (!a) a = anchors.find(a => !bad(a.href));
 			return a ? a.href : null;

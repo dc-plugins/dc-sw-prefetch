@@ -18,6 +18,7 @@ function dc_swp_uninstall() {
 	foreach ( [
 		'dampcig_pwa_sw_enabled',
 		'dampcig_pwa_preload_products',
+		'dampcig_pwa_product_base',
 		'dampcig_pwa_footer_credit',
 	] as $dc_swp_opt ) {
 		delete_option( $dc_swp_opt );
