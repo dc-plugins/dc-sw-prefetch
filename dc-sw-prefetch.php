@@ -375,16 +375,21 @@ function dc_swp_prefetch_footer() {
 		}
 
 		function resolveProductLink(el) {
-			// Try known class selectors first (case-insensitive via querySelectorAll
-			// is not available, so we check both capitalisation variants explicitly).
-			const a = el.querySelector('a.woocommerce-loop-product__link')
-				   || el.querySelector('a.woocommerce-LoopProduct-link')
-				   || el.querySelector('a.product-link')
-				   || el.querySelector(':scope > a')
-				   || el.querySelector('a[href]');
-			if (!a || !a.href) return null;
-			if (a.href.includes('add-to-cart') || a.href.includes('#') || a.href.includes('?remove_item')) return null;
-			return a.href;
+			// Find any anchor whose href contains /product/ — universal across all themes.
+			// Falls back to any plain anchor if none match (e.g. custom post-type slugs).
+			const anchors = Array.from( el.querySelectorAll('a[href]') );
+			const bad = (href) => !href
+				|| href.includes('add-to-cart')
+				|| href.includes('?remove_item')
+				|| href.includes('remove_item')
+				|| href.includes('?added-to-cart')
+				|| href.includes('#');
+
+			// Prefer a link that looks like a product permalink
+			let a = anchors.find(a => a.href.includes('/product/') && !bad(a.href));
+			// Fallback: first non-utility anchor inside the item
+			if (!a) a = anchors.find(a => !bad(a.href));
+			return a ? a.href : null;
 		}
 
 		function prefetchNextPage() {
