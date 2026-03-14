@@ -360,21 +360,7 @@ function dc_swp_partytown_config() {
 window.partytown = {
     lib: '/~partytown/',
     debug: false,
-    forward: ['dataLayer.push', 'gtag', 'fbq', 'lintrk', 'twq'],
-    resolveUrl: function(url, location, type) {
-        var proxyHosts = [
-            'www.googletagmanager.com',
-            'analytics.ahrefs.com',
-            'www.google-analytics.com',
-            'stats.g.doubleclick.net'
-        ];
-        if (type === 'script' && proxyHosts.indexOf(url.hostname) !== -1) {
-            var proxy = new URL('/~partytown/proxytown', location.href);
-            proxy.searchParams.append('url', url.href);
-            return proxy;
-        }
-        return url;
-    }
+    forward: ['dataLayer.push', 'gtag', 'fbq', 'lintrk', 'twq']
 };
 </script>
 JS;
