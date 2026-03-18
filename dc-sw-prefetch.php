@@ -548,11 +548,17 @@ function dc_swp_setup_lcp_image() {
 		if ( ! $thumbnail_id ) return;
 
 		add_action( 'wp_head', function() use ( $thumbnail_id ) {
-			$src    = wp_get_attachment_image_src( $thumbnail_id, 'woocommerce_single' );
-			$srcset = wp_get_attachment_image_srcset( $thumbnail_id, 'woocommerce_single' );
-			$sizes  = wp_get_attachment_image_sizes( $thumbnail_id, 'woocommerce_single' );
-			if ( ! $src ) return;
-			echo '<link rel="preload" as="image" fetchpriority="high" href="' . esc_url( $src[0] ) . '"'
+			// Use wp_get_attachment_image() — same code path as WooCommerce —
+			// so srcset/sizes match the rendered <img> exactly and the browser
+			// never discards the preloaded resource as unused.
+			$img_html = wp_get_attachment_image( $thumbnail_id, 'woocommerce_single' );
+			if ( ! $img_html ) return;
+			$href = $srcset = $sizes = '';
+			if ( preg_match( '/\ssrc=["\']([^"\']+)["\']/', $img_html, $m ) )    { $href   = $m[1]; }
+			if ( preg_match( '/\ssrcset=["\']([^"\']+)["\']/', $img_html, $m ) ) { $srcset = $m[1]; }
+			if ( preg_match( '/\ssizes=["\']([^"\']+)["\']/', $img_html, $m ) )  { $sizes  = $m[1]; }
+			if ( ! $href ) return;
+			echo '<link rel="preload" as="image" fetchpriority="high" href="' . esc_url( $href ) . '"'
 				. ( $srcset ? ' imagesrcset="' . esc_attr( $srcset ) . '"' : '' )
 				. ( $sizes  ? ' imagesizes="'  . esc_attr( $sizes )  . '"' : '' )
 				. ">\n";
@@ -593,11 +599,14 @@ function dc_swp_setup_lcp_image() {
 		if ( ! $thumbnail_id ) return;
 
 		add_action( 'wp_head', function() use ( $thumbnail_id ) {
-			$src    = wp_get_attachment_image_src( $thumbnail_id, 'woocommerce_thumbnail' );
-			$srcset = wp_get_attachment_image_srcset( $thumbnail_id, 'woocommerce_thumbnail' );
-			$sizes  = wp_get_attachment_image_sizes( $thumbnail_id, 'woocommerce_thumbnail' );
-			if ( ! $src ) return;
-			echo '<link rel="preload" as="image" fetchpriority="high" href="' . esc_url( $src[0] ) . '"'
+			$img_html = wp_get_attachment_image( $thumbnail_id, 'woocommerce_thumbnail' );
+			if ( ! $img_html ) return;
+			$href = $srcset = $sizes = '';
+			if ( preg_match( '/\ssrc=["\']([^"\']+)["\']/', $img_html, $m ) )    { $href   = $m[1]; }
+			if ( preg_match( '/\ssrcset=["\']([^"\']+)["\']/', $img_html, $m ) ) { $srcset = $m[1]; }
+			if ( preg_match( '/\ssizes=["\']([^"\']+)["\']/', $img_html, $m ) )  { $sizes  = $m[1]; }
+			if ( ! $href ) return;
+			echo '<link rel="preload" as="image" fetchpriority="high" href="' . esc_url( $href ) . '"'
 				. ( $srcset ? ' imagesrcset="' . esc_attr( $srcset ) . '"' : '' )
 				. ( $sizes  ? ' imagesizes="'  . esc_attr( $sizes )  . '"' : '' )
 				. ">\n";
