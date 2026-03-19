@@ -51,6 +51,9 @@ function dc_swp_str( $key ) {
             'product_base_label'      => 'Produkt-URL slug',
             'product_base_desc'       => 'URL-segmentet der identificerer produktsider, f.eks. <code>/product/</code> eller <code>/produkt/</code>. Lad feltet være tomt for at bruge den auto-detekterede WooCommerce-indstilling.',
             'product_base_detected'   => 'Auto-detekteret fra WooCommerce',
+            'proxy_label'           => 'Proxy-tilladelsesliste',
+            'proxy_desc'            => 'Én vært pr. linje. Kun HTTPS-scripts fra disse domæner proxies — alle andre afvises (forhindrer misbrug). Partytown omdirigerer automatisk tredjeparts-scripts til denne proxy via <code>resolveUrl</code>.',
+            'proxy_cache_note'      => 'Scripts caches server-side i 24 t og serveres til browseren med 7-dages Cache-Control.',
         ] : [
             'page_title'        => 'SW Prefetch Settings',
             'saved'             => 'Settings saved!',
@@ -87,6 +90,9 @@ function dc_swp_str( $key ) {
             'product_base_label'      => 'Product URL slug',
             'product_base_desc'       => 'The URL segment that identifies product pages, e.g. <code>/product/</code> or <code>/shop/</code>. Leave blank to use the auto-detected WooCommerce setting.',
             'product_base_detected'   => 'Auto-detected from WooCommerce',
+            'proxy_label'           => 'Proxy allowlist',
+            'proxy_desc'            => 'One hostname per line. Only HTTPS scripts from these domains are proxied — all others are rejected (prevents open-proxy abuse). Partytown automatically routes third-party scripts through this proxy via <code>resolveUrl</code>.',
+            'proxy_cache_note'      => 'Scripts are cached server-side for 24 h and served to the browser with a 7-day Cache-Control header.',
         ];
     }
     return $s[ $key ] ?? $key;
@@ -130,6 +136,7 @@ function dc_swp_register_settings() {
     register_setting( 'dc-sw-prefetch-settings', 'dampcig_pwa_footer_credit',    [ 'sanitize_callback' => 'sanitize_text_field' ] );
     register_setting( 'dc-sw-prefetch-settings', 'dc_swp_disable_emoji',         [ 'sanitize_callback' => 'sanitize_text_field' ] );
     register_setting( 'dc-sw-prefetch-settings', 'dc_swp_lcp_preload',           [ 'sanitize_callback' => 'sanitize_text_field' ] );
+    register_setting( 'dc-sw-prefetch-settings', 'dc_swp_proxy_allowlist',       [ 'sanitize_callback' => 'sanitize_textarea_field' ] );
 }
 
 // Admin page HTML
@@ -144,6 +151,7 @@ function dc_swp_admin_page_html() {
         update_option( 'dampcig_pwa_footer_credit',    isset( $_POST['dampcig_pwa_footer_credit'] )    ? 'yes' : 'no' );
         update_option( 'dc_swp_disable_emoji',         isset( $_POST['dc_swp_disable_emoji'] )         ? 'yes' : 'no' );
         update_option( 'dc_swp_lcp_preload',           isset( $_POST['dc_swp_lcp_preload'] )           ? 'yes' : 'no' );
+        update_option( 'dc_swp_proxy_allowlist',       sanitize_textarea_field( wp_unslash( $_POST['dc_swp_proxy_allowlist'] ?? '' ) ) );
         echo '<div class="notice notice-success"><p>' . esc_html( dc_swp_str( 'saved' ) ) . '</p></div>';
     }
 
@@ -151,8 +159,15 @@ function dc_swp_admin_page_html() {
     $preload_products = get_option( 'dampcig_pwa_preload_products', 'yes' ) === 'yes';
     $disable_emoji    = get_option( 'dc_swp_disable_emoji',         'yes' ) === 'yes';
     $lcp_preload      = get_option( 'dc_swp_lcp_preload',           'yes' ) === 'yes';
-    $product_base_val = get_option( 'dampcig_pwa_product_base',    '' );
-    $footer_credit    = get_option( 'dampcig_pwa_footer_credit',   'no' ) === 'yes';
+    $product_base_val   = get_option( 'dampcig_pwa_product_base',    '' );
+    $footer_credit      = get_option( 'dampcig_pwa_footer_credit',   'no' ) === 'yes';
+    $proxy_allowlist    = get_option( 'dc_swp_proxy_allowlist', implode( "\n", [
+        'widget.trustpilot.com',
+        'invitejs.trustpilot.com',
+        'analytics.ahrefs.com',
+        'www.googletagmanager.com',
+        'www.google-analytics.com',
+    ] ) );
 
     // Auto-detect for placeholder display
     $wc_perma         = get_option( 'woocommerce_permalinks', [] );
@@ -230,6 +245,17 @@ function dc_swp_admin_page_html() {
                                style="font-family: monospace;">
                         <p class="description"><?php echo wp_kses_post( dc_swp_str( 'product_base_desc' ) ); ?></p>
                         <p class="description"><?php echo esc_html( dc_swp_str( 'product_base_detected' ) ); ?>: <code><?php echo esc_html( $wc_base ); ?></code></p>
+                    </td>
+                </tr>
+            </table>
+
+                <tr valign="top">
+                    <th scope="row"><?php echo esc_html( dc_swp_str( 'proxy_label' ) ); ?></th>
+                    <td>
+                        <textarea name="dc_swp_proxy_allowlist" rows="6" class="large-text code"
+                                  style="font-family: monospace; white-space: nowrap;"><?php echo esc_textarea( $proxy_allowlist ); ?></textarea>
+                        <p class="description"><?php echo wp_kses_post( dc_swp_str( 'proxy_desc' ) ); ?></p>
+                        <p class="description"><em><?php echo esc_html( dc_swp_str( 'proxy_cache_note' ) ); ?></em></p>
                     </td>
                 </tr>
             </table>

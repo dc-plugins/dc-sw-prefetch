@@ -87,6 +87,74 @@ require_once plugin_dir_path( __FILE__ ) . 'admin.php';
 // Does nothing if no © is found — no fallback injection.
 // ============================================================
 
+// ============================================================
+// PROXY SCRIPT REWRITER
+// Rewrites third-party <script src="https://..."> URLs to route
+// through the on-site /~pt-proxy/ endpoint, so the browser
+// receives a 7-day Cache-Control header instead of the
+// third-party CDN's short TTL.
+// Applies to all hosts listed in the proxy allowlist.
+// ============================================================
+
+add_action( 'template_redirect', 'dc_swp_proxy_rewrite_start' );
+
+/**
+ * Start an output buffer to rewrite third-party script src URLs.
+ * Only active when Partytown is enabled and the request is not from a bot.
+ */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
+function dc_swp_proxy_rewrite_start() {
+	if ( is_admin() ) return;
+	if ( dc_swp_is_bot_request() ) return;
+	if ( get_option( 'dampcig_pwa_sw_enabled', 'yes' ) !== 'yes' ) return;
+	ob_start( 'dc_swp_proxy_rewrite_process' );
+}
+
+/**
+ * Output-buffer callback: rewrite any <script src="https://..."> whose host
+ * appears in the proxy allowlist to use /~pt-proxy/?url=<encoded-url>.
+ *
+ * @param string $html Full page HTML.
+ * @return string Modified HTML.
+ */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
+function dc_swp_proxy_rewrite_process( $html ) {
+	$allowlist = dc_swp_get_proxy_allowlist();
+	if ( empty( $allowlist ) ) {
+		return $html;
+	}
+
+	return preg_replace_callback(
+		'/<script\b([^>]*?)>/i',
+		function( $m ) use ( $allowlist ) {
+			$attrs = $m[1];
+			if ( ! preg_match( '/\bsrc=["\'](https:\/\/([^"\'\/ \t]+)[^"\']*)["\']/', $attrs, $src_m ) ) {
+				return $m[0];
+			}
+			$script_url = $src_m[1];
+			$host       = strtolower( $src_m[2] );
+			foreach ( $allowlist as $entry ) {
+				$entry = strtolower( trim( $entry ) );
+				if ( '' === $entry ) {
+					continue;
+				}
+				if ( $host === $entry || str_ends_with( $host, '.' . $entry ) ) {
+					$proxy_src = '/~pt-proxy/?url=' . rawurlencode( $script_url );
+					$new_attrs = preg_replace(
+						'/\bsrc=["\']{1}[^"\']*["\']{1}/',
+						'src="' . $proxy_src . '"',
+						$attrs
+					);
+					return '<script' . $new_attrs . '>';
+				}
+			}
+			return $m[0];
+		},
+		$html
+	);
+}
+
+
 define( 'DC_SWP_FOOTER_TRANSIENT', 'dc_swp_footer_strategy' ); // 'copyright' | 'none'
 
 add_action( 'template_redirect', 'dc_swp_footer_credit_start' );
@@ -227,6 +295,164 @@ function dc_swp_fallback_cache_headers() {
 
 
 // ============================================================
+// PARTYTOWN SCRIPT PROXY
+// Server-side proxy for third-party scripts routed through
+// Partytown's resolveUrl. Serves scripts with a 7-day browser
+// Cache-Control header, solving Lighthouse's "efficient cache
+// lifetimes" warning for third-party analytics/widget scripts.
+//
+// Endpoint: GET /~pt-proxy/?url=<pct-encoded-https-url>
+//
+// Security:
+//  • Only HTTPS URLs are proxied.
+//  • Target host must appear in the dc_swp_proxy_allowlist option.
+//  • Server only forwards application/javascript responses.
+//  • No file-system access — URL is fetched over the network.
+// ============================================================
+
+add_action( 'init', 'dc_swp_serve_proxy_scripts', 1 );
+
+/**
+ * Intercept /~pt-proxy/ requests and serve the remote script
+ * with a 7-day browser Cache-Control header.
+ * The body is cached server-side (WordPress transient) for 24 h
+ * to avoid hitting the third-party CDN on every unique visitor.
+ */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
+function dc_swp_serve_proxy_scripts() {
+	$request_uri = isset( $_SERVER['REQUEST_URI'] )
+		? wp_parse_url( wp_unslash( $_SERVER['REQUEST_URI'] ), PHP_URL_PATH ) // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		: '';
+
+	if ( strncmp( $request_uri, '/~pt-proxy/', 11 ) !== 0 ) {
+		return;
+	}
+
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- public cacheable endpoint; nonce not appropriate.
+	$raw_url = isset( $_GET['url'] ) ? esc_url_raw( wp_unslash( $_GET['url'] ) ) : '';
+	if ( '' === $raw_url ) {
+		status_header( 400 );
+		exit();
+	}
+
+	$parsed = wp_parse_url( $raw_url );
+	if ( ! $parsed || empty( $parsed['host'] ) || empty( $parsed['scheme'] ) ) {
+		status_header( 400 );
+		exit();
+	}
+
+	// Only proxy HTTPS to prevent plaintext credential leakage.
+	if ( 'https' !== strtolower( $parsed['scheme'] ) ) {
+		status_header( 400 );
+		exit();
+	}
+
+	// Validate against the configured allowlist — prevents open-proxy abuse (SSRF).
+	$host    = strtolower( $parsed['host'] );
+	$allowed = false;
+	foreach ( dc_swp_get_proxy_allowlist() as $entry ) {
+		$entry = strtolower( trim( $entry ) );
+		if ( '' === $entry ) {
+			continue;
+		}
+		// Accept exact hostname or any subdomain of the listed host.
+		if ( $host === $entry || str_ends_with( $host, '.' . $entry ) ) {
+			$allowed = true;
+			break;
+		}
+	}
+
+	if ( ! $allowed ) {
+		status_header( 403 );
+		exit();
+	}
+
+	// Serve from transient cache (24 h server-side refresh).
+	$cache_key = 'dc_swp_prx_' . md5( $raw_url );
+	$cached    = get_transient( $cache_key );
+	if ( false !== $cached ) {
+		dc_swp_emit_proxied_script( $cached, 'HIT' );
+	}
+
+	// Fetch from the third-party origin.
+	$response = wp_remote_get(
+		$raw_url,
+		[
+			'timeout'    => 10,
+			'user-agent' => 'Mozilla/5.0 (compatible; DC-SW-Prefetch-Proxy/1.0)',
+			'sslverify'  => true,
+		]
+	);
+
+	if ( is_wp_error( $response ) ) {
+		status_header( 502 );
+		exit();
+	}
+
+	$code = (int) wp_remote_retrieve_response_code( $response );
+	if ( $code < 200 || $code >= 300 ) {
+		status_header( $code ?: 502 );
+		exit();
+	}
+
+	// Guard: only forward JavaScript — reject HTML error pages etc.
+	$ct = wp_remote_retrieve_header( $response, 'content-type' );
+	if ( $ct && ! preg_match( '#(application|text)/(x-)?javascript#i', $ct ) ) {
+		status_header( 415 );
+		exit();
+	}
+
+	$body = wp_remote_retrieve_body( $response );
+
+	// Cache the raw body server-side for 24 hours.
+	set_transient( $cache_key, $body, DAY_IN_SECONDS );
+
+	dc_swp_emit_proxied_script( $body, 'MISS' );
+}
+
+/**
+ * Send correct headers + body for a proxied script, then exit.
+ *
+ * @param string $body JavaScript source.
+ * @param string $hit  'HIT' or 'MISS' for the X-DC-Proxy debug header.
+ */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
+function dc_swp_emit_proxied_script( $body, $hit ) {
+	status_header( 200 );
+	header( 'Content-Type: application/javascript; charset=utf-8' );
+	// 7-day browser cache; stale-while-revalidate allows background refresh.
+	header( 'Cache-Control: public, max-age=604800, stale-while-revalidate=3600' );
+	header( 'X-Robots-Tag: none' );
+	header( 'X-DC-Proxy: ' . $hit );
+	// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- streaming proxied JS
+	echo $body;
+	exit();
+}
+
+/**
+ * Return the list of allowed proxy hosts (one hostname per line).
+ * Defaults cover the scripts currently offloaded via Partytown.
+ *
+ * @return string[]
+ */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
+function dc_swp_get_proxy_allowlist() {
+	$defaults = implode(
+		"\n",
+		[
+			'widget.trustpilot.com',
+			'invitejs.trustpilot.com',
+			'analytics.ahrefs.com',
+			'www.googletagmanager.com',
+			'www.google-analytics.com',
+		]
+	);
+	$raw = get_option( 'dc_swp_proxy_allowlist', $defaults );
+	return array_filter( array_map( 'trim', explode( "\n", $raw ) ) );
+}
+
+
+// ============================================================
 // PARTYTOWN — serve ~partytown/ lib files from the plugin
 // ============================================================
 
@@ -359,7 +585,15 @@ function dc_swp_partytown_config() {
 window.partytown = {
     lib: '/~partytown/',
     debug: false,
-    forward: ['dataLayer.push', 'gtag', 'fbq', 'lintrk', 'twq']
+    forward: ['dataLayer.push', 'gtag', 'fbq', 'lintrk', 'twq'],
+    resolveUrl: function(url, location, type) {
+        if (type === 'script' && url.hostname !== location.hostname) {
+            var proxy = new URL(location.origin + '/~pt-proxy/');
+            proxy.searchParams.set('url', url.href);
+            return proxy;
+        }
+        return url;
+    }
 };
 </script>
 JS;
