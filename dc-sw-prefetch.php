@@ -128,6 +128,10 @@ function dc_swp_proxy_rewrite_process( $html ) {
 		'/<script\b([^>]*?)>/i',
 		function( $m ) use ( $allowlist ) {
 			$attrs = $m[1];
+			// Partytown handles its own proxying via resolveUrl — skip rewriting.
+			if ( preg_match( '/\btype=["\']text\/partytown["\']/', $attrs ) ) {
+				return $m[0];
+			}
 			if ( ! preg_match( '/\bsrc=["\'](https:\/\/([^"\'\/ \t]+)[^"\']*)["\']/', $attrs, $src_m ) ) {
 				return $m[0];
 			}
@@ -552,6 +556,51 @@ function dc_swp_get_product_base() {
 	}
 
 	return '/product/';
+}
+
+
+// ============================================================
+// PARTYTOWN SCRIPT EXCLUSION LIST
+// Allows admins to prevent specific WP script handles from being
+// tagged as type="text/partytown". Hooks into wp_script_attributes
+// at priority 99 so it runs after any theme/plugin that sets the type.
+// ============================================================
+
+add_filter( 'wp_script_attributes', 'dc_swp_exclude_partytown_scripts', 99 );
+
+/**
+ * Strip type="text/partytown" from script handles on the exclusion list.
+ *
+ * @param array $attributes Script tag attributes.
+ * @return array Modified attributes.
+ */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
+function dc_swp_exclude_partytown_scripts( $attributes ) {
+	if ( empty( $attributes['type'] ) || 'text/partytown' !== $attributes['type'] ) {
+		return $attributes;
+	}
+	if ( empty( $attributes['id'] ) ) {
+		return $attributes;
+	}
+	if ( in_array( $attributes['id'], dc_swp_get_pt_exclusions(), true ) ) {
+		unset( $attributes['type'] );
+	}
+	return $attributes;
+}
+
+/**
+ * Return the list of script handles excluded from Partytown.
+ *
+ * @return string[]
+ */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
+function dc_swp_get_pt_exclusions() {
+	static $exclusions = null;
+	if ( null === $exclusions ) {
+		$raw        = get_option( 'dc_swp_pt_exclusions', '' );
+		$exclusions = array_values( array_filter( array_map( 'trim', explode( "\n", $raw ) ) ) );
+	}
+	return $exclusions;
 }
 
 
