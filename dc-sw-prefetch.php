@@ -438,7 +438,8 @@ function dc_swp_partytown_config() {
 	$snippet = file_get_contents( $snippet_file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 
 	// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-	$config_script = "<script>\nwindow.partytown = {\n    lib: '/~partytown/',\n    debug: false,\n    forward: ['dataLayer.push', 'gtag', 'fbq', 'lintrk', 'twq']\n};\n</script>\n";
+	// forward list based on https://partytown.qwik.dev/common-services/
+	$config_script = "<script>\nwindow.partytown = {\n    lib: '/~partytown/',\n    debug: false,\n    forward: [\n        'dataLayer.push', 'gtag',          // Google Analytics / GTM\n        'fbq',                              // Meta Pixel\n        'lintrk',                           // LinkedIn Insight\n        'twq',                              // Twitter/X Pixel\n        '_hsq.push',                        // HubSpot\n        'Intercom',                         // Intercom\n        '_learnq.push',                     // Klaviyo\n        'ttq.track', 'ttq.page', 'ttq.load', // TikTok Pixel\n        'mixpanel.track'                    // Mixpanel\n    ]\n};\n</script>\n";
 
 	echo $config_script; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 	echo '<script>' . $snippet . '</script>' . "\n"; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
