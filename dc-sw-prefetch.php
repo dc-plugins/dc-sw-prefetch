@@ -819,21 +819,3 @@ function dc_swp_partytown_buffer_rewrite( $html ) {
 		$html
 	);
 }
-
-
-// ============================================================
-// PWA META TAGS
-// ============================================================
-
-add_action( 'wp_head', 'dc_swp_meta_tags', 1 );
-
-// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
-function dc_swp_meta_tags() {
-	?>
-	<meta name="theme-color" content="#46b450">
-	<meta name="mobile-web-app-capable" content="yes">
-	<meta name="apple-mobile-web-app-capable" content="yes">
-	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-	<meta name="apple-mobile-web-app-title" content="<?php bloginfo( 'name' ); ?>">
-	<?php
-}

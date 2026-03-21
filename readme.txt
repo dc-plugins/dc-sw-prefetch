@@ -24,7 +24,6 @@ On top of Partytown, the plugin ships its own viewport/pagination prefetcher: pr
 * **Configured via URL patterns** — enter one URL pattern per line in the admin. Any `<script src>` whose src matches is automatically managed for consent + Partytown offloading. No manual code edits.
 * **Auto-detect** — one-click scan of the homepage discovers all external scripts and lets you add them to the list.
 * **Exclusion list** — built-in exclusions for Trustpilot, Stripe, PayPal, Braintree, Facebook SDK, Google Maps, and Reamaze; add your own patterns as needed.
-* **PWA meta tags** — emits `theme-color`, `mobile-web-app-capable`, and `apple-mobile-web-app-*` meta tags on every page.
 * **Vendored lib** — Partytown's `lib/` files are bundled in `assets/partytown/`; no npm or build step needed on the server.
 * **Automatic Partytown updates** — a weekly GitHub Actions workflow detects new Partytown releases and opens a PR with the updated vendor files.
 * **Viewport prefetching** — IntersectionObserver watches visible products and issues `<link rel="prefetch">` before the user clicks.
