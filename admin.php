@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 /**
  * DC Service Worker Prefetcher — Admin Interface
  * Partytown third-party script offloading + viewport/pagination prefetching
