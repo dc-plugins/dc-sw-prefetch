@@ -420,6 +420,40 @@ function dc_swp_get_product_base() {
 add_action( 'wp_head', 'dc_swp_partytown_config', 2 );
 
 /**
+ * Return a stable per-request CSP nonce for Partytown inline scripts.
+ *
+ * The same nonce is reused for both the config <script> and the snippet
+ * <script>, and is passed to window.partytown.nonce so Partytown stamps it
+ * on every worker script it creates. CSP-hardened sites can read this value
+ * via the 'dc_swp_csp_nonce' filter and include it in their
+ * Content-Security-Policy: script-src 'nonce-…' header.
+ *
+ * @return string Base64-safe nonce, or empty string on failure.
+ */
+function dc_swp_get_csp_nonce() {
+	static $nonce = null;
+	if ( null !== $nonce ) {
+		return $nonce;
+	}
+	try {
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode
+		$nonce = rtrim( base64_encode( random_bytes( 16 ) ), '=' );
+	} catch ( \Exception $e ) {
+		$nonce = '';
+	}
+	/**
+	 * Filter the per-request CSP nonce used by Partytown inline scripts.
+	 *
+	 * Allows themes or plugins that manage their own CSP headers to read or
+	 * override the nonce so it matches their own header value.
+	 *
+	 * @param string $nonce The generated nonce (base64, 16 random bytes).
+	 */
+	$nonce = (string) apply_filters( 'dc_swp_csp_nonce', $nonce );
+	return $nonce;
+}
+
+/**
  * Emit the Partytown config object and the inline snippet in <head>.
  * Must run before any type="text/partytown" scripts.
  */
@@ -437,12 +471,62 @@ function dc_swp_partytown_config() {
 
 	$snippet = file_get_contents( $snippet_file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 
-	// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+	// Build the Partytown config as a PHP structure so it is always valid JSON.
 	// forward list based on https://partytown.qwik.dev/common-services/
-	$config_script = "<script>\nwindow.partytown = {\n    lib: '/~partytown/',\n    debug: false,\n    forward: [\n        'dataLayer.push', 'gtag',          // Google Analytics / GTM\n        'fbq',                              // Meta Pixel\n        'lintrk',                           // LinkedIn Insight\n        'twq',                              // Twitter/X Pixel\n        '_hsq.push',                        // HubSpot\n        'Intercom',                         // Intercom\n        '_learnq.push',                     // Klaviyo\n        'ttq.track', 'ttq.page', 'ttq.load', // TikTok Pixel\n        'mixpanel.track'                    // Mixpanel\n    ]\n};\n</script>\n";
+	$config = [
+		'lib'   => '/~partytown/',
+		'debug' => false,
+		// Feature 1: preserveBehavior:true on dataLayer.push ensures GTM and
+		// consent stacks also fire the original (main-thread) implementation,
+		// keeping tag-manager event flow intact.
+		// Feature 3: strictProxyHas prevents false-negative `in` operator checks
+		// (needed by FullStory, GTM, and similar tools).
+		'forward' => [
+			// Array-of-arrays tuple format: ['forwardProp', {options}]
+			// preserveBehavior:true ensures the original main-thread dataLayer.push
+			// is also called, keeping GTM and consent stacks fully functional.
+			[ 'dataLayer.push', [ 'preserveBehavior' => true ] ],
+			'gtag',         // Google Analytics / GTM
+			'fbq',          // Meta Pixel
+			'lintrk',       // LinkedIn Insight
+			'twq',          // Twitter/X Pixel
+			'_hsq.push',    // HubSpot
+			'Intercom',     // Intercom
+			'_learnq.push', // Klaviyo
+			'ttq.track',    // TikTok Pixel
+			'ttq.page',
+			'ttq.load',
+			'mixpanel.track', // Mixpanel
+		],
+		'strictProxyHas' => true,
+	];
 
-	echo $config_script; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-	echo '<script>' . $snippet . '</script>' . "\n"; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+	// Feature 4: Mirror the admin exclude list to loadScriptsOnMainThread so
+	// scripts that are dynamically injected inside the worker and match an
+	// excluded pattern are automatically routed back to the main thread.
+	$exclude = dc_swp_get_partytown_exclude_patterns();
+	if ( ! empty( $exclude ) ) {
+		$config['loadScriptsOnMainThread'] = array_map(
+			static fn( $p ) => [ 'string', $p ],
+			$exclude
+		);
+	}
+
+	// Feature 2: Pass a per-request CSP nonce into the Partytown config.
+	// Partytown will stamp this nonce on every <script> element it creates,
+	// allowing sites with strict CSP to whitelist exactly these scripts.
+	$nonce = dc_swp_get_csp_nonce();
+	if ( $nonce !== '' ) {
+		$config['nonce'] = $nonce;
+	}
+
+	$nonce_attr  = $nonce !== '' ? ' nonce="' . esc_attr( $nonce ) . '"' : '';
+	$config_json = wp_json_encode( $config, JSON_UNESCAPED_SLASHES );
+
+	// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+	echo '<script' . $nonce_attr . '>window.partytown=' . $config_json . ";</script>\n";
+	// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+	echo '<script' . $nonce_attr . '>' . $snippet . "</script>\n";
 }
 
 
