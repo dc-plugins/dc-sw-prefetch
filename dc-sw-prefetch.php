@@ -476,15 +476,11 @@ function dc_swp_partytown_config() {
 	$config = [
 		'lib'   => '/~partytown/',
 		'debug' => false,
-		// Feature 1: preserveBehavior:true on dataLayer.push ensures GTM and
-		// consent stacks also fire the original (main-thread) implementation,
-		// keeping tag-manager event flow intact.
-		// Feature 3: strictProxyHas prevents false-negative `in` operator checks
-		// (needed by FullStory, GTM, and similar tools).
+		// preserveBehavior:true on dataLayer.push ensures GTM and consent stacks
+		// also fire the original (main-thread) implementation, keeping tag-manager
+		// event flow intact.
 		'forward' => [
 			// Array-of-arrays tuple format: ['forwardProp', {options}]
-			// preserveBehavior:true ensures the original main-thread dataLayer.push
-			// is also called, keeping GTM and consent stacks fully functional.
 			[ 'dataLayer.push', [ 'preserveBehavior' => true ] ],
 			'gtag',         // Google Analytics / GTM
 			'fbq',          // Meta Pixel
@@ -498,7 +494,6 @@ function dc_swp_partytown_config() {
 			'ttq.load',
 			'mixpanel.track', // Mixpanel
 		],
-		'strictProxyHas' => true,
 	];
 
 	// Feature 4: Mirror the admin exclude list to loadScriptsOnMainThread so
