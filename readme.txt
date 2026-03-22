@@ -13,13 +13,17 @@ Partytown service worker (third-party script offloading) + viewport/pagination p
 
 == Description ==
 
-DC Service Worker Prefetcher integrates [Partytown](https://github.com/QwikDev/partytown) (by Builder.io / QwikDev) into WordPress as a vendored plugin. Partytown moves third-party scripts — Google Analytics, Meta Pixel, LinkedIn Insight Tag, etc. — into a dedicated service worker so they never block the browser main thread.
+DC Service Worker Prefetcher integrates [Partytown](https://github.com/QwikDev/partytown) into WordPress as a vendored plugin.
+
+The key distinction from `async`/`defer`: those attributes only delay *loading* — the script still *executes* on the browser's main thread and competes with layout, paint, and user interactions. Partytown moves script *execution* into a Web Worker entirely. The main thread is never touched — no layout jank, no Total Blocking Time (TBT) penalty, no competition with your code.
+
+Officially tested compatible services: **Google Tag Manager** (GA4), **Facebook Pixel**, **HubSpot**, **Intercom**, **Klaviyo**, **TikTok Pixel**, and **Mixpanel**. See [partytown.qwik.dev/common-services](https://partytown.qwik.dev/common-services/) for the full reference list.
 
 On top of Partytown, the plugin ships its own viewport/pagination prefetcher: products visible in the viewport are prefetched via `<link rel="prefetch">` so clicking a product loads it instantly from W3TC or the browser cache.
 
 = Key features =
 
-* **Partytown service worker** — third-party scripts run off the browser main thread via a dedicated service worker.
+* **Partytown Web Worker execution** — unlike `async`/`defer` (which only delay loading, scripts still run on main thread), Partytown executes third-party scripts in a Web Worker. Officially tested: Google Tag Manager, Facebook Pixel, HubSpot, Intercom, Klaviyo, TikTok Pixel, Mixpanel.
 * **Consent-aware loading** — reads marketing-consent cookies from 8 common WordPress CMPs (Complianz, Cookiebot, CookieYes, Borlabs, Cookie Notice, WebToffee, Cookie Information, Moove GDPR). Scripts get `type="text/partytown"` only after consent is granted; blocked with `type="text/plain"` until then.
 * **Configured via URL patterns** — enter one URL pattern per line in the admin. Any `<script src>` whose src matches is automatically managed for consent + Partytown offloading. No manual code edits.
 * **Auto-detect** — one-click scan of the homepage discovers all external scripts and lets you add them to the list.
@@ -62,7 +66,7 @@ Alternatively, you can manually tag a script:
 
     <script type="text/partytown" src="https://www.googletagmanager.com/gtag/js?id=G-XXXX"></script>
 
-The `window.partytown.forward` array (configured by the plugin) already forwards `dataLayer.push`, `gtag`, `fbq`, `lintrk`, and `twq`.
+The `window.partytown.forward` array is pre-configured for all officially tested services: `dataLayer.push` (GTM), `fbq` (Facebook Pixel), `_hsq.push` (HubSpot), `Intercom`, `_learnq.push` (Klaviyo), `ttq.track`/`ttq.page`/`ttq.load` (TikTok Pixel), `mixpanel.track` (Mixpanel). See [partytown.qwik.dev/common-services](https://partytown.qwik.dev/common-services/).
 
 = Supported consent plugins =
 
@@ -105,7 +109,7 @@ Open DevTools → Application → Service Workers. You should see `partytown-sw.
 Either let the weekly GitHub Action open a PR automatically, or run `bash scripts/update-partytown.sh` locally.
 
 = What scripts does Partytown forward by default? =
-`dataLayer.push`, `gtag`, `fbq` (Meta Pixel), `lintrk` (LinkedIn), `twq` (Twitter/X). Add more via the `window.partytown.forward` array.
+All officially tested services from [partytown.qwik.dev/common-services](https://partytown.qwik.dev/common-services/): `dataLayer.push` (Google Tag Manager / GA4), `fbq` (Facebook Pixel), `_hsq.push` (HubSpot), `Intercom`, `_learnq.push` (Klaviyo), `ttq.track`/`ttq.page`/`ttq.load` (TikTok Pixel), `mixpanel.track` (Mixpanel). LinkedIn Insight Tag and Twitter/X Pixel are not on the official tested list and are excluded.
 
 == Screenshots ==
 

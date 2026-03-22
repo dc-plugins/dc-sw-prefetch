@@ -12,7 +12,7 @@ Partytown service worker + consent-aware third-party script management + viewpor
 
 ## What it does
 
-1. **Consent-aware Partytown offloading** — reads marketing-consent cookies from 8 common WordPress CMPs on every PHP request. Matching scripts are output as `type="text/partytown"` when consent is present, or `type="text/plain"` (browser-blocked) when it is not. No hooks into the CMP, no DOM patching, no race conditions.
+1. **Partytown Web Worker execution** — unlike `async`/`defer` which only delay loading (scripts still run on the main thread after download), Partytown executes third-party scripts entirely in a Web Worker. The browser main thread is freed from analytics and ad code — no layout jank, no TBT impact, no competition with user interactions. Officially tested compatible services: **Google Tag Manager**, **Facebook Pixel**, **HubSpot**, **Intercom**, **Klaviyo**, **TikTok Pixel**, **Mixpanel** ([full list](https://partytown.qwik.dev/common-services/)). Scripts are consent-gated: output as `type="text/partytown"` when consent is present, `type="text/plain"` (browser-blocked) when it is not.
 
 2. **Viewport/pagination prefetching** — `IntersectionObserver` watches visible WooCommerce products and issues `<link rel="prefetch">` before the user clicks. The next-page link is also prefetched 2 s after page load.
 
@@ -77,7 +77,7 @@ Product/page prefetch    DC Prefetch (IntersectionObserver)
 4. Add URL patterns for any third-party scripts you want to offload (e.g. `analytics.ahrefs.com` or the full GTM URL). Use the **Auto-Detect** button to scan your homepage.
 5. Save.
 
-The `window.partytown.forward` array is pre-configured for `dataLayer.push`, `gtag`, `fbq`, `lintrk`, and `twq`.
+The `window.partytown.forward` array is pre-configured for all officially tested services: `dataLayer.push` (GTM), `fbq` (Facebook Pixel), `_hsq.push` (HubSpot), `Intercom`, `_learnq.push` (Klaviyo), `ttq.track`/`ttq.page`/`ttq.load` (TikTok Pixel), `mixpanel.track` (Mixpanel). See [partytown.qwik.dev/common-services](https://partytown.qwik.dev/common-services/) for details.
 
 ---
 
