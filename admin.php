@@ -45,6 +45,8 @@ function dc_swp_str( $key ) {
             'partytown_autodetect_btn'  => '🔍 Auto-Detekter Tredjeparts-Scripts',
             'partytown_autodetect_none' => 'Ingen eksterne scripts fundet på forsiden.',
             'partytown_autodetect_add'  => 'Tilføj Valgte til Liste',
+            'inline_scripts_label'      => 'Indlejrede Script Blokke',
+            'inline_scripts_desc'       => 'Indsæt komplette tredjeparts-script-blokke her — inkl. &lt;script&gt;-tags og &lt;noscript&gt;-fallbacks (Meta Pixel, TikTok Pixel osv.). Plugin\'et konverterer dem automatisk til <code>type="text/partytown"</code> så de køres i en Web Worker og respekterer marketingsamtykke. <a href="https://partytown.qwik.dev/common-services/" target="_blank" rel="noopener">Kompatible tjenester ↗</a>',
             'partytown_exclude_label'   => 'Udelad Scripts (Ekskluderingsliste)',
             'partytown_exclude_desc'    => 'Én URL-mønster per linje. Scripts der matcher udelades fra Partytown-omskrivning — selv om de er på inkluderingslisten. Listen er forhåndsudfyldt med kendte inkompatible scripts. Rediger frit — fjern mønstre du ikke har brug for.',
             'emoji_label'             => 'Fjern WP Emoji',
@@ -87,6 +89,8 @@ function dc_swp_str( $key ) {
             'partytown_autodetect_btn'  => '🔍 Auto-Detect Third-Party Scripts',
             'partytown_autodetect_none' => 'No external scripts found on the homepage.',
             'partytown_autodetect_add'  => 'Add Selected to List',
+            'inline_scripts_label'      => 'Inline Script Blocks',
+            'inline_scripts_desc'       => 'Paste complete third-party script blocks here — including &lt;script&gt; tags and &lt;noscript&gt; fallbacks (Meta Pixel, TikTok Pixel, etc.). The plugin automatically converts them to <code>type="text/partytown"</code> so they run in a Web Worker and respect marketing consent. <a href="https://partytown.qwik.dev/common-services/" target="_blank" rel="noopener">Compatible services ↗</a>',
             'partytown_exclude_label'   => 'Exclude Scripts (Blocklist)',
             'partytown_exclude_desc'    => 'One URL pattern per line. Scripts matching these patterns are never rewritten to Partytown — even if they appear on the include list. Pre-filled with known incompatible scripts. Edit freely — remove patterns you do not need.',
             'emoji_label'             => 'Remove WP Emoji',
@@ -143,6 +147,8 @@ function dc_swp_register_settings() {
     register_setting( 'dc-sw-prefetch-settings', 'dc_swp_disable_emoji',         [ 'sanitize_callback' => 'sanitize_text_field' ] );
     register_setting( 'dc-sw-prefetch-settings', 'dc_swp_partytown_scripts',     [ 'sanitize_callback' => 'sanitize_textarea_field' ] );
     register_setting( 'dc-sw-prefetch-settings', 'dc_swp_partytown_exclude',     [ 'sanitize_callback' => 'sanitize_textarea_field' ] );
+    // Inline script blocks — admin-only JS content; no HTML sanitization applied (trusted manage_options user).
+    register_setting( 'dc-sw-prefetch-settings', 'dc_swp_inline_scripts' );
 }
 
 // Admin page HTML
@@ -158,6 +164,8 @@ function dc_swp_admin_page_html() {
         update_option( 'dc_swp_disable_emoji',         isset( $_POST['dc_swp_disable_emoji'] )         ? 'yes' : 'no' );
         update_option( 'dc_swp_partytown_scripts',     sanitize_textarea_field( wp_unslash( $_POST['dc_swp_partytown_scripts'] ?? '' ) ) );
         update_option( 'dc_swp_partytown_exclude',     sanitize_textarea_field( wp_unslash( $_POST['dc_swp_partytown_exclude'] ?? '' ) ) );
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- admin-only inline JS; trusted via nonce + manage_options.
+        update_option( 'dc_swp_inline_scripts', wp_unslash( $_POST['dc_swp_inline_scripts'] ?? '' ) );
         echo '<div class="notice notice-success"><p>' . esc_html( dc_swp_str( 'saved' ) ) . '</p></div>';
     }
 
@@ -166,6 +174,7 @@ function dc_swp_admin_page_html() {
     $disable_emoji      = get_option( 'dc_swp_disable_emoji',         'yes' ) === 'yes';
     $partytown_scripts  = get_option( 'dc_swp_partytown_scripts',    '' );
     $partytown_exclude  = get_option( 'dc_swp_partytown_exclude',    '' );
+    $inline_scripts     = get_option( 'dc_swp_inline_scripts',       '' );
     $product_base_val   = get_option( 'dampcig_pwa_product_base',    '' );
     $footer_credit    = get_option( 'dampcig_pwa_footer_credit',   'no' ) === 'yes';
 
@@ -225,6 +234,15 @@ function dc_swp_admin_page_html() {
                                 <?php echo esc_html( dc_swp_str( 'partytown_autodetect_add' ) ); ?>
                             </button>
                         </div>
+                    </td>
+                </tr>
+                <tr valign="top">
+                    <th scope="row"><?php echo esc_html( dc_swp_str( 'inline_scripts_label' ) ); ?></th>
+                    <td>
+                        <textarea name="dc_swp_inline_scripts" rows="10" class="large-text code"
+                            placeholder="<!-- Meta Pixel Code -->&#10;<script>&#10;  !function(f,b,e,v,n,t,s){...}(window, document,'script',&#10;  'https://connect.facebook.net/en_US/fbevents.js');&#10;  fbq('init', '000000000000000');&#10;  fbq('track', 'PageView');&#10;</script>&#10;<noscript><img height=&quot;1&quot; width=&quot;1&quot; style=&quot;display:none&quot; src=&quot;https://www.facebook.com/tr?id=000000000000000&amp;ev=PageView&amp;noscript=1&quot;/></noscript>&#10;<!-- End Meta Pixel Code -->"
+                        ><?php echo esc_textarea( $inline_scripts ); ?></textarea>
+                        <p class="description"><?php echo wp_kses_post( dc_swp_str( 'inline_scripts_desc' ) ); ?></p>
                     </td>
                 </tr>
                 <tr valign="top">

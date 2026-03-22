@@ -753,6 +753,7 @@ function dc_swp_partytown_script_attrs( $attributes ) {
 // Bust the in-request static cache, object cache, and W3TC page cache when settings change.
 add_action( 'update_option_dc_swp_partytown_scripts', 'dc_swp_bust_page_cache' );
 add_action( 'update_option_dc_swp_partytown_exclude', 'dc_swp_bust_page_cache' );
+add_action( 'update_option_dc_swp_inline_scripts',    'dc_swp_bust_page_cache' );
 
 /**
  * Delete all object-cache pattern keys and flush W3TC page cache (if active),
@@ -903,4 +904,96 @@ function dc_swp_partytown_buffer_rewrite( $html ) {
 		},
 		$html
 	);
+}
+
+
+// ============================================================
+// INLINE SCRIPT BLOCKS — PARTYTOWN WEB WORKER
+// Allows admins to paste complete third-party script blocks
+// (e.g. Meta Pixel, TikTok Pixel) directly into the admin UI.
+// Inline <script> blocks are output with type="text/partytown"
+// so Partytown executes them in a Web Worker. The dynamically
+// injected external script (e.g. fbevents.js) is automatically
+// intercepted and loaded within the worker context by Partytown.
+// <noscript> tracking pixels are only emitted when consent is
+// present (GDPR). All output is consent-gated via
+// dc_swp_has_marketing_consent().
+// ============================================================
+
+add_action( 'wp_head', 'dc_swp_output_inline_scripts', 3 );
+
+/**
+ * Parse the admin-stored raw script paste and output each inline
+ * <script> block with type="text/partytown" (consent granted) or
+ * type="text/plain" (no consent). External src= scripts inside
+ * the paste are skipped — they are handled by the include list or
+ * injected automatically from within the worker by the inline code.
+ *
+ * Runs at wp_head priority 3, after Partytown lib is loaded (priority 2).
+ */
+function dc_swp_output_inline_scripts() {
+	if ( dc_swp_is_bot_request() ) {
+		return;
+	}
+	if ( is_admin() ) {
+		return;
+	}
+	if ( get_option( 'dampcig_pwa_sw_enabled', 'yes' ) !== 'yes' ) {
+		return;
+	}
+	// Skip cart, checkout, and account pages.
+	if (
+		( function_exists( 'is_cart' )         && is_cart() ) ||
+		( function_exists( 'is_checkout' )     && is_checkout() ) ||
+		( function_exists( 'is_account_page' ) && is_account_page() )
+	) {
+		return;
+	}
+
+	$raw = (string) get_option( 'dc_swp_inline_scripts', '' );
+	if ( $raw === '' ) {
+		return;
+	}
+
+	// Extract inline <script> blocks — skip any that have a src= attribute
+	// (those are external scripts handled by the include-list / output buffer).
+	$js_blocks = [];
+	if ( preg_match_all( '/<script\b([^>]*)>(.*?)<\/script>/is', $raw, $matches, PREG_SET_ORDER ) ) {
+		foreach ( $matches as $m ) {
+			if ( preg_match( '/\bsrc\s*=/i', $m[1] ) ) {
+				continue; // external — handled elsewhere
+			}
+			$content = trim( $m[2] );
+			if ( $content !== '' ) {
+				$js_blocks[] = $content;
+			}
+		}
+	}
+
+	if ( empty( $js_blocks ) ) {
+		return;
+	}
+
+	$consent    = dc_swp_has_marketing_consent();
+	$type       = $consent ? 'text/partytown' : 'text/plain';
+	$nonce      = dc_swp_get_csp_nonce();
+	$nonce_attr = $nonce !== '' ? ' nonce="' . esc_attr( $nonce ) . '"' : '';
+
+	foreach ( $js_blocks as $js ) {
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- admin-controlled inline JS.
+		echo '<script type="' . esc_attr( $type ) . '"' . $nonce_attr . ">\n" . $js . "\n</script>\n";
+	}
+
+	// <noscript> tracking pixels are passive image loads — only emit when consent is granted.
+	if ( $consent ) {
+		if ( preg_match_all( '/<noscript\b[^>]*>(.*?)<\/noscript>/is', $raw, $ns_matches ) ) {
+			foreach ( $ns_matches[1] as $ns_content ) {
+				$ns_content = trim( $ns_content );
+				if ( $ns_content !== '' ) {
+					// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- admin-controlled noscript fallback.
+					echo '<noscript>' . $ns_content . "</noscript>\n";
+				}
+			}
+		}
+	}
 }
