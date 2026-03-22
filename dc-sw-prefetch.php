@@ -472,7 +472,10 @@ function dc_swp_partytown_config() {
 	$snippet = file_get_contents( $snippet_file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 
 	// Build the Partytown config as a PHP structure so it is always valid JSON.
-	// forward list based on https://partytown.qwik.dev/common-services/
+	// forward list — only officially tested services from https://partytown.qwik.dev/common-services/
+	// Note: 'gtag' is intentionally excluded — it is defined as an inline wrapper that calls
+	// dataLayer.push(), which is already forwarded. Forwarding 'gtag' separately is redundant.
+	// 'lintrk' (LinkedIn) and 'twq' (Twitter/X) are excluded — not on the officially tested list.
 	$config = [
 		'lib'   => '/~partytown/',
 		'debug' => false,
@@ -481,15 +484,12 @@ function dc_swp_partytown_config() {
 		// event flow intact.
 		'forward' => [
 			// Array-of-arrays tuple format: ['forwardProp', {options}]
-			[ 'dataLayer.push', [ 'preserveBehavior' => true ] ],
-			'gtag',         // Google Analytics / GTM
-			'fbq',          // Meta Pixel
-			'lintrk',       // LinkedIn Insight
-			'twq',          // Twitter/X Pixel
-			'_hsq.push',    // HubSpot
-			'Intercom',     // Intercom
-			'_learnq.push', // Klaviyo
-			'ttq.track',    // TikTok Pixel
+			[ 'dataLayer.push', [ 'preserveBehavior' => true ] ], // Google Tag Manager
+			'fbq',            // Meta / Facebook Pixel
+			'_hsq.push',      // HubSpot Tracking
+			'Intercom',       // Intercom
+			'_learnq.push',   // Klaviyo
+			'ttq.track',      // TikTok Pixel
 			'ttq.page',
 			'ttq.load',
 			'mixpanel.track', // Mixpanel
