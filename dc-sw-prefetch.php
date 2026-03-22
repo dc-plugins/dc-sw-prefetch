@@ -802,11 +802,7 @@ function dc_swp_get_partytown_exclude_patterns() {
 		$exclude = $cached;
 		return $exclude;
 	}
-	$raw = (string) get_option( 'dc_swp_partytown_exclude', '' );
-	// Fall back to defaults when the option has never been configured.
-	if ( $raw === '' ) {
-		$raw = dc_swp_default_exclude_list();
-	}
+	$raw     = (string) get_option( 'dc_swp_partytown_exclude', '' );
 	$exclude = array_values( array_filter(
 		array_map( 'trim', explode( "\n", $raw ) ),
 		static fn( $line ) => $line !== ''

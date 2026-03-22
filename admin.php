@@ -165,7 +165,7 @@ function dc_swp_admin_page_html() {
     $preload_products = get_option( 'dampcig_pwa_preload_products', 'yes' ) === 'yes';
     $disable_emoji      = get_option( 'dc_swp_disable_emoji',         'yes' ) === 'yes';
     $partytown_scripts  = get_option( 'dc_swp_partytown_scripts',    '' );
-    $partytown_exclude  = get_option( 'dc_swp_partytown_exclude',    '' ) ?: dc_swp_default_exclude_list();
+    $partytown_exclude  = get_option( 'dc_swp_partytown_exclude',    '' );
     $product_base_val   = get_option( 'dampcig_pwa_product_base',    '' );
     $footer_credit    = get_option( 'dampcig_pwa_footer_credit',   'no' ) === 'yes';
 
@@ -359,8 +359,9 @@ function dc_swp_admin_page_html() {
     </style>
     <script type="text/javascript">
     jQuery(function($){
-        var nonce        = <?php echo wp_json_encode( wp_create_nonce( 'dc_swp_detect_nonce' ) ); ?>;
-        var noScriptsMsg = <?php echo wp_json_encode( dc_swp_str( 'partytown_autodetect_none' ) ); ?>;
+        var nonce             = <?php echo wp_json_encode( wp_create_nonce( 'dc_swp_detect_nonce' ) ); ?>;
+        var noScriptsMsg      = <?php echo wp_json_encode( dc_swp_str( 'partytown_autodetect_none' ) ); ?>;
+        var knownIncompatible = <?php echo wp_json_encode( array_values( array_filter( array_map( 'trim', explode( "\n", dc_swp_default_exclude_list() ) ), static fn( $l ) => $l !== '' ) ) ); ?>;
         $('#dc-swp-autodetect-btn').on('click', function(){
             var $btn  = $(this),
                 $spin = $('#dc-swp-autodetect-spinner'),
@@ -383,6 +384,13 @@ function dc_swp_admin_page_html() {
                     });
                     $list.html(html);
                     $('#dc-swp-add-selected').show();
+                }
+                // Auto-merge known incompatible scripts into the exclude textarea.
+                var $excl      = $('textarea[name="dc_swp_partytown_exclude"]');
+                var existingEx = $excl.val().split('\n').map(function(s){ return s.trim(); }).filter(Boolean);
+                var toExclude  = knownIncompatible.filter(function(p){ return existingEx.indexOf(p) === -1; });
+                if ( toExclude.length ) {
+                    $excl.val( existingEx.concat(toExclude).join('\n') );
                 }
                 $res.show();
             }).fail(function(){ $btn.prop('disabled',false); $spin.hide(); });
@@ -451,14 +459,7 @@ function dc_swp_ajax_detect_scripts() {
 
         // Skip hostnames that are in the hardcoded exclusion list
         // (DOM-dependent widgets that cannot run in a service worker).
-        $builtin_excluded = [
-            'widget.trustpilot.com',
-            'invitejs.trustpilot.com',
-            'js.stripe.com',
-            'js.braintreegateway.com',
-            'checkout.paypal.com',
-            'maps.googleapis.com',
-        ];
+        $builtin_excluded = array_filter( array_map( 'trim', explode( "\n", dc_swp_default_exclude_list() ) ), static fn( $l ) => $l !== '' );
         $skip = false;
         foreach ( $builtin_excluded as $excl ) {
             if ( str_contains( $host, $excl ) || str_contains( $excl, $host ) ) {
