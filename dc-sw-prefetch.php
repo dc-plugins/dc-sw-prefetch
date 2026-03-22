@@ -42,7 +42,7 @@ function dc_swp_is_bot_request() {
 	$bot_patterns = [
 		'googlebot', 'bingbot', 'slurp', 'duckduckbot', 'baiduspider',
 		'yandexbot', 'sogou', 'exabot', 'facebot', 'facebookexternalhit',
-		'ia_archiver', 'semrushbot', 'ahrefsbot', 'mj12bot', 'dotbot',
+		'ia_archiver', 'semrushbot', 'ahrefsbot', 'ahrefssiteaudit', 'mj12bot', 'dotbot',
 		'rogerbot', 'seokicks', 'seznambot', 'blexbot', 'yeti',
 		'naverbot', 'daumoa', 'applebot', 'twitterbot', 'linkedinbot',
 		'pinterestbot', 'whatsapp', 'telegrambot', 'discordbot',
