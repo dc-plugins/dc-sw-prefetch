@@ -640,8 +640,20 @@ function dc_swp_partytown_config() {
 	$nonce_attr  = $nonce !== '' ? ' nonce="' . esc_attr( $nonce ) . '"' : '';
 	$config_json = wp_json_encode( $config, JSON_UNESCAPED_SLASHES );
 
+	// resolveUrl routes cross-origin script fetches through our CORS proxy so
+	// Partytown's sandbox iframe can load external scripts (e.g. fbevents.js)
+	// without being blocked by CORS. The server-side proxy only accepts an
+	// explicit allowlist of CDN hostnames, preventing SSRF.
+	$proxy_url_json = wp_json_encode( home_url( '/~partytown-proxy' ), JSON_UNESCAPED_SLASHES );
+	$resolve_url_fn = 'window.partytown.resolveUrl=function(url,location,type){'
+		. 'if(type==="script"){'
+		. 'var p=new URL(' . $proxy_url_json . ');'
+		. 'p.searchParams.append("url",url.href);'
+		. 'return p;'
+		. '}return url;};';
+
 	// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-	echo '<script' . $nonce_attr . '>window.partytown=' . $config_json . ";</script>\n";
+	echo '<script' . $nonce_attr . '>window.partytown=' . $config_json . ';' . $resolve_url_fn . "</script>\n";
 	// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 	echo '<script' . $nonce_attr . '>' . $snippet . "</script>\n";
 }
