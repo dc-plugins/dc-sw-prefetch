@@ -613,27 +613,21 @@ function dc_swp_partytown_config() {
 	// Feature 4: loadScriptsOnMainThread — scripts dynamically injected inside the
 	// worker that match a pattern are loaded on the main thread instead.
 	//
-	// connect.facebook.net (entire domain) is hardcoded here. This is the
-	// official Partytown-recommended approach for Meta Pixel. fbevents.js
-	// dynamically injects 10–50+ sub-scripts (signals config, A/B modules, etc.)
-	// all from the same domain. Running them in the worker via a CORS proxy causes
-	// a recursive cascade (1000+ requests). Putting the whole domain on the main
-	// thread is the only bounded solution.
+	// NOTE: connect.facebook.net is intentionally NOT hardcoded here.
+	// Putting it in loadScriptsOnMainThread causes fbevents.js to run BOTH inside
+	// the Partytown sandbox (via the CORS proxy) AND on the main thread, which
+	// produces "Multiple pixels with conflicting versions" and a Symbol.iterator
+	// TypeError inside partytown-sandbox-sw.html. Meta Pixel fbevents.js v2.0 is
+	// handled exclusively via the CORS proxy (/~partytown-proxy) within the worker.
+	// The forward: ['fbq'] entry ensures all fbq() calls are proxied correctly.
 	//
-	// Partytown benefit is preserved: the inline fbq() bootstrap shim still
-	// executes in the worker, and all fbq('track', ...) calls throughout the page
-	// session are forwarded worker→main thread without blocking the main thread.
-	// Only the one-time SDK load happens on main thread (async, non-blocking).
-	//
-	// User exclude list is merged in for any other scripts the admin wants to
-	// explicitly keep off the worker.
+	// loadScriptsOnMainThread is used only for user-configured exclusions — scripts
+	// that are genuinely incompatible with the Partytown worker environment.
 	// NOTE: Partytown expects a plain string[], NOT tuples.
 	$exclude = dc_swp_get_partytown_exclude_patterns();
-	$load_on_main = array_values( array_unique( array_merge(
-		[ 'connect.facebook.net' ],
-		$exclude
-	) ) );
-	$config['loadScriptsOnMainThread'] = $load_on_main;
+	if ( ! empty( $exclude ) ) {
+		$config['loadScriptsOnMainThread'] = array_values( $exclude );
+	}
 
 	// Feature 2: Pass a per-request CSP nonce into the Partytown config.
 	// Partytown will stamp this nonce on every <script> element it creates,
