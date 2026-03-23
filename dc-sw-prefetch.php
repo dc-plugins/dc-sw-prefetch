@@ -848,13 +848,23 @@ function dc_swp_partytown_script_attrs( $attributes ) {
 	if ( dc_swp_is_bot_request() ) {
 		return $attributes;
 	}
-	if ( get_option( 'dampcig_pwa_sw_enabled', 'yes' ) !== 'yes' ) {
-		return $attributes;
-	}
 	$src = $attributes['src'] ?? '';
 	if ( ! $src ) {
 		return $attributes;
 	}
+
+	if ( get_option( 'dampcig_pwa_sw_enabled', 'yes' ) !== 'yes' ) {
+		// Partytown disabled → render matched scripts on the main thread with defer.
+		foreach ( dc_swp_get_partytown_patterns() as $pattern ) {
+			if ( $pattern !== '' && str_contains( $src, $pattern ) ) {
+				$attributes['defer'] = true;
+				unset( $attributes['async'] );
+				break;
+			}
+		}
+		return $attributes;
+	}
+
 	// Never mark excluded scripts as text/partytown.
 	foreach ( dc_swp_get_partytown_exclude_patterns() as $excl ) {
 		if ( $excl !== '' && str_contains( $src, $excl ) ) {
@@ -1066,9 +1076,6 @@ function dc_swp_output_inline_scripts() {
 	if ( is_admin() ) {
 		return;
 	}
-	if ( get_option( 'dampcig_pwa_sw_enabled', 'yes' ) !== 'yes' ) {
-		return;
-	}
 	// Skip cart, checkout, and account pages.
 	if (
 		( function_exists( 'is_cart' )         && is_cart() ) ||
@@ -1102,24 +1109,47 @@ function dc_swp_output_inline_scripts() {
 		return;
 	}
 
+	$pt_enabled = get_option( 'dampcig_pwa_sw_enabled', 'yes' ) === 'yes';
 	$consent    = dc_swp_has_marketing_consent();
-	$type       = $consent ? 'text/partytown' : 'text/plain';
 	$nonce      = dc_swp_get_csp_nonce();
 	$nonce_attr = $nonce !== '' ? ' nonce="' . esc_attr( $nonce ) . '"' : '';
 
-	foreach ( $js_blocks as $js ) {
-		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- admin-controlled inline JS.
-		echo '<script type="' . esc_attr( $type ) . '"' . $nonce_attr . ">\n" . $js . "\n</script>\n";
-	}
-
-	// <noscript> tracking pixels are passive image loads — only emit when consent is granted.
-	if ( $consent ) {
-		if ( preg_match_all( '/<noscript\b[^>]*>(.*?)<\/noscript>/is', $raw, $ns_matches ) ) {
-			foreach ( $ns_matches[1] as $ns_content ) {
-				$ns_content = trim( $ns_content );
-				if ( $ns_content !== '' ) {
-					// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- admin-controlled noscript fallback.
-					echo '<noscript>' . $ns_content . "</noscript>\n";
+	if ( $pt_enabled ) {
+		// Partytown active — run in Web Worker, consent-gated.
+		$type = $consent ? 'text/partytown' : 'text/plain';
+		foreach ( $js_blocks as $js ) {
+			// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- admin-controlled inline JS.
+			echo '<script type="' . esc_attr( $type ) . '"' . $nonce_attr . ">\n" . $js . "\n</script>\n";
+		}
+		// <noscript> tracking pixels are passive image loads — only emit when consent is granted.
+		if ( $consent ) {
+			if ( preg_match_all( '/<noscript\b[^>]*>(.*?)<\/noscript>/is', $raw, $ns_matches ) ) {
+				foreach ( $ns_matches[1] as $ns_content ) {
+					$ns_content = trim( $ns_content );
+					if ( $ns_content !== '' ) {
+						// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- admin-controlled noscript fallback.
+						echo '<noscript>' . $ns_content . "</noscript>\n";
+					}
+				}
+			}
+		}
+	} else {
+		// Partytown disabled — diagnostic mode: render scripts directly on the main
+		// thread with defer so they do not block page rendering. No consent gate
+		// is applied here; this mode is intended for local debugging only.
+		foreach ( $js_blocks as $js ) {
+			// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- admin-controlled inline JS.
+			echo '<script defer' . $nonce_attr . ">\n" . $js . "\n</script>\n";
+		}
+		// Always emit <noscript> pixels in diagnostic mode when consent is granted.
+		if ( $consent ) {
+			if ( preg_match_all( '/<noscript\b[^>]*>(.*?)<\/noscript>/is', $raw, $ns_matches ) ) {
+				foreach ( $ns_matches[1] as $ns_content ) {
+					$ns_content = trim( $ns_content );
+					if ( $ns_content !== '' ) {
+						// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- admin-controlled noscript fallback.
+						echo '<noscript>' . $ns_content . "</noscript>\n";
+					}
 				}
 			}
 		}
