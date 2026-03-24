@@ -644,8 +644,38 @@ function dc_swp_partytown_config() {
 	// Partytown's sandbox iframe can load external scripts (e.g. fbevents.js)
 	// without being blocked by CORS. The server-side proxy only accepts an
 	// explicit allowlist of CDN hostnames, preventing SSRF.
+	//
+	// Path-rewrite map: analytics scripts often issue fetch/beacon calls using a
+	// root-relative path (e.g. "/api/event") rather than a full URL. Inside the
+	// Partytown sandbox that relative path resolves against the site origin,
+	// resulting in a same-origin 404. We maintain a filterable map of known
+	// same-origin paths → correct external endpoints so any analytics tool can
+	// be handled without touching this file.
+	//
+	// To add a new entry from a theme/plugin, use:
+	//   add_filter( 'dc_swp_partytown_path_rewrites', function( $map ) {
+	//       $map['/collect'] = 'https://analytics.example.com/collect';
+	//       return $map;
+	//   } );
+	$path_rewrites = apply_filters( 'dc_swp_partytown_path_rewrites', [
+		'/api/event' => 'https://analytics.ahrefs.com/api/event', // Ahrefs Analytics
+	] );
+	$path_rewrites_json = wp_json_encode( $path_rewrites, JSON_UNESCAPED_SLASHES );
+
 	$proxy_url_json = wp_json_encode( home_url( '/~partytown-proxy' ), JSON_UNESCAPED_SLASHES );
 	$resolve_url_fn = 'window.partytown.resolveUrl=function(url,location,type){'
+		// Same-origin path rewrite: catches analytics fetch/sendBeacon/XHR calls
+		// that use a root-relative URL and would otherwise 404 on the WordPress
+		// site. Explicitly excludes type==="script" — script loads at a same-origin
+		// path should never be rerouted to an external analytics endpoint.
+		// (resolveUrl is called for every request type: "script", "fetch", "xhr",
+		// "sendBeacon" — the type param lets us be precise about what we intercept.)
+		. 'var pr=' . $path_rewrites_json . ';'
+		. 'if(type!=="script"&&url&&url.hostname===location.hostname&&pr[url.pathname]){'
+		. 'return new URL(pr[url.pathname]);'
+		. '}'
+		// Cross-origin script proxy: routes external script loads through the
+		// server-side CORS proxy so the Partytown sandbox iframe can fetch them.
 		. 'if(type==="script"&&url.hostname!==location.hostname){'
 		. 'var p=new URL(' . $proxy_url_json . ');'
 		. 'p.searchParams.append("url",url.href);'
