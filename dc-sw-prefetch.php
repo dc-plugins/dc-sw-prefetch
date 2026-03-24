@@ -1413,12 +1413,43 @@ function dc_swp_partytown_buffer_rewrite( $html ) { // phpcs:ignore WordPress.Na
 		},
 		$html
 	);
+
+	// ── Cross-origin iframe: inject `credentialless` attribute ────────────
+	// Under COEP: credentialless, the browser blocks cross-origin iframes
+	// whose response carries Cross-Origin-Resource-Policy: same-origin (or
+	// no COEP opt-in at all). The HTML `credentialless` attribute on <iframe>
+	// instructs Chrome to load the iframe without cookies — bypassing CORP
+	// enforcement for read-only embeds like Trustpilot TrustScore widgets.
+	// Firefox / Safari do not implement COEP credentialless and are unaffected.
+	if ( get_option( 'dc_swp_coi_headers', 'no' ) === 'yes' ) {
+		$site_host = (string) wp_parse_url( home_url(), PHP_URL_HOST );
+		$html      = preg_replace_callback(
+			'/<iframe\b[^>]*>/i',
+			static function ( $iframe_match ) use ( $site_host ) {
+				$tag = $iframe_match[0];
+				// Already has the attribute — nothing to do.
+				if ( preg_match( '/\bcredentialless\b/i', $tag ) ) {
+					return $tag;
+				}
+				// Must have a src= pointing to a different origin.
+				if ( ! preg_match( '/\bsrc=(["\'])([^"\']+)\1/i', $tag, $src_m ) ) {
+					return $tag;
+				}
+				$iframe_host = (string) wp_parse_url( $src_m[2], PHP_URL_HOST );
+				if ( $iframe_host === '' || $iframe_host === $site_host ) {
+					return $tag;
+				}
+				// Insert before closing >.
+				return substr( $tag, 0, -1 ) . ' credentialless>';
+			},
+			$html
+		);
+	}
+
+	return $html;
 }
 
 /**
- * Return a pending-companion descriptor if $src matches a key in $companion_map,
- * or null if this src= script has no known inline companion.
- *
  * @param string               $src           The script src= URL.
  * @param string               $type          'text/partytown' or 'text/plain'.
  * @param array<string,string> $companion_map Map of URL substring → body validator regex.
