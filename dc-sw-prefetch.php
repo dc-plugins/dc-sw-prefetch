@@ -267,6 +267,41 @@ function dc_swp_clear_footer_strategy_cache() {
 // ============================================================
 
 add_action( 'send_headers', 'dc_swp_fallback_cache_headers' );
+add_action( 'send_headers', 'dc_swp_cross_origin_isolation_headers' );
+
+/**
+ * Emit Cross-Origin-Opener-Policy and Cross-Origin-Embedder-Policy headers
+ * on pages where Partytown is active, when the admin has opted in.
+ *
+ * These headers unlock SharedArrayBuffer in the browser, which allows
+ * Partytown to use the Atomics-based synchronisation bridge (partytown-atomics.js)
+ * instead of the slower synchronous-XHR bridge (partytown-sw.js). The result
+ * is reduced bridge round-trip latency for every worker ↔ main-thread call.
+ *
+ * COEP: credentialless is chosen over require-corp because it allows
+ * cross-origin subresources (CDN images, fonts) to load without needing an
+ * explicit Cross-Origin-Resource-Policy header on the remote server.
+ *
+ * Skipped for bots, logged-in users, and transactional pages (cart / checkout /
+ * account). Skipped unless the dc_swp_coi_headers option is enabled.
+ */
+function dc_swp_cross_origin_isolation_headers() {
+	if ( get_option( 'dc_swp_coi_headers', 'no' ) !== 'yes' ) {
+		return;
+	}
+	if ( is_admin() || dc_swp_is_bot_request() ) {
+		return;
+	}
+	// Skip for logged-in users and transactional pages.
+	if ( is_user_logged_in()
+		|| ( function_exists( 'is_cart' )         && is_cart() )
+		|| ( function_exists( 'is_checkout' )     && is_checkout() )
+		|| ( function_exists( 'is_account_page' ) && is_account_page() ) ) {
+		return;
+	}
+	header( 'Cross-Origin-Opener-Policy: same-origin' );
+	header( 'Cross-Origin-Embedder-Policy: credentialless' );
+}
 
 /**
  * When W3TC is absent, emit sensible Cache-Control / Expires / Vary

@@ -57,6 +57,8 @@ function dc_swp_str( $key ) {
             'partytown_exclude_desc'    => 'Én URL-mønster per linje. Scripts der matcher udelades fra Partytown-omskrivning — selv om de er på inkluderingslisten. Listen er forhåndsudfyldt med kendte inkompatible scripts. Rediger frit — fjern mønstre du ikke har brug for.',
             'emoji_label'             => 'Fjern WP Emoji',
             'emoji_desc'        => 'Fjerner WordPress emoji-detection script og tilhørende CSS (s.w.org fetch). Anbefalet — moderne browsere har native emoji.',
+            'coi_label'               => 'SharedArrayBuffer (Atomics Bridge)',
+            'coi_desc'                => 'Sender <code>Cross-Origin-Opener-Policy: same-origin</code> og <code>Cross-Origin-Embedder-Policy: credentialless</code> på offentlige sider. Aktiverer <code>crossOriginIsolated</code> i browseren, så Partytown skifter til den hurtigere Atomics-bro i stedet for sync-XHR. Skip bots, indloggede brugere og kassen. <strong>Test i staging — kan bryde OAuth-popups eller widgets med cross-origin iframes.</strong>',
             'credit_label'      => 'Footer Kredit',
             'credit_checkbox'   => 'Vis kærlighed og støt udviklingen ved at tilføje et lille link i footeren',
             'credit_desc'       => 'Indsætter et diskret <a href="https://www.dampcig.dk" target="_blank">Dampcig.dk</a>-link i sidens footer ved at linke copyright-symbolet ©.',
@@ -107,6 +109,8 @@ function dc_swp_str( $key ) {
             'partytown_exclude_desc'    => 'One URL pattern per line. Scripts matching these patterns are never rewritten to Partytown — even if they appear on the include list. Pre-filled with known incompatible scripts. Edit freely — remove patterns you do not need.',
             'emoji_label'             => 'Remove WP Emoji',
             'emoji_desc'        => 'Removes the WordPress emoji detection script and its CSS (s.w.org fetch). Recommended — modern browsers have native emoji support.',
+            'coi_label'               => 'SharedArrayBuffer (Atomics Bridge)',
+            'coi_desc'                => 'Sends <code>Cross-Origin-Opener-Policy: same-origin</code> and <code>Cross-Origin-Embedder-Policy: credentialless</code> on public pages. Enables <code>crossOriginIsolated</code> in the browser so Partytown switches to the faster Atomics bridge instead of the sync-XHR bridge. Skipped for bots, logged-in users and checkout. <strong>Test in staging first — can break OAuth popups or widgets with cross-origin iframes.</strong>',
             'credit_label'      => 'Footer Credit',
             'credit_checkbox'   => 'Show some love and support development by adding a small link in the footer',
             'credit_desc'       => 'Inserts a discreet <a href="https://www.dampcig.dk" target="_blank">Dampcig.dk</a> link in the footer by linking the copyright symbol ©.',
@@ -161,6 +165,7 @@ function dc_swp_register_settings() {
     register_setting( 'dc-sw-prefetch-settings', 'dc_swp_partytown_exclude',     [ 'sanitize_callback' => 'sanitize_textarea_field' ] );
     // Inline script blocks — admin-only JS content; no HTML sanitization applied (trusted manage_options user).
     register_setting( 'dc-sw-prefetch-settings', 'dc_swp_inline_scripts' );
+    register_setting( 'dc-sw-prefetch-settings', 'dc_swp_coi_headers', [ 'sanitize_callback' => 'sanitize_text_field' ] );
 }
 
 // Admin page HTML
@@ -198,12 +203,14 @@ function dc_swp_admin_page_html() {
             }
         }
         update_option( 'dc_swp_inline_scripts', wp_json_encode( $sanitized_blocks ) );
+        update_option( 'dc_swp_coi_headers', isset( $_POST['dc_swp_coi_headers'] ) ? 'yes' : 'no' );
         echo '<div class="notice notice-success"><p>' . esc_html( dc_swp_str( 'saved' ) ) . '</p></div>';
     }
 
     $sw_enabled       = get_option( 'dampcig_pwa_sw_enabled',      'yes' ) === 'yes';
     $preload_products = get_option( 'dampcig_pwa_preload_products', 'yes' ) === 'yes';
     $disable_emoji      = get_option( 'dc_swp_disable_emoji',         'yes' ) === 'yes';
+    $coi_headers        = get_option( 'dc_swp_coi_headers',             'no'  ) === 'yes';
     $partytown_scripts  = get_option( 'dc_swp_partytown_scripts',    '' );
     $partytown_exclude  = get_option( 'dc_swp_partytown_exclude',    '' );
     // Inline script blocks — decode JSON; auto-migrate legacy plain-text format.
@@ -334,6 +341,16 @@ function dc_swp_admin_page_html() {
                             <span class="pwa-slider"></span>
                         </label>
                         <p class="description"><?php echo wp_kses_post( dc_swp_str( 'emoji_desc' ) ); ?></p>
+                    </td>
+                </tr>
+                <tr valign="top">
+                    <th scope="row"><?php echo esc_html( dc_swp_str( 'coi_label' ) ); ?></th>
+                    <td>
+                        <label class="pwa-toggle">
+                            <input type="checkbox" name="dc_swp_coi_headers" value="yes" <?php checked( $coi_headers, true ); ?>>
+                            <span class="pwa-slider"></span>
+                        </label>
+                        <p class="description"><?php echo wp_kses_post( dc_swp_str( 'coi_desc' ) ); ?></p>
                     </td>
                 </tr>
                 <tr valign="top">
