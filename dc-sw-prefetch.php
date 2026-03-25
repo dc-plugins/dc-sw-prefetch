@@ -715,30 +715,47 @@ function dc_swp_partytown_config() {
 	// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 	echo '<script' . $nonce_attr . '>' . $snippet . "</script>\n";
 
-	// When Cross-Origin isolation (COEP) is active, ANY cross-origin iframe needs
-	// the `credentialless` attribute so the browser allows it to load without a
-	// CORP header. Under COEP: credentialless, browsers (Chrome 110+, Firefox 119+)
-	// permit cross-origin iframes that carry `credentialless`. We use a
-	// MutationObserver to stamp it on every cross-origin iframe — origin-based,
-	// not exclusion-list-based — preserving the origin widgets like Trustpilot
-	// rely on for postMessage communication.
+	// When Cross-Origin isolation (COEP) is active, every cross-origin iframe
+	// needs the `credentialless` attribute before its src navigation begins —
+	// otherwise the browser enforces CORP and blocks it (e.g. Trustpilot).
+	//
+	// A MutationObserver fires too late: the browser starts the iframe navigation
+	// synchronously when the element is appended with a src, before any microtask
+	// can run. We therefore intercept HTMLIFrameElement.prototype src setter and
+	// setAttribute so `credentialless` is stamped BEFORE the src is applied.
+	// The MutationObserver is kept as a fallback for iframes inserted via innerHTML
+	// or DOMParser, where navigation is deferred to a separate task.
 	$coi_active = get_option( 'dc_swp_coi_headers', 'no' ) === 'yes';
 	if ( $coi_active ) {
 		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 		echo '<script' . $nonce_attr . '>'
 			. '(function(){'
 			. 'if(!window.crossOriginIsolated)return;'
-			. 'function needsCredentialless(src){'
-			. 'if(!src)return false;'
-			. 'try{var u=new URL(src,location.href);'
-			. 'return u.origin!==location.origin;'
-			. '}catch(e){return false;}}'
+			// Save original setAttribute before we override it, so ensureCredentialless
+			// can call it directly without going through our override.
+			. 'var _sa=HTMLIFrameElement.prototype.setAttribute;'
+			. 'function ensureCredentialless(el,src){'
+			. 'if(!src||el.hasAttribute("credentialless"))return;'
+			. 'try{'
+			. 'var u=new URL(src,location.href);'
+			// Skip about:, javascript:, data: — only http(s) cross-origin iframes need this.
+			. 'if(u.protocol==="about:"||u.protocol==="javascript:"||u.protocol==="data:")return;'
+			. 'if(u.origin!==location.origin)_sa.call(el,"credentialless","");'
+			. '}catch(e){}}'
+			// Intercept iframe.src = '...' — fires before the value is applied.
+			. 'var d=Object.getOwnPropertyDescriptor(HTMLIFrameElement.prototype,"src");'
+			. 'if(d&&d.set){'
+			. 'Object.defineProperty(HTMLIFrameElement.prototype,"src",{'
+			. 'set:function(v){ensureCredentialless(this,v);d.set.call(this,v);},'
+			. 'get:d.get,configurable:true});}'
+			// Intercept iframe.setAttribute("src", '...') — same guarantee.
+			. 'HTMLIFrameElement.prototype.setAttribute=function(n,v){'
+			. 'if(n.toLowerCase()==="src")ensureCredentialless(this,v);'
+			. '_sa.call(this,n,v);};'
+			// MutationObserver fallback for innerHTML / DOMParser inserted iframes.
 			. 'function markIfNeeded(el){'
-			. 'if(!el||el.tagName!=="IFRAME")return;'
-			. 'if(el.hasAttribute("credentialless"))return;'
-			. 'var s=el.getAttribute("src");'
-			. 'if(!needsCredentialless(s))return;'
-			. 'el.setAttribute("credentialless","");}'
+			. 'if(!el||el.tagName!=="IFRAME"||el.hasAttribute("credentialless"))return;'
+			. 'ensureCredentialless(el,el.getAttribute("src"));}'
 			. 'var obs=new MutationObserver(function(muts){'
 			. 'muts.forEach(function(m){'
 			. 'if(m.type==="childList"){'
