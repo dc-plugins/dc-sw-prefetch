@@ -420,8 +420,13 @@ function dc_swp_serve_partytown_files() {
 // not send Access-Control-Allow-Origin headers, so the browser
 // blocks those fetches. This proxy endpoint fetches the script
 // server-side (where CORS doesn't apply) and re-serves it with
-// the necessary CORS header. Only an explicit allowlist of CDN
-// hostnames is accepted to prevent SSRF.
+// the necessary CORS header.
+//
+// The allowlist is built dynamically from the admin-configured
+// Partytown Script List and Script Blocks — only hostnames the
+// site owner has explicitly opted into are accepted. This prevents
+// SSRF and ensures the proxy never touches third-party scripts
+// that are not part of the active Partytown configuration.
 // ============================================================
 
 add_action( 'init', 'dc_swp_serve_partytown_proxy', 1 );
@@ -434,7 +439,8 @@ add_action( 'init', 'dc_swp_serve_partytown_proxy', 1 );
  *
  * Security measures:
  *  - Only HTTPS scheme accepted.
- *  - Allowlist-only: only CDN hostnames of Partytown-tested services.
+ *  - Allowlist-only: only hostnames derived from the admin-configured
+ *    Partytown Script List and Script Blocks are accepted.
  *  - URL is reconstructed from parsed components (no raw passthrough).
  *  - No redirect following (redirection=0) to prevent SSRF via redirect.
  *  - SSL verification enabled.
@@ -464,29 +470,11 @@ function dc_swp_serve_partytown_proxy() {
 
 	$host = strtolower( $parsed['host'] ?? '' );
 
-	// Allowlist: CDN hostnames of officially tested Partytown-compatible services only.
-	// Extend this list when adding new services to the Partytown forward list.
-	$allowed_hosts = [
-		'connect.facebook.net',          // Meta Pixel
-		'www.googletagmanager.com',      // Google Tag Manager
-		'www.google-analytics.com',      // Google Analytics
-		'region1.google-analytics.com',  // GA4 EU region
-		'region1.analytics.google.com',
-		'js.hs-analytics.net',           // HubSpot
-		'js.hsforms.net',
-		'js.hubspot.com',
-		'js.hs-banner.com',
-		'js.usemessages.com',
-		'js.hs-scripts.com',
-		'js.intercomcdn.com',            // Intercom
-		'widget.intercom.io',
-		'static.klaviyo.com',            // Klaviyo
-		'analytics.tiktok.com',          // TikTok Pixel
-		'cdn.mxpnl.com',                 // Mixpanel
-		'analytics.ahrefs.com',          // Ahrefs Analytics
-	];
+	// Allowlist: derived dynamically from the admin-configured Partytown Script
+	// List and Script Blocks — only hostnames the site owner has opted into.
+	$allowed_hosts = dc_swp_get_proxy_allowed_hosts();
 
-	if ( ! in_array( $host, $allowed_hosts, true ) ) {
+	if ( empty( $allowed_hosts ) || ! in_array( $host, $allowed_hosts, true ) ) {
 		status_header( 403 );
 		exit();
 	}
@@ -697,7 +685,8 @@ function dc_swp_partytown_config() {
 	] );
 	$path_rewrites_json = wp_json_encode( $path_rewrites, JSON_UNESCAPED_SLASHES );
 
-	$proxy_url_json      = wp_json_encode( home_url( '/~partytown-proxy' ), JSON_UNESCAPED_SLASHES );
+	$proxy_url_json           = wp_json_encode( home_url( '/~partytown-proxy' ), JSON_UNESCAPED_SLASHES );
+	$proxy_allowed_hosts_json = wp_json_encode( dc_swp_get_proxy_allowed_hosts(), JSON_UNESCAPED_SLASHES );
 
 	$resolve_url_fn = 'window.partytown.resolveUrl=function(url,location,type){'
 		// Same-origin path rewrite: catches analytics fetch/sendBeacon/XHR calls
@@ -711,8 +700,11 @@ function dc_swp_partytown_config() {
 		. 'return new URL(pr[url.pathname]);'
 		. '}'
 		// Cross-origin script proxy: routes external script loads through the
-		// server-side CORS proxy so the Partytown sandbox iframe can fetch them.
-		. 'if(type==="script"&&url.hostname!==location.hostname){'
+		// server-side CORS proxy, but only for hostnames the admin has configured
+		// in the Partytown Script List or Script Blocks.  Scripts from any other
+		// origin are returned as-is and Partytown fetches them directly.
+		. 'var ph=' . $proxy_allowed_hosts_json . ';'
+		. 'if(type==="script"&&url.hostname!==location.hostname&&ph.indexOf(url.hostname)!==-1){'
 		. 'var p=new URL(' . $proxy_url_json . ');'
 		. 'p.searchParams.append("url",url.href);'
 		. 'return p;'
@@ -952,6 +944,82 @@ function dc_swp_get_partytown_patterns() {
 	) );
 	wp_cache_set( 'patterns', $patterns, 'dc_swp', HOUR_IN_SECONDS );
 	return $patterns;
+}
+
+/**
+ * Build the proxy allowlist dynamically from what the admin has actually configured:
+ *
+ *  1. Hostnames extracted from the Partytown Script List patterns
+ *     (e.g. "www.googletagmanager.com/gtag/js" → "www.googletagmanager.com").
+ *  2. Hostnames found inside Partytown Script Blocks (inline script snippets often
+ *     reference their own CDN URL, e.g. the Meta Pixel snippet contains
+ *     "https://connect.facebook.net/en_US/fbevents.js").
+ *
+ * Only domains the site owner has explicitly opted into are ever accepted by the
+ * proxy — no hard-coded vendor list.
+ *
+ * @return string[] Lowercase, unique hostnames eligible for proxy.
+ */
+function dc_swp_get_proxy_allowed_hosts() {
+	// Static memoisation: consistent with dc_swp_get_partytown_patterns().
+	// Mid-request option updates clear the object cache on the next request via
+	// dc_swp_bust_page_cache(); the static variable intentionally holds for the
+	// duration of the current request.
+	static $hosts = null;
+	if ( null !== $hosts ) {
+		return $hosts;
+	}
+
+	$hosts = array();
+
+	// ── 1. Script List patterns ──────────────────────────────────────────────
+	foreach ( dc_swp_get_partytown_patterns() as $pattern ) {
+		if ( '' === $pattern ) {
+			continue;
+		}
+		// Prepend a scheme so wp_parse_url() can reliably extract the host even
+		// when the pattern is a bare hostname ("analytics.ahrefs.com") or a
+		// hostname+path ("www.googletagmanager.com/gtag/js").
+		$to_parse = str_contains( $pattern, '://' ) ? $pattern : 'https://' . ltrim( $pattern, '/' );
+		$parsed   = wp_parse_url( $to_parse );
+		$host     = strtolower( trim( $parsed['host'] ?? '' ) );
+		if ( '' !== $host ) {
+			$hosts[] = $host;
+		}
+	}
+
+	// ── 2. Script Blocks (inline scripts) ───────────────────────────────────
+	// Inline snippets (e.g. Meta Pixel, TikTok Pixel) usually embed the CDN
+	// URL directly — extract every https:// hostname that appears in the code.
+	$raw_stored = (string) get_option( 'dc_swp_inline_scripts', '' );
+	if ( '' !== $raw_stored ) {
+		$decoded = json_decode( $raw_stored, true );
+		if ( is_array( $decoded ) ) {
+			$code_parts = array();
+			foreach ( $decoded as $blk ) {
+				if ( ! empty( $blk['enabled'] ) && '' !== trim( (string) ( $blk['code'] ?? '' ) ) ) {
+					$code_parts[] = $blk['code'];
+				}
+			}
+			$raw_code = implode( "\n", $code_parts );
+		} else {
+			$raw_code = $raw_stored; // Legacy plain-text format.
+		}
+
+		if ( preg_match_all( '#https://[^\s"\'<>\\\\)]+#', $raw_code, $url_matches ) ) {
+			foreach ( $url_matches[0] as $url ) {
+				$parsed = wp_parse_url( $url );
+				$h      = strtolower( trim( $parsed['host'] ?? '' ) );
+				// Require at least one dot and only valid hostname characters.
+				if ( '' !== $h && str_contains( $h, '.' ) && preg_match( '/^[a-z0-9]([a-z0-9.\-]*[a-z0-9])?$/', $h ) ) {
+					$hosts[] = $h;
+				}
+			}
+		}
+	}
+
+	$hosts = array_values( array_unique( array_filter( $hosts ) ) );
+	return $hosts;
 }
 
 add_filter( 'wp_script_attributes', 'dc_swp_partytown_script_attrs', 5 );
