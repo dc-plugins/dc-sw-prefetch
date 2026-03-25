@@ -720,7 +720,8 @@ function dc_swp_partytown_config() {
 	// We probe SAB allocation BEFORE the Partytown snippet runs. If it fails we
 	// shadow window.crossOriginIsolated = false so Partytown falls back gracefully
 	// to the SW bridge instead of crashing.
-	$coi_probe = $coi_active
+	$coi_active = get_option( 'dc_swp_coi_headers', 'no' ) === 'yes';
+	$coi_probe  = $coi_active
 		? 'if(window.crossOriginIsolated){try{new SharedArrayBuffer(8);}catch(e){'
 		  . 'try{Object.defineProperty(window,"crossOriginIsolated",{value:false,configurable:false});}catch(e2){}}}'
 		: '';
@@ -740,7 +741,6 @@ function dc_swp_partytown_config() {
 	// setAttribute so `credentialless` is stamped BEFORE the src is applied.
 	// The MutationObserver is kept as a fallback for iframes inserted via innerHTML
 	// or DOMParser, where navigation is deferred to a separate task.
-	$coi_active = get_option( 'dc_swp_coi_headers', 'no' ) === 'yes';
 	if ( $coi_active ) {
 		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 		echo '<script' . $nonce_attr . '>'
