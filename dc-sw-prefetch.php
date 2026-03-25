@@ -422,78 +422,7 @@ function dc_swp_serve_partytown_files() {
 // server-side (where CORS doesn't apply) and re-serves it with
 // the necessary CORS header. Only an explicit allowlist of CDN
 // hostnames is accepted to prevent SSRF.
-//
-// A second proxy endpoint (/~partytown-corp-proxy) serves content
-// from user-configured excluded-origin hostnames and adds a
-// Cross-Origin-Resource-Policy: cross-origin header so that COEP
-// (SharedArrayBuffer / Atomics Bridge mode) does not block those
-// resources. The allowlist for this proxy is derived dynamically
-// from the admin exclusion list.
 // ============================================================
-
-/**
- * Extract valid internet-routable hostnames from the admin exclusion patterns.
- *
- * Patterns like "widget.trustpilot.com" and "connect.facebook.net/en_US/sdk"
- * are parsed to their hostname component. Patterns that resolve to private /
- * reserved IP ranges or that look like bare filenames (no dots) are skipped.
- *
- * @return string[] Lower-cased unique hostnames.
- */
-function dc_swp_get_exclude_hostnames() {
-	static $hosts = null;
-	if ( null !== $hosts ) {
-		return $hosts;
-	}
-
-	$patterns = dc_swp_get_partytown_exclude_patterns();
-	$raw_hosts = [];
-
-	foreach ( $patterns as $pattern ) {
-		if ( $pattern === '' ) {
-			continue;
-		}
-		// Prepend a scheme so wp_parse_url can identify the host component.
-		$test     = str_starts_with( $pattern, 'http' ) ? $pattern : 'https://' . $pattern;
-		$parsed   = wp_parse_url( $test );
-		$hostname = strtolower( $parsed['host'] ?? '' );
-
-		// Must contain at least one dot (rules out bare filenames like "tp.widget.bootstrap").
-		if ( $hostname === '' || substr_count( $hostname, '.' ) < 1 ) {
-			continue;
-		}
-		// Reject private / loopback / link-local address literals.
-		if ( dc_swp_is_private_host( $hostname ) ) {
-			continue;
-		}
-		$raw_hosts[] = $hostname;
-	}
-
-	$hosts = array_values( array_unique( $raw_hosts ) );
-	return $hosts;
-}
-
-/**
- * Return true if $host is a private, loopback, or link-local address / name.
- * Used to guard the CORP proxy against SSRF via the admin exclusion list.
- *
- * @param string $host Lower-cased hostname or IP literal.
- * @return bool
- */
-function dc_swp_is_private_host( $host ) {
-	// Plain names.
-	if ( $host === 'localhost' || str_ends_with( $host, '.local' ) || str_ends_with( $host, '.internal' ) ) {
-		return true;
-	}
-
-	// Validate as an IP address; if it is one, reject private ranges.
-	$ip = filter_var( $host, FILTER_VALIDATE_IP );
-	if ( $ip !== false ) {
-		return ! filter_var( $ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE );
-	}
-
-	return false;
-}
 
 add_action( 'init', 'dc_swp_serve_partytown_proxy', 1 );
 
@@ -593,108 +522,6 @@ function dc_swp_serve_partytown_proxy() {
 	header( 'Cache-Control: public, max-age=3600, stale-while-revalidate=300' );
 
 	// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- proxied JS body from allowlisted CDN
-	echo $body;
-	exit();
-}
-
-
-add_action( 'init', 'dc_swp_serve_corp_proxy', 1 );
-
-/**
- * CORP proxy: fetch content from an excluded-origin host and re-serve it with
- * Cross-Origin-Resource-Policy: cross-origin so that COEP (credentialless)
- * does not block resources requested by Partytown's worker or by main-thread
- * scripts that run under Cross-Origin isolation.
- *
- * Route: GET /~partytown-corp-proxy?url=<encoded-https-url>
- *
- * The allowlist is derived dynamically from the admin exclusion list
- * (dc_swp_get_exclude_hostnames()), so admins do not need to maintain a
- * separate list. Any content-type is forwarded transparently so the proxy
- * can serve both scripts and the HTML documents loaded by widget iframes
- * (e.g. Trustpilot trustbox pages).
- *
- * Security measures (identical to the CORS proxy):
- *  - Only HTTPS scheme accepted.
- *  - Allowlist-only: hostnames derived from the admin exclusion list; private
- *    / reserved address ranges are rejected at extraction time.
- *  - URL is reconstructed from parsed components (no raw passthrough).
- *  - No redirect following (redirection=0) to prevent SSRF via open redirect.
- *  - SSL verification enabled.
- */
-function dc_swp_serve_corp_proxy() {
-	$request_uri = isset( $_SERVER['REQUEST_URI'] )
-		? wp_parse_url( wp_unslash( $_SERVER['REQUEST_URI'] ), PHP_URL_PATH ) // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-		: '';
-
-	if ( $request_uri !== '/~partytown-corp-proxy' ) {
-		return;
-	}
-
-	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only proxy, no state change
-	$raw_url = isset( $_GET['url'] ) ? wp_unslash( $_GET['url'] ) : '';
-	if ( $raw_url === '' ) {
-		status_header( 400 );
-		exit();
-	}
-
-	// Must be HTTPS.
-	$parsed = wp_parse_url( $raw_url );
-	if ( empty( $parsed['scheme'] ) || $parsed['scheme'] !== 'https' ) {
-		status_header( 403 );
-		exit();
-	}
-
-	$host = strtolower( $parsed['host'] ?? '' );
-
-	// Allowlist: hostnames derived from the admin exclusion list.
-	$allowed_hosts = dc_swp_get_exclude_hostnames();
-	if ( empty( $allowed_hosts ) || ! in_array( $host, $allowed_hosts, true ) ) {
-		status_header( 403 );
-		exit();
-	}
-
-	// Reconstruct a clean URL from parsed components to prevent header injection.
-	$clean_url = 'https://' . $host . ( $parsed['path'] ?? '/' );
-	if ( ! empty( $parsed['query'] ) ) {
-		$clean_url .= '?' . $parsed['query'];
-	}
-
-	$response = wp_remote_get(
-		$clean_url,
-		[
-			'timeout'     => 10,
-			'redirection' => 0, // no redirects — prevents SSRF via open redirect
-			'sslverify'   => true,
-			'user-agent'  => 'WordPress/' . get_bloginfo( 'version' ) . '; ' . get_bloginfo( 'url' ),
-		]
-	);
-
-	if ( is_wp_error( $response ) || wp_remote_retrieve_response_code( $response ) !== 200 ) {
-		status_header( 502 );
-		exit();
-	}
-
-	$body         = wp_remote_retrieve_body( $response );
-	$content_type = wp_remote_retrieve_header( $response, 'content-type' );
-	if ( $content_type === '' ) {
-		$content_type = 'application/octet-stream';
-	}
-	// Strip newlines and null bytes to prevent HTTP header injection from a malicious upstream.
-	$content_type = str_replace( [ "\r", "\n", "\0" ], '', $content_type );
-
-	status_header( 200 );
-	// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- sanitized header value from allowlisted host
-	header( 'Content-Type: ' . $content_type );
-	// Cross-Origin-Resource-Policy: cross-origin allows COEP-enforced pages to
-	// embed this resource without being blocked by the browser's CORP check.
-	header( 'Cross-Origin-Resource-Policy: cross-origin' );
-	header( 'Access-Control-Allow-Origin: *' );
-	header( 'X-Robots-Tag: none' );
-	// Cache for 1 hour — upstream content rarely changes.
-	header( 'Cache-Control: public, max-age=3600, stale-while-revalidate=300' );
-
-	// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- proxied body from allowlisted excluded-origin host
 	echo $body;
 	exit();
 }
@@ -871,17 +698,6 @@ function dc_swp_partytown_config() {
 	$path_rewrites_json = wp_json_encode( $path_rewrites, JSON_UNESCAPED_SLASHES );
 
 	$proxy_url_json      = wp_json_encode( home_url( '/~partytown-proxy' ), JSON_UNESCAPED_SLASHES );
-	$corp_proxy_url_json = wp_json_encode( home_url( '/~partytown-corp-proxy' ), JSON_UNESCAPED_SLASHES );
-
-	// Excluded patterns passed into resolveUrl so the CORP proxy can be used for
-	// any cross-origin request (fetch, XHR, script) whose URL matches an exclusion.
-	// This prevents COEP: credentialless from blocking excluded-origin resources that
-	// are accessed from within Partytown's worker context (e.g. a GTM tag that
-	// dynamically requests a Trustpilot sub-resource).
-	$exclude_patterns_json = wp_json_encode(
-		array_values( dc_swp_get_partytown_exclude_patterns() ),
-		JSON_UNESCAPED_SLASHES
-	);
 
 	$resolve_url_fn = 'window.partytown.resolveUrl=function(url,location,type){'
 		// Same-origin path rewrite: catches analytics fetch/sendBeacon/XHR calls
@@ -893,17 +709,6 @@ function dc_swp_partytown_config() {
 		. 'var pr=' . $path_rewrites_json . ';'
 		. 'if(type!=="script"&&url&&url.hostname===location.hostname&&pr[url.pathname]){'
 		. 'return new URL(pr[url.pathname]);'
-		. '}'
-		// Excluded-origin proxy: any cross-origin URL whose href matches an excluded
-		// pattern is routed through /~partytown-corp-proxy, which adds
-		// Cross-Origin-Resource-Policy: cross-origin so COEP does not block it.
-		// This handles fetch/XHR/script requests made inside the Partytown worker
-		// by included scripts (e.g. GTM) that reference excluded-origin resources.
-		. 'var excl=' . $exclude_patterns_json . ';'
-		. 'if(url.hostname!==location.hostname&&excl.some(function(p){return url.href.indexOf(p)!==-1;})){'
-		. 'var cp=new URL(' . $corp_proxy_url_json . ');'
-		. 'cp.searchParams.append("url",url.href);'
-		. 'return cp;'
 		. '}'
 		// Cross-origin script proxy: routes external script loads through the
 		// server-side CORS proxy so the Partytown sandbox iframe can fetch them.
@@ -926,12 +731,10 @@ function dc_swp_partytown_config() {
 	// policy already exempts navigational requests (Firefox). We use a
 	// MutationObserver to stamp `credentialless` onto such iframes so they can
 	// load from their ORIGINAL origin — preserving the origin that widgets like
-	// Trustpilot rely on for postMessage communication. Rewriting the src through
-	// the CORP proxy is intentionally avoided because it changes the iframe's
-	// document origin, which breaks `postMessage` calls that target the original
-	// third-party origin (e.g. widget.trustpilot.com).
+	// Trustpilot rely on for postMessage communication.
 	$coi_active = get_option( 'dc_swp_coi_headers', 'no' ) === 'yes';
 	if ( $coi_active && ! empty( $exclude ) ) {
+		$exclude_patterns_json = wp_json_encode( array_values( $exclude ), JSON_UNESCAPED_SLASHES );
 		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 		echo '<script' . $nonce_attr . '>'
 			. '(function(){'
