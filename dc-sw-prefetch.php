@@ -163,18 +163,16 @@ require_once plugin_dir_path( __FILE__ ) . 'admin.php';
 
 // ============================================================
 // FOOTER CREDIT
-// Replaces the first © inside <footer>…</footer> with a
-// linked © pointing to dampcig.dk. Uses object-cache →
-// transient to avoid regex overhead on every page load.
-// Does nothing if no © is found — no fallback injection.
+// Injects a tiny inline script via wp_footer that uses a DOM
+// TreeWalker to find the first © text node inside <footer>
+// and wraps it with a <a> link. Works universally across all
+// themes without any PHP output-buffer or regex fragility.
 // ============================================================
 
-define( 'DC_SWP_FOOTER_TRANSIENT', 'dc_swp_footer_strategy' ); // 'copyright' | 'none'
-
-add_action( 'template_redirect', 'dc_swp_footer_credit_start' );
+add_action( 'wp_footer', 'dc_swp_footer_credit_js', PHP_INT_MAX );
 
 // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
-function dc_swp_footer_credit_start() {
+function dc_swp_footer_credit_js() {
 	if ( is_admin() ) return;
 	if ( get_option( 'dampcig_pwa_footer_credit', 'no' ) !== 'yes' ) return;
 	// If DC Google Indexing is active, it owns the footer credit — defer to avoid duplicates.
@@ -182,83 +180,36 @@ function dc_swp_footer_credit_start() {
 		&& ! empty( ( dc_gi_get_settings() )['footer_credit'] ) ) {
 		return;
 	}
-	// If the PNG→WebP plugin is active, it owns the footer credit — always defer
-	// to avoid duplicates, regardless of whether its setting has been saved to DB.
+	// If the PNG→WebP plugin is active, it owns the footer credit — defer.
 	if ( class_exists( 'DC_WebP_Converter' ) ) return;
-	ob_start( 'dc_swp_footer_credit_process' );
-}
 
-// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
-function dc_swp_footer_credit_process( $html ) {
 	$url   = 'https://www.dampcig.dk';
-	$title = 'Powered by Dampcig.dk';
-	$link  = '<a href="' . $url . '" title="' . esc_attr( $title ) . '" target="_blank" rel="noopener noreferrer">&copy;</a>';
-	$group = 'dc_swp';
-	$key   = DC_SWP_FOOTER_TRANSIENT;
-
-	// Object cache (in-memory, zero DB cost) → transient → detect.
-	$strategy = wp_cache_get( $key, $group );
-	if ( false === $strategy ) {
-		$strategy = get_transient( $key );
-	}
-
-	// Cached: © exists in footer — replace it.
-	if ( 'copyright' === $strategy ) {
-		return dc_swp_do_copyright_replace( $html, $link );
-	}
-
-	// Cached: no © found on a previous run — do nothing.
-	if ( 'none' === $strategy ) {
-		return $html;
-	}
-
-	// First run: detect, cache, and act.
-	$replaced = dc_swp_do_copyright_replace( $html, $link );
-	if ( $replaced !== $html ) {
-		dc_swp_cache_footer_strategy( 'copyright' );
-		return $replaced;
-	}
-
-	// No © found — cache that fact and leave HTML untouched.
-	dc_swp_cache_footer_strategy( 'none' );
-	return $html;
+	$title = esc_js( 'Powered by Dampcig.dk' );
+	?>
+<script>(function(){
+var f=document.querySelector('footer');
+if(!f)return;
+var w=document.createTreeWalker(f,NodeFilter.SHOW_TEXT,null,false);
+var node;
+while((node=w.nextNode())){
+	if(node.nodeValue.indexOf('\u00A9')===-1)continue;
+	var idx=node.nodeValue.indexOf('\u00A9');
+	var frag=document.createDocumentFragment();
+	if(idx>0)frag.appendChild(document.createTextNode(node.nodeValue.slice(0,idx)));
+	var a=document.createElement('a');
+	a.href=<?php echo wp_json_encode( $url ); ?>;
+	a.title=<?php echo wp_json_encode( $title ); ?>;
+	a.target='_blank';
+	a.rel='noopener noreferrer';
+	a.textContent='\u00A9';
+	frag.appendChild(a);
+	var rest=node.nodeValue.slice(idx+1);
+	if(rest)frag.appendChild(document.createTextNode(rest));
+	node.parentNode.replaceChild(frag,node);
+	break;
 }
-
-/**
- * Replaces the first © (UTF-8 ©, &copy;, &#169;, &#xA9;) found inside
- * <footer>…</footer>. Returns $html unchanged if no © or no <footer>.
- */
-// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
-function dc_swp_do_copyright_replace( $html, $link ) {
-	if ( ! preg_match( '/(<footer[\s\S]*?<\/footer>)/i', $html, $m, PREG_OFFSET_CAPTURE ) ) {
-		return $html; // No <footer> tag — leave page untouched.
-	}
-
-	$footer_html = $m[0][0];
-	$offset      = $m[0][1];
-	$new_footer  = preg_replace( '/©|&copy;|&#169;|&#xA9;/u', $link, $footer_html, 1, $count );
-
-	if ( ! $count ) {
-		return $html; // No © in footer — leave page untouched.
-	}
-
-	return substr_replace( $html, $new_footer, $offset, strlen( $footer_html ) );
-}
-
-/** Persist the detected strategy in both object cache and transient. */
-// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
-function dc_swp_cache_footer_strategy( $strategy ) {
-	$key   = DC_SWP_FOOTER_TRANSIENT;
-	$group = 'dc_swp';
-	wp_cache_set( $key, $strategy, $group, WEEK_IN_SECONDS );
-	set_transient( $key, $strategy, WEEK_IN_SECONDS );
-}
-
-/** Invalidate cached footer strategy (call on theme switch or settings reset). */
-// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
-function dc_swp_clear_footer_strategy_cache() {
-	wp_cache_delete( DC_SWP_FOOTER_TRANSIENT, 'dc_swp' );
-	delete_transient( DC_SWP_FOOTER_TRANSIENT );
+})();</script>
+	<?php
 }
 
 

@@ -27,12 +27,9 @@ function dc_swp_uninstall() {
 		delete_option( $dc_swp_opt );
 	}
 
-	delete_transient( 'dc_swp_footer_strategy' );
-
 	if ( function_exists( 'wp_cache_flush_group' ) ) {
 		wp_cache_flush_group( 'dc_swp' );
 	} else {
-		wp_cache_delete( 'dc_swp_footer_strategy', 'dc_swp' );
 		wp_cache_delete( 'patterns', 'dc_swp' );
 		wp_cache_delete( 'exclude_patterns', 'dc_swp' );
 	}
