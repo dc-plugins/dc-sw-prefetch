@@ -920,42 +920,45 @@ function dc_swp_partytown_config() {
 
 	// When Cross-Origin isolation (COEP) is active, main-thread excluded scripts
 	// (loaded via loadScriptsOnMainThread) may create iframes pointing to excluded
-	// origins. Those navigational embeds require a CORP header that the upstream
-	// server does not send. We install a MutationObserver that rewrites any such
-	// iframe src through /~partytown-corp-proxy *before* the browser makes the
-	// network request (MutationObserver callbacks run as microtasks, before the
-	// scheduled navigation task that actually fetches the URL).
+	// origins. Under COEP: credentialless, browsers (Chrome 110+, Firefox 119+)
+	// allow cross-origin iframes to load without a CORP header when the iframe
+	// carries the `credentialless` attribute (Chrome) or when the parent COEP
+	// policy already exempts navigational requests (Firefox). We use a
+	// MutationObserver to stamp `credentialless` onto such iframes so they can
+	// load from their ORIGINAL origin — preserving the origin that widgets like
+	// Trustpilot rely on for postMessage communication. Rewriting the src through
+	// the CORP proxy is intentionally avoided because it changes the iframe's
+	// document origin, which breaks `postMessage` calls that target the original
+	// third-party origin (e.g. widget.trustpilot.com).
 	$coi_active = get_option( 'dc_swp_coi_headers', 'no' ) === 'yes';
 	if ( $coi_active && ! empty( $exclude ) ) {
 		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 		echo '<script' . $nonce_attr . '>'
 			. '(function(){'
 			. 'if(!window.crossOriginIsolated)return;'
-			. 'var cp=' . $corp_proxy_url_json . ';'
 			. 'var excl=' . $exclude_patterns_json . ';'
-			. 'function needsCorp(src){'
+			. 'function needsCredentialless(src){'
 			. 'if(!src)return false;'
 			. 'try{var u=new URL(src,location.href);'
 			. 'if(u.origin===location.origin)return false;'
 			. 'return excl.some(function(p){return src.indexOf(p)!==-1;});'
 			. '}catch(e){return false;}}'
-			. 'function rewriteIfNeeded(el){'
+			. 'function markIfNeeded(el){'
 			. 'if(!el||el.tagName!=="IFRAME")return;'
+			. 'if(el.hasAttribute("credentialless"))return;'
 			. 'var s=el.getAttribute("src");'
-			. 'if(!needsCorp(s))return;'
-			. 'var pu=new URL(cp,location.origin);'
-			. 'pu.searchParams.set("url",s);'
-			. 'el.setAttribute("src",pu.toString());}'
+			. 'if(!needsCredentialless(s))return;'
+			. 'el.setAttribute("credentialless","");}'
 			. 'var obs=new MutationObserver(function(muts){'
 			. 'muts.forEach(function(m){'
 			. 'if(m.type==="childList"){'
 			. 'm.addedNodes.forEach(function(n){'
 			. 'if(n.nodeType!==1)return;'
-			. 'rewriteIfNeeded(n);'
-			. 'if(n.querySelectorAll)n.querySelectorAll("iframe[src]").forEach(rewriteIfNeeded);'
+			. 'markIfNeeded(n);'
+			. 'if(n.querySelectorAll)n.querySelectorAll("iframe[src]").forEach(markIfNeeded);'
 			. '});}'
 			. 'else if(m.type==="attributes"&&m.target&&m.target.tagName==="IFRAME"){'
-			. 'rewriteIfNeeded(m.target);}'
+			. 'markIfNeeded(m.target);}'
 			. '});});'
 			. 'obs.observe(document.documentElement,'
 			. '{childList:true,subtree:true,attributes:true,attributeFilter:["src"]});'
