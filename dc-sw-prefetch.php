@@ -715,28 +715,23 @@ function dc_swp_partytown_config() {
 	// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 	echo '<script' . $nonce_attr . '>' . $snippet . "</script>\n";
 
-	// When Cross-Origin isolation (COEP) is active, main-thread excluded scripts
-	// (loaded via loadScriptsOnMainThread) may create iframes pointing to excluded
-	// origins. Under COEP: credentialless, browsers (Chrome 110+, Firefox 119+)
-	// allow cross-origin iframes to load without a CORP header when the iframe
-	// carries the `credentialless` attribute (Chrome) or when the parent COEP
-	// policy already exempts navigational requests (Firefox). We use a
-	// MutationObserver to stamp `credentialless` onto such iframes so they can
-	// load from their ORIGINAL origin — preserving the origin that widgets like
-	// Trustpilot rely on for postMessage communication.
+	// When Cross-Origin isolation (COEP) is active, ANY cross-origin iframe needs
+	// the `credentialless` attribute so the browser allows it to load without a
+	// CORP header. Under COEP: credentialless, browsers (Chrome 110+, Firefox 119+)
+	// permit cross-origin iframes that carry `credentialless`. We use a
+	// MutationObserver to stamp it on every cross-origin iframe — origin-based,
+	// not exclusion-list-based — preserving the origin widgets like Trustpilot
+	// rely on for postMessage communication.
 	$coi_active = get_option( 'dc_swp_coi_headers', 'no' ) === 'yes';
-	if ( $coi_active && ! empty( $exclude ) ) {
-		$exclude_patterns_json = wp_json_encode( array_values( $exclude ), JSON_UNESCAPED_SLASHES );
+	if ( $coi_active ) {
 		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 		echo '<script' . $nonce_attr . '>'
 			. '(function(){'
 			. 'if(!window.crossOriginIsolated)return;'
-			. 'var excl=' . $exclude_patterns_json . ';'
 			. 'function needsCredentialless(src){'
 			. 'if(!src)return false;'
 			. 'try{var u=new URL(src,location.href);'
-			. 'if(u.origin===location.origin)return false;'
-			. 'return excl.some(function(p){return src.indexOf(p)!==-1;});'
+			. 'return u.origin!==location.origin;'
 			. '}catch(e){return false;}}'
 			. 'function markIfNeeded(el){'
 			. 'if(!el||el.tagName!=="IFRAME")return;'
