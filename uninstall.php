@@ -4,6 +4,8 @@
  *
  * Fired when the plugin is deleted via the WordPress admin.
  * Removes all plugin-specific options and transients from the database.
+ *
+ * @package DC_Service_Worker_Prefetcher
  */
 
 if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
@@ -12,10 +14,12 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 
 /**
  * Remove all plugin data on uninstall.
+ *
+ * @since 1.0.0
+ * @return void
  */
-// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
-function dc_swp_uninstall() {
-	foreach ( [
+function dc_swp_uninstall() { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
+	foreach ( array(
 		'dampcig_pwa_sw_enabled',
 		'dampcig_pwa_preload_products',
 		'dampcig_pwa_product_base',
@@ -23,7 +27,9 @@ function dc_swp_uninstall() {
 		'dc_swp_disable_emoji',
 		'dc_swp_partytown_scripts',
 		'dc_swp_partytown_exclude',
-	] as $dc_swp_opt ) {
+		'dc_swp_inline_scripts',
+		'dc_swp_coi_headers',
+	) as $dc_swp_opt ) {
 		delete_option( $dc_swp_opt );
 	}
 

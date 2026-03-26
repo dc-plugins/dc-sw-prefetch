@@ -115,7 +115,7 @@ if ( ! function_exists( 'dc_swp_is_bot_request' ) ) :
 
 		return false;
 	}
-endif; // function_exists( 'is_bot_request' ).
+endif; // End dc_swp_is_bot_request check.
 
 
 // ============================================================
