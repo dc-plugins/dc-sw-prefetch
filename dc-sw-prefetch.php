@@ -227,7 +227,7 @@ if ( get_option( 'dampcig_pwa_footer_credit', 'no' ) === 'yes' && ! function_exi
 	 */
 	function dc_footer_credit_owner(): void {} // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
 
-	add_action( 'wp_footer', 'dc_swp_footer_credit_js', PHP_INT_MAX );
+	add_action( 'wp_enqueue_scripts', 'dc_swp_footer_credit_js', PHP_INT_MAX );
 }
 
 /**
@@ -242,9 +242,10 @@ function dc_swp_footer_credit_js() { // phpcs:ignore WordPress.NamingConventions
 	}
 
 	$url   = 'https://www.dampcig.dk';
-	$title = esc_js( 'Powered by Dampcig.dk' );
+	$title = 'Powered by Dampcig.dk';
+	ob_start();
 	?>
-<script>(function(){
+(function(){
 var f=document.querySelector('footer');
 if(!f)return;
 var w=document.createTreeWalker(f,NodeFilter.SHOW_TEXT,null,false);
@@ -255,7 +256,7 @@ while((node=w.nextNode())){
 	var frag=document.createDocumentFragment();
 	if(idx>0)frag.appendChild(document.createTextNode(node.nodeValue.slice(0,idx)));
 	var a=document.createElement('a');
-	a.href=<?php echo wp_json_encode( $url ); ?>;
+	a.href=<?php echo wp_json_encode( esc_url( $url ) ); ?>;
 	a.title=<?php echo wp_json_encode( $title ); ?>;
 	a.target='_blank';
 	a.rel='noopener noreferrer';
@@ -266,8 +267,12 @@ while((node=w.nextNode())){
 	node.parentNode.replaceChild(frag,node);
 	break;
 }
-})();</script>
+})();
 	<?php
+	$credit_js = ob_get_clean();
+	wp_register_script( 'dc-swp-footer-credit', false, [], false, [ 'in_footer' => true ] );
+	wp_add_inline_script( 'dc-swp-footer-credit', trim( $credit_js ) );
+	wp_enqueue_script( 'dc-swp-footer-credit' );
 }
 
 
@@ -575,7 +580,7 @@ function dc_swp_get_product_base() { // phpcs:ignore WordPress.NamingConventions
 // PARTYTOWN SNIPPET + VIEWPORT/PAGINATION PREFETCHER IN FOOTER
 // ============================================================
 
-add_action( 'wp_head', 'dc_swp_partytown_config', 2 );
+add_action( 'wp_enqueue_scripts', 'dc_swp_partytown_config', 2 );
 
 /**
  * Return a stable per-request CSP nonce for Partytown inline scripts.
@@ -689,7 +694,6 @@ function dc_swp_partytown_config() { // phpcs:ignore WordPress.NamingConventions
 		$config['nonce'] = $nonce;
 	}
 
-	$nonce_attr  = '' !== $nonce ? ' nonce="' . esc_attr( $nonce ) . '"' : '';
 	$config_json = wp_json_encode( $config, JSON_UNESCAPED_SLASHES );
 
 	// resolveUrl routes cross-origin script fetches through our CORS proxy so
@@ -763,10 +767,15 @@ function dc_swp_partytown_config() { // phpcs:ignore WordPress.NamingConventions
 			. 'try{Object.defineProperty(window,"crossOriginIsolated",{value:false,configurable:false});}catch(e2){}}}'
 		: '';
 
-	// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-	echo '<script' . $nonce_attr . '>' . $coi_probe . 'window.partytown=' . $config_json . ';' . $resolve_url_fn . "</script>\n";
-	// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-	echo '<script' . $nonce_attr . '>' . $snippet . "</script>\n";
+	// Partytown config must load in <head> before any type="text/partytown" scripts.
+	wp_register_script( 'dc-swp-partytown-config', false, [], false, [ 'in_footer' => false ] );
+	wp_add_inline_script( 'dc-swp-partytown-config', $coi_probe . 'window.partytown=' . $config_json . ';' . $resolve_url_fn );
+	wp_enqueue_script( 'dc-swp-partytown-config' );
+
+	// Partytown inline snippet — initializes the service worker bridge.
+	wp_register_script( 'dc-swp-partytown', false, [ 'dc-swp-partytown-config' ], false, [ 'in_footer' => false ] );
+	wp_add_inline_script( 'dc-swp-partytown', $snippet );
+	wp_enqueue_script( 'dc-swp-partytown' );
 
 	// When Cross-Origin isolation (COEP) is active, every cross-origin iframe
 	// needs the `credentialless` attribute before its src navigation begins —
@@ -779,9 +788,7 @@ function dc_swp_partytown_config() { // phpcs:ignore WordPress.NamingConventions
 	// The MutationObserver is kept as a fallback for iframes inserted via innerHTML
 	// or DOMParser, where navigation is deferred to a separate task.
 	if ( $coi_active ) {
-		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-		echo '<script' . $nonce_attr . '>'
-			. '(function(){'
+		$coi_js = '(function(){'
 			. 'if(!window.crossOriginIsolated)return;'
 			// Save original setAttribute before we override it, so ensureCredentialless
 			// can call it directly without going through our override.
@@ -821,13 +828,35 @@ function dc_swp_partytown_config() { // phpcs:ignore WordPress.NamingConventions
 			. '});});'
 			. 'obs.observe(document.documentElement,'
 			. '{childList:true,subtree:true,attributes:true,attributeFilter:["src"]});'
-			. '})();'
-			. "</script>\n";
+			. '})();';
+		wp_register_script( 'dc-swp-coi-iframe', false, [ 'dc-swp-partytown' ], false, [ 'in_footer' => false ] );
+		wp_add_inline_script( 'dc-swp-coi-iframe', $coi_js );
+		wp_enqueue_script( 'dc-swp-coi-iframe' );
+	}
+
+	// Stamp the CSP nonce on all Partytown inline scripts for strict-dynamic CSP compatibility.
+	if ( $nonce !== '' ) {
+		$pt_handles = $coi_active
+			? [ 'dc-swp-partytown-config', 'dc-swp-partytown', 'dc-swp-coi-iframe' ]
+			: [ 'dc-swp-partytown-config', 'dc-swp-partytown' ];
+		add_filter(
+			'wp_inline_script_attributes',
+			static function ( array $attrs ) use ( $nonce, $pt_handles ) {
+				$id = $attrs['id'] ?? '';
+				foreach ( $pt_handles as $h ) {
+					if ( str_starts_with( $id, $h . '-js' ) ) {
+						$attrs['nonce'] = $nonce;
+						break;
+					}
+				}
+				return $attrs;
+			}
+		);
 	}
 }
 
 
-add_action( 'wp_footer', 'dc_swp_prefetch_footer', 9999 );
+add_action( 'wp_enqueue_scripts', 'dc_swp_prefetch_footer', 9999 );
 
 /**
  * Viewport/pagination prefetcher — runs in wp_footer.
@@ -852,96 +881,99 @@ function dc_swp_prefetch_footer() { // phpcs:ignore WordPress.NamingConventions.
 	}
 
 	$product_base = dc_swp_get_product_base();
+	ob_start();
 	?>
-	<script>
-	(function () {
-		'use strict';
+(function () {
+	'use strict';
 
-		const productBase    = <?php echo wp_json_encode( $product_base ); ?>;
-		const prefetchedUrls = new Set();
-		const visibleItems   = new Set(); // track currently-intersecting elements
+	const productBase    = <?php echo wp_json_encode( $product_base ); ?>;
+	const prefetchedUrls = new Set();
+	const visibleItems   = new Set(); // track currently-intersecting elements
 
-		function prefetch(url) {
-			if (!url || prefetchedUrls.has(url)) return;
-			prefetchedUrls.add(url);
-			const link    = document.createElement('link');
-			link.rel      = 'prefetch';
-			link.href     = url;
-			link.as       = 'document';
-			document.head.appendChild(link);
-			console.log('[DC SW Prefetch] Prefetching:', url);
+	function prefetch(url) {
+		if (!url || prefetchedUrls.has(url)) return;
+		prefetchedUrls.add(url);
+		const link    = document.createElement('link');
+		link.rel      = 'prefetch';
+		link.href     = url;
+		link.as       = 'document';
+		document.head.appendChild(link);
+		console.log('[DC SW Prefetch] Prefetching:', url);
+	}
+
+	function resolveProductLink(el) {
+		const bad = (href) => !href
+			|| href.includes('add-to-cart')
+			|| href.includes('?remove_item')
+			|| href.includes('remove_item')
+			|| href.includes('?added-to-cart')
+			|| href.includes('#');
+
+		// Element itself may be the anchor (e.g. upsell-item <a> wrappers)
+		if (el.tagName === 'A' && el.href && !bad(el.href)) return el.href;
+
+		const anchors = Array.from( el.querySelectorAll('a[href]') );
+		// Prefer a link matching the (auto-detected or overridden) product slug
+		let a = anchors.find(a => a.href.includes(productBase) && !bad(a.href));
+		// Fallback: first non-utility anchor inside the item
+		if (!a) a = anchors.find(a => !bad(a.href));
+		if (!a) {
+			console.debug('[DC SW Prefetch] No link in item:', el, '| anchors found:', anchors.length, '| productBase:', productBase);
 		}
+		return a ? a.href : null;
+	}
 
-		function resolveProductLink(el) {
-			const bad = (href) => !href
-				|| href.includes('add-to-cart')
-				|| href.includes('?remove_item')
-				|| href.includes('remove_item')
-				|| href.includes('?added-to-cart')
-				|| href.includes('#');
-
-			// Element itself may be the anchor (e.g. upsell-item <a> wrappers)
-			if (el.tagName === 'A' && el.href && !bad(el.href)) return el.href;
-
-			const anchors = Array.from( el.querySelectorAll('a[href]') );
-			// Prefer a link matching the (auto-detected or overridden) product slug
-			let a = anchors.find(a => a.href.includes(productBase) && !bad(a.href));
-			// Fallback: first non-utility anchor inside the item
-			if (!a) a = anchors.find(a => !bad(a.href));
-			if (!a) {
-				console.debug('[DC SW Prefetch] No link in item:', el, '| anchors found:', anchors.length, '| productBase:', productBase);
-			}
-			return a ? a.href : null;
-		}
-
-		function prefetchNextPage() {
-			const next = document.querySelector(
-				'.woocommerce-pagination a.next, .next.page-numbers, a.next-page'
-			);
-			if (next && next.href) setTimeout(() => prefetch(next.href), 2000);
-		}
-
-		// Wide selector — catches product grid items and upsell anchor-wrappers
-		const items = document.querySelectorAll(
-			'.products .product, ul.products li.product, .product-item, li.product, a.upsell-item[href]'
+	function prefetchNextPage() {
+		const next = document.querySelector(
+			'.woocommerce-pagination a.next, .next.page-numbers, a.next-page'
 		);
-		if (!items.length) {
-			console.warn('[DC SW Prefetch] No product items found in DOM');
-			return;
-		}
+		if (next && next.href) setTimeout(() => prefetch(next.href), 2000);
+	}
 
-		console.log('[DC SW Prefetch] Monitoring', items.length, 'products | productBase:', productBase);
+	// Wide selector — catches product grid items and upsell anchor-wrappers
+	const items = document.querySelectorAll(
+		'.products .product, ul.products li.product, .product-item, li.product, a.upsell-item[href]'
+	);
+	if (!items.length) {
+		console.warn('[DC SW Prefetch] No product items found in DOM');
+		return;
+	}
 
-		if ('IntersectionObserver' in window) {
-			const observer = new IntersectionObserver((entries) => {
-				entries.forEach(entry => {
-					if (entry.isIntersecting) {
-						visibleItems.add(entry.target);
-						const url = resolveProductLink(entry.target);
-						if (url) {
-							prefetch(url);
-						}
-					} else {
-						visibleItems.delete(entry.target);
+	console.log('[DC SW Prefetch] Monitoring', items.length, 'products | productBase:', productBase);
+
+	if ('IntersectionObserver' in window) {
+		const observer = new IntersectionObserver((entries) => {
+			entries.forEach(entry => {
+				if (entry.isIntersecting) {
+					visibleItems.add(entry.target);
+					const url = resolveProductLink(entry.target);
+					if (url) {
+						prefetch(url);
 					}
-				});
-			}, { rootMargin: '50px', threshold: 0.1 });
-
-			items.forEach(item => observer.observe(item));
-			prefetchNextPage();
-		} else {
-			// Fallback for browsers without IntersectionObserver
-			const vh = window.innerHeight;
-			items.forEach(item => {
-				const url  = resolveProductLink(item);
-				const rect = item.getBoundingClientRect();
-				if (url && rect.top >= 0 && rect.top <= vh) prefetch(url);
+				} else {
+					visibleItems.delete(entry.target);
+				}
 			});
-			prefetchNextPage();
-		}
-	})();
-	</script>
+		}, { rootMargin: '50px', threshold: 0.1 });
+
+		items.forEach(item => observer.observe(item));
+		prefetchNextPage();
+	} else {
+		// Fallback for browsers without IntersectionObserver
+		const vh = window.innerHeight;
+		items.forEach(item => {
+			const url  = resolveProductLink(item);
+			const rect = item.getBoundingClientRect();
+			if (url && rect.top >= 0 && rect.top <= vh) prefetch(url);
+		});
+		prefetchNextPage();
+	}
+})();
 	<?php
+	$prefetch_js = ob_get_clean();
+	wp_register_script( 'dc-swp-prefetch', false, [], false, [ 'in_footer' => true ] );
+	wp_add_inline_script( 'dc-swp-prefetch', trim( $prefetch_js ) );
+	wp_enqueue_script( 'dc-swp-prefetch' );
 }
 
 
@@ -977,14 +1009,12 @@ function dc_swp_maybe_remove_emoji() { // phpcs:ignore WordPress.NamingConventio
 	remove_filter( 'wp_mail', 'wp_staticize_emoji_for_email' );
 	add_filter( 'emoji_svg_url', '__return_false' );
 
-	// Size any emoji <img> that still renders (e.g. from cached markup).
-	add_action(
-		'wp_head',
-		function () {
-			echo '<style>img.emoji{width:1em;height:1em;vertical-align:-0.1em}</style>' . "\n";
-		},
-		1
-	);
+	// Size any emoji <img> that still renders (e.g. from cached markup)
+	add_action( 'wp_enqueue_scripts', function() {
+		wp_register_style( 'dc-swp-emoji', false );
+		wp_add_inline_style( 'dc-swp-emoji', 'img.emoji{width:1em;height:1em;vertical-align:-0.1em}' );
+		wp_enqueue_style( 'dc-swp-emoji' );
+	}, 1 );
 }
 
 

@@ -169,7 +169,86 @@ function dc_swp_setup_menu() { // phpcs:ignore WordPress.NamingConventions.Prefi
 	);
 }
 
-// Register settings.
+add_action( 'admin_enqueue_scripts', 'dc_swp_enqueue_admin_assets' );
+/**
+ * Enqueue admin page styles and register the admin script handle.
+ *
+ * @param string $hook Current admin page hook suffix.
+ */
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
+function dc_swp_enqueue_admin_assets( $hook ) {
+    if ( 'toplevel_page_dc-sw-prefetch' !== $hook ) {
+        return;
+    }
+    wp_register_style( 'dc-swp-admin', false );
+    wp_add_inline_style( 'dc-swp-admin', "
+    .pwa-cache-settings .form-table th {
+        width: 250px;
+        font-weight: 600;
+    }
+    .pwa-toggle {
+        position: relative;
+        display: inline-block;
+        width: 60px;
+        height: 34px;
+    }
+    .pwa-toggle input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+    .pwa-slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #ccc;
+        transition: .4s;
+        border-radius: 34px;
+    }
+    .pwa-slider:before {
+        position: absolute;
+        content: \"\";
+        height: 26px;
+        width: 26px;
+        left: 4px;
+        bottom: 4px;
+        background-color: white;
+        transition: .4s;
+        border-radius: 50%;
+    }
+    input:checked + .pwa-slider {
+        background-color: #2271b1;
+    }
+    input:checked + .pwa-slider:before {
+        transform: translateX(26px);
+    }
+    /* ── Inline script blocks accordion ───────────────────────────────── */
+    .dc-swp-blk-item { border:1px solid #dcdcde; border-radius:3px; margin-bottom:5px; background:#fff; }
+    .dc-swp-blk-item.dc-swp-blk-disabled { opacity:.5; }
+    .dc-swp-blk-hdr { display:flex; align-items:center; gap:8px; padding:8px 10px; cursor:pointer; user-select:none; background:#f6f7f7; border-radius:3px; }
+    .dc-swp-blk-item.dc-swp-blk-open > .dc-swp-blk-hdr { border-radius:3px 3px 0 0; }
+    .dc-swp-blk-hdr:hover { background:#f0f0f1; }
+    .dc-swp-blk-chevron { font-size:16px; color:#787c82; flex-shrink:0; transition:transform .15s; }
+    .dc-swp-blk-label { flex:1; font-weight:500; color:#1d2327; outline:none; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:text; }
+    .dc-swp-blk-label:focus { outline:1px dashed #2271b1; padding:0 3px; border-radius:2px; white-space:pre; overflow:visible; }
+    .dc-swp-blk-body { display:none; padding:10px; border-top:1px solid #dcdcde; background:#fcfcfd; }
+    .dc-swp-blk-body textarea { font-family:Consolas,'Courier New',monospace; font-size:12px; line-height:1.5; }
+    .dc-swp-blk-toggle { width:36px !important; height:22px !important; margin:0; flex-shrink:0; }
+    .dc-swp-blk-toggle .pwa-slider:before { height:14px; width:14px; left:4px; bottom:4px; }
+    .dc-swp-blk-toggle input:checked + .pwa-slider:before { transform:translateX(14px); }
+    .dc-swp-add-area { border:1px dashed #c3c4c7; padding:14px 14px 10px; border-radius:3px; background:#f6f7f7; margin-top:4px; }
+    .dc-swp-add-area h4 { margin:0 0 9px; font-size:13px; font-weight:600; color:#1d2327; }
+    .dc-swp-add-area textarea { font-family:Consolas,'Courier New',monospace; font-size:12px; }
+    " );
+    wp_enqueue_style( 'dc-swp-admin' );
+    wp_register_script( 'dc-swp-admin-script', false, [ 'jquery' ], false, [ 'in_footer' => true ] );
+    wp_enqueue_script( 'dc-swp-admin-script' );
+}
+
+// Register settings
 add_action( 'admin_init', 'dc_swp_register_settings' );
 
 /**
@@ -458,129 +537,67 @@ function dc_swp_admin_page_html() { // phpcs:ignore WordPress.NamingConventions.
 				</tr>
 			</table>
 
-			<?php submit_button( dc_swp_str( 'save_button' ) ); ?>
-		</form>
-	</div>
-	
-	<style>
-	.pwa-cache-settings .form-table th {
-		width: 250px;
-		font-weight: 600;
-	}
-	.pwa-toggle {
-		position: relative;
-		display: inline-block;
-		width: 60px;
-		height: 34px;
-	}
-	.pwa-toggle input {
-		opacity: 0;
-		width: 0;
-		height: 0;
-	}
-	.pwa-slider {
-		position: absolute;
-		cursor: pointer;
-		top: 0;
-		left: 0;
-		right: 0;
-		bottom: 0;
-		background-color: #ccc;
-		transition: .4s;
-		border-radius: 34px;
-	}
-	.pwa-slider:before {
-		position: absolute;
-		content: "";
-		height: 26px;
-		width: 26px;
-		left: 4px;
-		bottom: 4px;
-		background-color: white;
-		transition: .4s;
-		border-radius: 50%;
-	}
-	input:checked + .pwa-slider {
-		background-color: #2271b1;
-	}
-	input:checked + .pwa-slider:before {
-		transform: translateX(26px);
-	}
-	/* ── Inline script blocks accordion ───────────────────────────────── */
-	.dc-swp-blk-item { border:1px solid #dcdcde; border-radius:3px; margin-bottom:5px; background:#fff; }
-	.dc-swp-blk-item.dc-swp-blk-disabled { opacity:.5; }
-	.dc-swp-blk-hdr { display:flex; align-items:center; gap:8px; padding:8px 10px; cursor:pointer; user-select:none; background:#f6f7f7; border-radius:3px; }
-	.dc-swp-blk-item.dc-swp-blk-open > .dc-swp-blk-hdr { border-radius:3px 3px 0 0; }
-	.dc-swp-blk-hdr:hover { background:#f0f0f1; }
-	.dc-swp-blk-chevron { font-size:16px; color:#787c82; flex-shrink:0; transition:transform .15s; }
-	.dc-swp-blk-label { flex:1; font-weight:500; color:#1d2327; outline:none; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:text; }
-	.dc-swp-blk-label:focus { outline:1px dashed #2271b1; padding:0 3px; border-radius:2px; white-space:pre; overflow:visible; }
-	.dc-swp-blk-body { display:none; padding:10px; border-top:1px solid #dcdcde; background:#fcfcfd; }
-	.dc-swp-blk-body textarea { font-family:Consolas,'Courier New',monospace; font-size:12px; line-height:1.5; }
-	.dc-swp-blk-toggle { width:36px !important; height:22px !important; margin:0; flex-shrink:0; }
-	.dc-swp-blk-toggle .pwa-slider:before { height:14px; width:14px; left:4px; bottom:4px; }
-	.dc-swp-blk-toggle input:checked + .pwa-slider:before { transform:translateX(14px); }
-	.dc-swp-add-area { border:1px dashed #c3c4c7; padding:14px 14px 10px; border-radius:3px; background:#f6f7f7; margin-top:4px; }
-	.dc-swp-add-area h4 { margin:0 0 9px; font-size:13px; font-weight:600; color:#1d2327; }
-	.dc-swp-add-area textarea { font-family:Consolas,'Courier New',monospace; font-size:12px; }
-	</style>
-	<script type="text/javascript">
-	jQuery(function($){
-		var nonce        = <?php echo wp_json_encode( wp_create_nonce( 'dc_swp_detect_nonce' ) ); ?>;
-		var noScriptsMsg = <?php echo wp_json_encode( dc_swp_str( 'partytown_autodetect_none' ) ); ?>;
-		$('#dc-swp-autodetect-btn').on('click', function(){
-			var $btn  = $(this),
-				$spin = $('#dc-swp-autodetect-spinner'),
-				$res  = $('#dc-swp-autodetect-results'),
-				$list = $('#dc-swp-autodetect-list');
-			$btn.prop('disabled', true);
-			$spin.css('display','inline-block');
-			$res.hide();
-			$.post(ajaxurl, {action:'dc_swp_detect_scripts', nonce:nonce}, function(r){
-				$btn.prop('disabled', false);
-				$spin.hide();
-				var compatible   = (r.success && r.data && r.data.compatible)   ? r.data.compatible   : [];
-				var incompatible = (r.success && r.data && r.data.incompatible) ? r.data.incompatible : [];
-				// Auto-merge only the incompatible scripts that were actually found on the site.
-				if ( incompatible.length ) {
-					var $excl      = $('textarea[name="dc_swp_partytown_exclude"]');
-					var existingEx = $excl.val().split('\n').map(function(s){ return s.trim(); }).filter(Boolean);
-					var toExclude  = incompatible.filter(function(p){ return existingEx.indexOf(p) === -1; });
-					if ( toExclude.length ) {
-						$excl.val( existingEx.concat(toExclude).join('\n') );
-					}
-				}
-				// Show compatible scripts as checkboxes for the include list.
-				if ( !compatible.length ) {
-					$list.html('<em>' + $('<span>').text(noScriptsMsg).html() + '</em>');
-					$('#dc-swp-add-selected').hide();
-				} else {
-					var html = '';
-					$.each(compatible, function(i, url){
-						var safe = $('<span>').text(url).html();
-						html += '<label style="display:block;margin:2px 0"><input type="checkbox" value="'+safe+'" checked> <code>'+safe+'</code></label>';
-					});
-					$list.html(html);
-					$('#dc-swp-add-selected').show();
-				}
-				$res.show();
-			}).fail(function(){ $btn.prop('disabled',false); $spin.hide(); });
-		});
-		$('#dc-swp-add-selected').on('click', function(){
-			var $ta       = $('textarea[name="dc_swp_partytown_scripts"]');
-			var $list     = $('#dc-swp-autodetect-list');
-			var existing  = $ta.val().split('\n').map(function(s){ return s.trim(); }).filter(Boolean);
-			var toAdd     = [];
-			$list.find('input[type="checkbox"]:checked').each(function(){
-				var url = $(this).val();
-				if ( existing.indexOf(url) === -1 ) { toAdd.push(url); }
-			});
-			if ( toAdd.length ) {
-				$ta.val( existing.concat(toAdd).join('\n') );
-			}
-			$('#dc-swp-autodetect-results').fadeOut();
-		});
-	});
+            <?php submit_button( dc_swp_str( 'save_button' ) ); ?>
+        </form>
+    </div>
+
+    <?php ob_start(); ?>
+    jQuery(function($){
+        var nonce        = <?php echo wp_json_encode( wp_create_nonce( 'dc_swp_detect_nonce' ) ); ?>;
+        var noScriptsMsg = <?php echo wp_json_encode( dc_swp_str( 'partytown_autodetect_none' ) ); ?>;
+        $('#dc-swp-autodetect-btn').on('click', function(){
+            var $btn  = $(this),
+                $spin = $('#dc-swp-autodetect-spinner'),
+                $res  = $('#dc-swp-autodetect-results'),
+                $list = $('#dc-swp-autodetect-list');
+            $btn.prop('disabled', true);
+            $spin.css('display','inline-block');
+            $res.hide();
+            $.post(ajaxurl, {action:'dc_swp_detect_scripts', nonce:nonce}, function(r){
+                $btn.prop('disabled', false);
+                $spin.hide();
+                var compatible   = (r.success && r.data && r.data.compatible)   ? r.data.compatible   : [];
+                var incompatible = (r.success && r.data && r.data.incompatible) ? r.data.incompatible : [];
+                // Auto-merge only the incompatible scripts that were actually found on the site.
+                if ( incompatible.length ) {
+                    var $excl      = $('textarea[name="dc_swp_partytown_exclude"]');
+                    var existingEx = $excl.val().split('\n').map(function(s){ return s.trim(); }).filter(Boolean);
+                    var toExclude  = incompatible.filter(function(p){ return existingEx.indexOf(p) === -1; });
+                    if ( toExclude.length ) {
+                        $excl.val( existingEx.concat(toExclude).join('\n') );
+                    }
+                }
+                // Show compatible scripts as checkboxes for the include list.
+                if ( !compatible.length ) {
+                    $list.html('<em>' + $('<span>').text(noScriptsMsg).html() + '</em>');
+                    $('#dc-swp-add-selected').hide();
+                } else {
+                    var html = '';
+                    $.each(compatible, function(i, url){
+                        var safe = $('<span>').text(url).html();
+                        html += '<label style="display:block;margin:2px 0"><input type="checkbox" value="'+safe+'" checked> <code>'+safe+'</code></label>';
+                    });
+                    $list.html(html);
+                    $('#dc-swp-add-selected').show();
+                }
+                $res.show();
+            }).fail(function(){ $btn.prop('disabled',false); $spin.hide(); });
+        });
+        $('#dc-swp-add-selected').on('click', function(){
+            var $ta       = $('textarea[name="dc_swp_partytown_scripts"]');
+            var $list     = $('#dc-swp-autodetect-list');
+            var existing  = $ta.val().split('\n').map(function(s){ return s.trim(); }).filter(Boolean);
+            var toAdd     = [];
+            $list.find('input[type="checkbox"]:checked').each(function(){
+                var url = $(this).val();
+                if ( existing.indexOf(url) === -1 ) { toAdd.push(url); }
+            });
+            if ( toAdd.length ) {
+                $ta.val( existing.concat(toAdd).join('\n') );
+            }
+            $('#dc-swp-autodetect-results').fadeOut();
+        });
+    });
 
 	// ── Inline script blocks accordion ────────────────────────────────────
 	(function($){
@@ -684,21 +701,22 @@ function dc_swp_admin_page_html() { // phpcs:ignore WordPress.NamingConventions.
 			$('#dc-swp-new-code').val('');
 		});
 
-		// Sync to hidden field before form submit
-		$('form.pwa-cache-settings').on('submit', function(){
-			$('.dc-swp-blk-item').each(function(){
-				var id = $(this).data('id');
-				patchBlock(id, {
-					code:    $(this).find('.dc-swp-blk-code').val(),
-					label:   $(this).find('.dc-swp-blk-label').text().trim(),
-					enabled: $(this).find('.dc-swp-blk-enable').prop('checked'),
-				});
-			});
-			$('#dc_swp_inline_scripts_json').val(JSON.stringify(blocks));
-		});
-	}(jQuery));
-	</script>
-	<?php
+        // Sync to hidden field before form submit
+        $('form.pwa-cache-settings').on('submit', function(){
+            $('.dc-swp-blk-item').each(function(){
+                var id = $(this).data('id');
+                patchBlock(id, {
+                    code:    $(this).find('.dc-swp-blk-code').val(),
+                    label:   $(this).find('.dc-swp-blk-label').text().trim(),
+                    enabled: $(this).find('.dc-swp-blk-enable').prop('checked'),
+                });
+            });
+            $('#dc_swp_inline_scripts_json').val(JSON.stringify(blocks));
+        });
+    }(jQuery));
+    <?php
+    $admin_js = ob_get_clean();
+    wp_add_inline_script( 'dc-swp-admin-script', $admin_js );
 }
 
 // ============================================================
