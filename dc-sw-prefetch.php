@@ -1,5 +1,7 @@
 <?php
 /**
+ * DC Service Worker Prefetcher — Main Plugin File
+ *
  * @wordpress-plugin
  * Plugin Name: DC Service Worker Prefetcher
  * Plugin URI:  https://github.com/dc-plugins/dc-sw-prefetch
@@ -14,9 +16,12 @@
  * Requires at least: 6.8
  * Requires PHP: 8.0
  * Tested up to: 6.9
+ *
+ * @package DC_Service_Worker_Prefetcher
  */
 
-if ( ! defined( 'ABSPATH' ) ) { die(); }
+if ( ! defined( 'ABSPATH' ) ) {
+	die(); }
 
 // ============================================================
 // BOT DETECTION
@@ -25,51 +30,92 @@ if ( ! defined( 'ABSPATH' ) ) { die(); }
 // ============================================================
 
 if ( ! function_exists( 'dc_swp_is_bot_request' ) ) :
-/**
- * Detect if the current request is from a bot/crawler.
- * Bots bypass age verification, cookie modals, and the service worker
- * so they don't waste crawl budget and get clean, fast HTML.
- */
-// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
-function dc_swp_is_bot_request() {
-	if ( ! isset( $_SERVER['HTTP_USER_AGENT'] ) ) {
-		return false;
-	}
+	/**
+	 * Detect if the current request is from a bot/crawler.
+	 * Bots bypass age verification, cookie modals, and the service worker
+	 * so they don't waste crawl budget and get clean, fast HTML.
+	 */
+	function dc_swp_is_bot_request() { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
+		if ( ! isset( $_SERVER['HTTP_USER_AGENT'] ) ) {
+			return false;
+		}
 
-	$ua = strtolower( sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) );
+		$ua = strtolower( sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) );
 
-	// Common bots, crawlers and speed-test tools
-	$bot_patterns = [
-		'googlebot', 'bingbot', 'slurp', 'duckduckbot', 'baiduspider',
-		'yandexbot', 'sogou', 'exabot', 'facebot', 'facebookexternalhit',
-		'ia_archiver', 'semrushbot', 'ahrefsbot', 'ahrefssiteaudit', 'mj12bot', 'dotbot',
-		'rogerbot', 'seokicks', 'seznambot', 'blexbot', 'yeti',
-		'naverbot', 'daumoa', 'applebot', 'twitterbot', 'linkedinbot',
-		'pinterestbot', 'whatsapp', 'telegrambot', 'discordbot',
-		'slackbot', 'embedly', 'quora link preview', 'outbrain',
-		'screaming frog', 'seobilitybot', 'gptbot', 'chatgpt',
-		'claudebot', 'anthropic', 'meta-externalagent',
-		// Speed / audit tools
-		'pagespeed', 'gtmetrix', 'pingdom', 'webpagetest',
-		'lighthouse', 'chrome-lighthouse', 'calibre', 'dareboost',
-		// Generic
-		'spider', 'crawler', 'scraper', 'bot/', '/bot',
-	];
+		// Common bots, crawlers and speed-test tools.
+		$bot_patterns = array(
+			'googlebot',
+			'bingbot',
+			'slurp',
+			'duckduckbot',
+			'baiduspider',
+			'yandexbot',
+			'sogou',
+			'exabot',
+			'facebot',
+			'facebookexternalhit',
+			'ia_archiver',
+			'semrushbot',
+			'ahrefsbot',
+			'ahrefssiteaudit',
+			'mj12bot',
+			'dotbot',
+			'rogerbot',
+			'seokicks',
+			'seznambot',
+			'blexbot',
+			'yeti',
+			'naverbot',
+			'daumoa',
+			'applebot',
+			'twitterbot',
+			'linkedinbot',
+			'pinterestbot',
+			'whatsapp',
+			'telegrambot',
+			'discordbot',
+			'slackbot',
+			'embedly',
+			'quora link preview',
+			'outbrain',
+			'screaming frog',
+			'seobilitybot',
+			'gptbot',
+			'chatgpt',
+			'claudebot',
+			'anthropic',
+			'meta-externalagent',
+			// Speed / audit tools.
+			'pagespeed',
+			'gtmetrix',
+			'pingdom',
+			'webpagetest',
+			'lighthouse',
+			'chrome-lighthouse',
+			'calibre',
+			'dareboost',
+			// Generic.
+			'spider',
+			'crawler',
+			'scraper',
+			'bot/',
+			'/bot',
+		);
 
-	foreach ( $bot_patterns as $pattern ) {
-		if ( str_contains( $ua, $pattern ) ) {
+		foreach ( $bot_patterns as $pattern ) {
+			if ( str_contains( $ua, $pattern ) ) {
+				return true;
+			}
+		}
+
+		// Headless Chrome / Puppeteer / Playwright without a real UA.
+		if ( str_contains( $ua, 'headlesschrome' ) || str_contains( $ua, 'phantomjs' ) ) {
 			return true;
 		}
-	}
 
-	// Headless Chrome / Puppeteer / Playwright without a real UA
-	if ( str_contains( $ua, 'headlesschrome' ) || str_contains( $ua, 'phantomjs' ) ) {
-		return true;
+		return false;
 	}
-
-	return false;
-}
-endif; // function_exists( 'is_bot_request' )
+endif; // End dc_swp_is_bot_request check.
 
 
 // ============================================================
@@ -80,28 +126,27 @@ endif; // function_exists( 'is_bot_request' )
 // third-party scripts via Partytown.
 //
 // Covers:
-//   Complianz            — cmplz_marketing = "allow"
-//   CookieYes            — cookieyes-consent contains "marketing:yes"
-//   Borlabs Cookie       — borlabs-cookie JSON .consents.marketing = true
-//   Cookie Notice (GDPR) — cookie_notice_accepted = "true"
-//   WebToffee GDPR       — cookie_cat_marketing = "accept"
-//   Cookiebot (Cybot)    — CookieConsent contains "marketing:true"
-//   Cookie Information   — CookieInformationConsent JSON consents_approved[] contains "cookie_cat_marketing"
-//   Moove GDPR           — moove_gdpr_popup JSON .thirdparty = 1
+// Complianz            — cmplz_marketing = "allow"
+// CookieYes            — cookieyes-consent contains "marketing:yes"
+// Borlabs Cookie       — borlabs-cookie JSON .consents.marketing = true
+// Cookie Notice (GDPR) — cookie_notice_accepted = "true"
+// WebToffee GDPR       — cookie_cat_marketing = "accept"
+// Cookiebot (Cybot)    — CookieConsent contains "marketing:true"
+// Cookie Information   — CookieInformationConsent JSON consents_approved[] contains "cookie_cat_marketing"
+// Moove GDPR           — moove_gdpr_popup JSON .thirdparty = 1
 // ============================================================
 
 /**
  * Return true if the current visitor has granted marketing consent
  * according to any of the common CMP cookie conventions.
  */
-// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
-function dc_swp_has_marketing_consent() {
-	// Complianz
-	if ( isset( $_COOKIE['cmplz_marketing'] ) && $_COOKIE['cmplz_marketing'] === 'allow' ) {
+function dc_swp_has_marketing_consent() { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
+	// Complianz.
+	if ( isset( $_COOKIE['cmplz_marketing'] ) && 'allow' === $_COOKIE['cmplz_marketing'] ) {
 		return true;
 	}
 
-	// CookieYes — cookie value looks like "consent:yes,marketing:yes,analytics:yes,..."
+	// CookieYes — cookie value looks like "consent:yes,marketing:yes,analytics:yes,...".
 	if ( isset( $_COOKIE['cookieyes-consent'] ) ) {
 		$cy = sanitize_text_field( wp_unslash( $_COOKIE['cookieyes-consent'] ) );
 		if ( str_contains( $cy, 'marketing:yes' ) ) {
@@ -109,7 +154,7 @@ function dc_swp_has_marketing_consent() {
 		}
 	}
 
-	// Borlabs Cookie — JSON-encoded object; .consents.marketing === true
+	// Borlabs Cookie — JSON-encoded object; .consents.marketing === true.
 	if ( isset( $_COOKIE['borlabs-cookie'] ) ) {
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON decoded for boolean key check only; not used in HTML output.
 		$raw = json_decode( wp_unslash( $_COOKIE['borlabs-cookie'] ), true );
@@ -118,17 +163,17 @@ function dc_swp_has_marketing_consent() {
 		}
 	}
 
-	// Cookie Notice & Compliance for GDPR — single all-or-nothing cookie
-	if ( isset( $_COOKIE['cookie_notice_accepted'] ) && $_COOKIE['cookie_notice_accepted'] === 'true' ) {
+	// Cookie Notice & Compliance for GDPR — single all-or-nothing cookie.
+	if ( isset( $_COOKIE['cookie_notice_accepted'] ) && 'true' === $_COOKIE['cookie_notice_accepted'] ) {
 		return true;
 	}
 
-	// WebToffee GDPR Cookie Consent
-	if ( isset( $_COOKIE['cookie_cat_marketing'] ) && $_COOKIE['cookie_cat_marketing'] === 'accept' ) {
+	// WebToffee GDPR Cookie Consent.
+	if ( isset( $_COOKIE['cookie_cat_marketing'] ) && 'accept' === $_COOKIE['cookie_cat_marketing'] ) {
 		return true;
 	}
 
-	// Cookiebot (Cybot) — URL-encoded value contains "marketing:true"
+	// Cookiebot (Cybot) — URL-encoded value contains "marketing:true".
 	if ( isset( $_COOKIE['CookieConsent'] ) ) {
 		$cc = sanitize_text_field( wp_unslash( $_COOKIE['CookieConsent'] ) );
 		if ( str_contains( $cc, 'marketing:true' ) ) {
@@ -136,7 +181,7 @@ function dc_swp_has_marketing_consent() {
 		}
 	}
 
-	// Cookie Information (popular in Scandinavia) — JSON; consents_approved[] contains "cookie_cat_marketing"
+	// Cookie Information (popular in Scandinavia) — JSON; consents_approved[] contains "cookie_cat_marketing".
 	if ( isset( $_COOKIE['CookieInformationConsent'] ) ) {
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON decoded for array key check only; not used in HTML output.
 		$ci = json_decode( wp_unslash( $_COOKIE['CookieInformationConsent'] ), true );
@@ -145,11 +190,11 @@ function dc_swp_has_marketing_consent() {
 		}
 	}
 
-	// Moove GDPR Cookie Compliance — JSON; .thirdparty === 1
+	// Moove GDPR Cookie Compliance — JSON; .thirdparty === 1.
 	if ( isset( $_COOKIE['moove_gdpr_popup'] ) ) {
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON decoded for integer key check only; not used in HTML output.
 		$mg = json_decode( wp_unslash( $_COOKIE['moove_gdpr_popup'] ), true );
-		if ( isset( $mg['thirdparty'] ) && (int) $mg['thirdparty'] === 1 ) {
+		if ( isset( $mg['thirdparty'] ) && 1 === (int) $mg['thirdparty'] ) {
 			return true;
 		}
 	}
@@ -180,15 +225,21 @@ if ( get_option( 'dampcig_pwa_footer_credit', 'no' ) === 'yes' && ! function_exi
 	 * Other DC plugins check function_exists( 'dc_footer_credit_owner' ) and skip
 	 * their own registration when this is already defined.
 	 */
-	// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
-	function dc_footer_credit_owner(): void {}
+	function dc_footer_credit_owner(): void {} // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
 
 	add_action( 'wp_footer', 'dc_swp_footer_credit_js', PHP_INT_MAX );
 }
 
-// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
-function dc_swp_footer_credit_js() {
-	if ( is_admin() ) return;
+/**
+ * Output the footer credit inline script via wp_footer.
+ *
+ * @since 1.0.0
+ * @return void
+ */
+function dc_swp_footer_credit_js() { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
+	if ( is_admin() ) {
+		return;
+	}
 
 	$url   = 'https://www.dampcig.dk';
 	$title = esc_js( 'Powered by Dampcig.dk' );
@@ -243,8 +294,7 @@ add_action( 'send_headers', 'dc_swp_cross_origin_isolation_headers' );
  * Skipped for bots, logged-in users, and transactional pages (cart / checkout /
  * account). Skipped unless the dc_swp_coi_headers option is enabled.
  */
-// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
-function dc_swp_cross_origin_isolation_headers() {
+function dc_swp_cross_origin_isolation_headers() { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
 	if ( get_option( 'dc_swp_coi_headers', 'no' ) !== 'yes' ) {
 		return;
 	}
@@ -253,8 +303,8 @@ function dc_swp_cross_origin_isolation_headers() {
 	}
 	// Skip for logged-in users and transactional pages.
 	if ( is_user_logged_in()
-		|| ( function_exists( 'is_cart' )         && is_cart() )
-		|| ( function_exists( 'is_checkout' )     && is_checkout() )
+		|| ( function_exists( 'is_cart' ) && is_cart() )
+		|| ( function_exists( 'is_checkout' ) && is_checkout() )
 		|| ( function_exists( 'is_account_page' ) && is_account_page() ) ) {
 		return;
 	}
@@ -268,15 +318,18 @@ function dc_swp_cross_origin_isolation_headers() {
  *
  * Skipped entirely if W3TC is loaded (W3TC owns its own header logic).
  */
-// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
-function dc_swp_fallback_cache_headers() {
-	// W3TC is present — let it handle headers
-	if ( defined( 'W3TC_DIR' ) || function_exists( 'w3tc_pgcache_flush' ) ) return;
-	if ( is_admin() ) return;
+function dc_swp_fallback_cache_headers() { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
+	// W3TC is present — let it handle headers.
+	if ( defined( 'W3TC_DIR' ) || function_exists( 'w3tc_pgcache_flush' ) ) {
+		return;
+	}
+	if ( is_admin() ) {
+		return;
+	}
 
-	// Never cache personalised or transactional pages
+	// Never cache personalised or transactional pages.
 	if ( is_user_logged_in()
-		|| ( function_exists( 'is_cart' )     && is_cart() )
+		|| ( function_exists( 'is_cart' ) && is_cart() )
 		|| ( function_exists( 'is_checkout' ) && is_checkout() )
 		|| ( function_exists( 'is_account_page' ) && is_account_page() ) ) {
 		header( 'Cache-Control: no-store, no-cache, must-revalidate, max-age=0' );
@@ -284,12 +337,12 @@ function dc_swp_fallback_cache_headers() {
 		return;
 	}
 
-	// Cache public pages: 1 hour browser, stale-while-revalidate 60 s
-	$max_age       = 3600;
-	$is_cacheable  = is_front_page() || is_home()
-		|| ( function_exists( 'is_shop' )             && is_shop() )
+	// Cache public pages: 1 hour browser, stale-while-revalidate 60 s.
+	$max_age      = 3600;
+	$is_cacheable = is_front_page() || is_home()
+		|| ( function_exists( 'is_shop' ) && is_shop() )
 		|| ( function_exists( 'is_product_category' ) && is_product_category() )
-		|| ( function_exists( 'is_product' )          && is_product() )
+		|| ( function_exists( 'is_product' ) && is_product() )
 		|| is_page()
 		|| is_singular()
 		|| is_archive();
@@ -298,7 +351,7 @@ function dc_swp_fallback_cache_headers() {
 		header( 'Cache-Control: public, max-age=' . $max_age . ', stale-while-revalidate=60, stale-if-error=86400' );
 		header( 'Expires: ' . gmdate( 'D, d M Y H:i:s', time() + $max_age ) . ' GMT' );
 		header( 'Vary: Accept-Encoding, Accept' );
-		header( 'X-Cache-Fallback: dc-sw-prefetch' ); // debugging marker
+		header( 'X-Cache-Fallback: dc-sw-prefetch' ); // Debugging marker.
 	}
 }
 
@@ -322,8 +375,7 @@ add_action( 'init', 'dc_swp_serve_partytown_files', 1 );
  * Partytown resolves its own workers/sandboxes relative to the `lib` config
  * option, which we point to /~partytown/ in the inline snip below.
  */
-// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
-function dc_swp_serve_partytown_files() {
+function dc_swp_serve_partytown_files() { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
 	$request_uri = isset( $_SERVER['REQUEST_URI'] )
 		? wp_parse_url( wp_unslash( $_SERVER['REQUEST_URI'] ), PHP_URL_PATH ) // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 		: '';
@@ -333,15 +385,15 @@ function dc_swp_serve_partytown_files() {
 	}
 
 	// Resolve the physical file — prevent directory traversal.
-	$relative  = ltrim( substr( $request_uri, strlen( '/~partytown/' ) ), '/' );
-	// Strip query string just in case
+	$relative = ltrim( substr( $request_uri, strlen( '/~partytown/' ) ), '/' );
+	// Strip query string just in case.
 	$relative  = strtok( $relative, '?' );
 	$real_base = realpath( plugin_dir_path( __FILE__ ) . 'assets/partytown' );
 	$file      = realpath( $real_base . '/' . $relative );
 
 	// Security: must resolve inside the partytown assets directory.
 	// Append directory separator to prevent matching sibling dirs like assets/partytown_other/.
-	if ( $file === false || strncmp( $file, $real_base . DIRECTORY_SEPARATOR, strlen( $real_base ) + 1 ) !== 0 ) {
+	if ( false === $file || strncmp( $file, $real_base . DIRECTORY_SEPARATOR, strlen( $real_base ) + 1 ) !== 0 ) {
 		status_header( 404 );
 		exit();
 	}
@@ -351,13 +403,13 @@ function dc_swp_serve_partytown_files() {
 		exit();
 	}
 
-	$ext_map = [
+	$ext_map = array(
 		'js'   => 'application/javascript; charset=utf-8',
 		'html' => 'text/html; charset=utf-8',
 		'mjs'  => 'application/javascript; charset=utf-8',
-	];
-	$ext  = strtolower( pathinfo( $file, PATHINFO_EXTENSION ) );
-	$mime = $ext_map[ $ext ] ?? 'application/octet-stream';
+	);
+	$ext     = strtolower( pathinfo( $file, PATHINFO_EXTENSION ) );
+	$mime    = $ext_map[ $ext ] ?? 'application/octet-stream';
 
 	status_header( 200 );
 	header( 'Content-Type: ' . $mime );
@@ -414,26 +466,25 @@ add_action( 'init', 'dc_swp_serve_partytown_proxy', 1 );
  *  - No redirect following (redirection=0) to prevent SSRF via redirect.
  *  - SSL verification enabled.
  */
-// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
-function dc_swp_serve_partytown_proxy() {
+function dc_swp_serve_partytown_proxy() { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
 	$request_uri = isset( $_SERVER['REQUEST_URI'] )
 		? wp_parse_url( wp_unslash( $_SERVER['REQUEST_URI'] ), PHP_URL_PATH ) // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 		: '';
 
-	if ( $request_uri !== '/~partytown-proxy' ) {
+	if ( '/~partytown-proxy' !== $request_uri ) {
 		return;
 	}
 
 	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only proxy, no state change
 	$raw_url = isset( $_GET['url'] ) ? esc_url_raw( wp_unslash( $_GET['url'] ) ) : '';
-	if ( $raw_url === '' ) {
+	if ( '' === $raw_url ) {
 		status_header( 400 );
 		exit();
 	}
 
 	// Must be HTTPS.
 	$parsed = wp_parse_url( $raw_url );
-	if ( empty( $parsed['scheme'] ) || $parsed['scheme'] !== 'https' ) {
+	if ( empty( $parsed['scheme'] ) || 'https' !== $parsed['scheme'] ) {
 		status_header( 403 );
 		exit();
 	}
@@ -457,12 +508,12 @@ function dc_swp_serve_partytown_proxy() {
 
 	$response = wp_remote_get(
 		$clean_url,
-		[
+		array(
 			'timeout'     => 10,
-			'redirection' => 0, // no redirects — prevents SSRF via open redirect
+			'redirection' => 0, // No redirects — prevents SSRF via open redirect.
 			'sslverify'   => true,
 			'user-agent'  => 'WordPress/' . get_bloginfo( 'version' ) . '; ' . get_bloginfo( 'url' ),
-		]
+		)
 	);
 
 	if ( is_wp_error( $response ) || wp_remote_retrieve_response_code( $response ) !== 200 ) {
@@ -500,20 +551,19 @@ function dc_swp_serve_partytown_proxy() {
  *  2. WooCommerce permalink setting (woocommerce_permalinks.product_base)
  *  3. Hard fallback: /product/
  */
-// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
-function dc_swp_get_product_base() {
+function dc_swp_get_product_base() { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
 	$override = trim( get_option( 'dampcig_pwa_product_base', '' ) );
-	if ( $override !== '' ) {
-		// Normalise: ensure leading and trailing slash
+	if ( '' !== $override ) {
+		// Normalise: ensure leading and trailing slash.
 		return '/' . trim( $override, '/' ) . '/';
 	}
 
-	// Auto-detect from WooCommerce
-	$wc = get_option( 'woocommerce_permalinks', [] );
+	// Auto-detect from WooCommerce.
+	$wc = get_option( 'woocommerce_permalinks', array() );
 	if ( ! empty( $wc['product_base'] ) ) {
 		$base  = trim( $wc['product_base'], '/' );
 		$parts = explode( '/', $base );
-		// Use only the first path segment (ignore %product_cat% suffixes)
+		// Use only the first path segment (ignore %product_cat% suffixes).
 		return '/' . $parts[0] . '/';
 	}
 
@@ -538,8 +588,7 @@ add_action( 'wp_head', 'dc_swp_partytown_config', 2 );
  *
  * @return string Base64-safe nonce, or empty string on failure.
  */
-// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
-function dc_swp_get_csp_nonce() {
+function dc_swp_get_csp_nonce() { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
 	static $nonce = null;
 	if ( null !== $nonce ) {
 		return $nonce;
@@ -567,17 +616,24 @@ function dc_swp_get_csp_nonce() {
  * Emit the Partytown config object and the inline snippet in <head>.
  * Must run before any type="text/partytown" scripts.
  */
-// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
-function dc_swp_partytown_config() {
-	if ( dc_swp_is_bot_request() ) return;
-	if ( is_admin() ) return;
+function dc_swp_partytown_config() { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
+	if ( dc_swp_is_bot_request() ) {
+		return;
+	}
+	if ( is_admin() ) {
+		return;
+	}
 
 	$pt_enabled = get_option( 'dampcig_pwa_sw_enabled', 'yes' ) === 'yes';
-	if ( ! $pt_enabled ) return;
+	if ( ! $pt_enabled ) {
+		return;
+	}
 
-	// Inline Partytown snippet — serves workers from /~partytown/
+	// Inline Partytown snippet — serves workers from /~partytown/.
 	$snippet_file = plugin_dir_path( __FILE__ ) . 'assets/partytown/partytown.js';
-	if ( ! file_exists( $snippet_file ) ) return;
+	if ( ! file_exists( $snippet_file ) ) {
+		return;
+	}
 
 	$snippet = file_get_contents( $snippet_file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 
@@ -586,25 +642,25 @@ function dc_swp_partytown_config() {
 	// Note: 'gtag' is intentionally excluded — it is defined as an inline wrapper that calls
 	// dataLayer.push(), which is already forwarded. Forwarding 'gtag' separately is redundant.
 	// 'lintrk' (LinkedIn) and 'twq' (Twitter/X) are excluded — not on the officially tested list.
-	$config = [
-		'lib'   => '/~partytown/',
-		'debug' => false,
+	$config = array(
+		'lib'     => '/~partytown/',
+		'debug'   => false,
 		// preserveBehavior:true on dataLayer.push ensures GTM and consent stacks
 		// also fire the original (main-thread) implementation, keeping tag-manager
 		// event flow intact.
-		'forward' => [
-			// Array-of-arrays tuple format: ['forwardProp', {options}]
-			[ 'dataLayer.push', [ 'preserveBehavior' => true ] ], // Google Tag Manager
-			'fbq',            // Meta / Facebook Pixel
-			'_hsq.push',      // HubSpot Tracking
-			'Intercom',       // Intercom
-			'_learnq.push',   // Klaviyo
-			'ttq.track',      // TikTok Pixel
+		'forward' => array(
+			// Array-of-arrays tuple format: ['forwardProp', {options}].
+			array( 'dataLayer.push', array( 'preserveBehavior' => true ) ), // Google Tag Manager.
+			'fbq',            // Meta / Facebook Pixel.
+			'_hsq.push',      // HubSpot Tracking.
+			'Intercom',       // Intercom.
+			'_learnq.push',   // Klaviyo.
+			'ttq.track',      // TikTok Pixel.
 			'ttq.page',
 			'ttq.load',
-			'mixpanel.track', // Mixpanel
-		],
-	];
+			'mixpanel.track', // Mixpanel.
+		),
+	);
 
 	// Feature 4: loadScriptsOnMainThread — scripts dynamically injected inside the
 	// worker that match a pattern are loaded on the main thread instead.
@@ -629,11 +685,11 @@ function dc_swp_partytown_config() {
 	// Partytown will stamp this nonce on every <script> element it creates,
 	// allowing sites with strict CSP to whitelist exactly these scripts.
 	$nonce = dc_swp_get_csp_nonce();
-	if ( $nonce !== '' ) {
+	if ( '' !== $nonce ) {
 		$config['nonce'] = $nonce;
 	}
 
-	$nonce_attr  = $nonce !== '' ? ' nonce="' . esc_attr( $nonce ) . '"' : '';
+	$nonce_attr  = '' !== $nonce ? ' nonce="' . esc_attr( $nonce ) . '"' : '';
 	$config_json = wp_json_encode( $config, JSON_UNESCAPED_SLASHES );
 
 	// resolveUrl routes cross-origin script fetches through our CORS proxy so
@@ -648,15 +704,20 @@ function dc_swp_partytown_config() {
 	// same-origin paths → correct external endpoints so any analytics tool can
 	// be handled without touching this file.
 	//
-	// To add a new entry from a theme/plugin, use:
-	//   add_filter( 'dc_swp_partytown_path_rewrites', function( $map ) {
-	//       $map['/collect'] = 'https://analytics.example.com/collect';
-	//       return $map;
-	//   } );
+	// To add a new entry from a theme/plugin, use add_filter on 'dc_swp_partytown_path_rewrites'.
+	// phpcs:disable Squiz.Commenting.InlineComment.InvalidEndChar
+	// add_filter( 'dc_swp_partytown_path_rewrites', function( $map ) {
+	// $map['/collect'] = 'https://analytics.example.com/collect';
+	// return $map;
+	// } );
+	// phpcs:enable Squiz.Commenting.InlineComment.InvalidEndChar
 	// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound
-	$path_rewrites = apply_filters( 'dc_swp_partytown_path_rewrites', [
-		'/api/event' => 'https://analytics.ahrefs.com/api/event', // Ahrefs Analytics
-	] );
+	$path_rewrites      = apply_filters(
+		'dc_swp_partytown_path_rewrites',
+		array(
+			'/api/event' => 'https://analytics.ahrefs.com/api/event', // Ahrefs Analytics.
+		)
+	);
 	$path_rewrites_json = wp_json_encode( $path_rewrites, JSON_UNESCAPED_SLASHES );
 
 	$proxy_url_json           = wp_json_encode( home_url( '/~partytown-proxy' ), JSON_UNESCAPED_SLASHES );
@@ -668,7 +729,7 @@ function dc_swp_partytown_config() {
 		// site. Explicitly excludes type==="script" — script loads at a same-origin
 		// path should never be rerouted to an external analytics endpoint.
 		// (resolveUrl is called for every request type: "script", "fetch", "xhr",
-		// "sendBeacon" — the type param lets us be precise about what we intercept.)
+		// "sendBeacon" — the type param lets us be precise about what we intercept.
 		. 'var pr=' . $path_rewrites_json . ';'
 		. 'if(type!=="script"&&url&&url.hostname===location.hostname&&pr[url.pathname]){'
 		. 'return new URL(pr[url.pathname]);'
@@ -699,7 +760,7 @@ function dc_swp_partytown_config() {
 	$coi_active = get_option( 'dc_swp_coi_headers', 'no' ) === 'yes';
 	$coi_probe  = $coi_active
 		? 'if(window.crossOriginIsolated){try{new SharedArrayBuffer(268435456);}catch(e){'
-		  . 'try{Object.defineProperty(window,"crossOriginIsolated",{value:false,configurable:false});}catch(e2){}}}'
+			. 'try{Object.defineProperty(window,"crossOriginIsolated",{value:false,configurable:false});}catch(e2){}}}'
 		: '';
 
 	// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
@@ -772,22 +833,23 @@ add_action( 'wp_footer', 'dc_swp_prefetch_footer', 9999 );
  * Viewport/pagination prefetcher — runs in wp_footer.
  * Unchanged from original; does NOT depend on a service worker.
  */
-// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
-function dc_swp_prefetch_footer() {
+function dc_swp_prefetch_footer() { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
 	if ( dc_swp_is_bot_request() ) {
 		return;
 	}
 
 	if (
-		( function_exists( 'is_cart' )         && is_cart() ) ||
-		( function_exists( 'is_checkout' )     && is_checkout() ) ||
+		( function_exists( 'is_cart' ) && is_cart() ) ||
+		( function_exists( 'is_checkout' ) && is_checkout() ) ||
 		( function_exists( 'is_account_page' ) && is_account_page() )
 	) {
 		return;
 	}
 
 	$preload_enabled = get_option( 'dampcig_pwa_preload_products', 'yes' ) === 'yes';
-	if ( ! $preload_enabled ) return;
+	if ( ! $preload_enabled ) {
+		return;
+	}
 
 	$product_base = dc_swp_get_product_base();
 	?>
@@ -894,22 +956,35 @@ function dc_swp_prefetch_footer() {
 
 add_action( 'init', 'dc_swp_maybe_remove_emoji', 1 );
 
-// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
-function dc_swp_maybe_remove_emoji() {
-	if ( is_admin() ) return;
-	if ( get_option( 'dc_swp_disable_emoji', 'yes' ) !== 'yes' ) return;
+/**
+ * Remove WordPress emoji detection scripts and styles when the option is enabled.
+ *
+ * @since 1.0.0
+ * @return void
+ */
+function dc_swp_maybe_remove_emoji() { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
+	if ( is_admin() ) {
+		return;
+	}
+	if ( get_option( 'dc_swp_disable_emoji', 'yes' ) !== 'yes' ) {
+		return;
+	}
 
-	remove_action( 'wp_head',             'print_emoji_detection_script', 7 );
-	remove_action( 'wp_print_styles',     'print_emoji_styles' );
-	remove_filter( 'the_content_feed',    'wp_staticize_emoji' );
-	remove_filter( 'comment_text_rss',    'wp_staticize_emoji' );
-	remove_filter( 'wp_mail',             'wp_staticize_emoji_for_email' );
-	add_filter( 'emoji_svg_url',          '__return_false' );
+	remove_action( 'wp_head', 'print_emoji_detection_script', 7 );
+	remove_action( 'wp_print_styles', 'print_emoji_styles' );
+	remove_filter( 'the_content_feed', 'wp_staticize_emoji' );
+	remove_filter( 'comment_text_rss', 'wp_staticize_emoji' );
+	remove_filter( 'wp_mail', 'wp_staticize_emoji_for_email' );
+	add_filter( 'emoji_svg_url', '__return_false' );
 
-	// Size any emoji <img> that still renders (e.g. from cached markup)
-	add_action( 'wp_head', function() {
-		echo '<style>img.emoji{width:1em;height:1em;vertical-align:-0.1em}</style>' . "\n";
-	}, 1 );
+	// Size any emoji <img> that still renders (e.g. from cached markup).
+	add_action(
+		'wp_head',
+		function () {
+			echo '<style>img.emoji{width:1em;height:1em;vertical-align:-0.1em}</style>' . "\n";
+		},
+		1
+	);
 }
 
 
@@ -930,8 +1005,7 @@ function dc_swp_maybe_remove_emoji() {
  *
  * @return string[]
  */
-// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
-function dc_swp_get_partytown_patterns() {
+function dc_swp_get_partytown_patterns() { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
 	static $patterns = null;
 	if ( null !== $patterns ) {
 		return $patterns;
@@ -942,10 +1016,12 @@ function dc_swp_get_partytown_patterns() {
 		return $patterns;
 	}
 	$raw      = (string) get_option( 'dc_swp_partytown_scripts', '' );
-	$patterns = array_values( array_filter(
-		array_map( 'trim', explode( "\n", $raw ) ),
-		static fn( $line ) => $line !== ''
-	) );
+	$patterns = array_values(
+		array_filter(
+			array_map( 'trim', explode( "\n", $raw ) ),
+			static fn( $line ) => '' !== $line
+		)
+	);
 	wp_cache_set( 'patterns', $patterns, 'dc_swp', HOUR_IN_SECONDS );
 	return $patterns;
 }
@@ -964,8 +1040,7 @@ function dc_swp_get_partytown_patterns() {
  *
  * @return string[] Lowercase, unique hostnames eligible for proxy.
  */
-// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
-function dc_swp_get_proxy_allowed_hosts() {
+function dc_swp_get_proxy_allowed_hosts() { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
 	// Static memoisation: consistent with dc_swp_get_partytown_patterns().
 	// Mid-request option updates clear the object cache on the next request via
 	// dc_swp_bust_page_cache(); the static variable intentionally holds for the
@@ -1033,9 +1108,12 @@ add_filter( 'wp_script_attributes', 'dc_swp_partytown_script_attrs', 5 );
  * Mark any registered <script src> whose URL matches a configured
  * pattern as type="text/partytown", moving it off the main thread.
  * Priority 5 fires before per-script filters (default priority 10).
+ *
+ * @since 1.0.0
+ * @param array $attributes The script element attributes array.
+ * @return array Modified attributes.
  */
-// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
-function dc_swp_partytown_script_attrs( $attributes ) {
+function dc_swp_partytown_script_attrs( $attributes ) { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
 	if ( dc_swp_is_bot_request() ) {
 		return $attributes;
 	}
@@ -1047,7 +1125,7 @@ function dc_swp_partytown_script_attrs( $attributes ) {
 	if ( get_option( 'dampcig_pwa_sw_enabled', 'yes' ) !== 'yes' ) {
 		// Partytown disabled → render matched scripts on the main thread with defer.
 		foreach ( dc_swp_get_partytown_patterns() as $pattern ) {
-			if ( $pattern !== '' && str_contains( $src, $pattern ) ) {
+			if ( '' !== $pattern && str_contains( $src, $pattern ) ) {
 				$attributes['defer'] = true;
 				unset( $attributes['async'] );
 				break;
@@ -1058,18 +1136,18 @@ function dc_swp_partytown_script_attrs( $attributes ) {
 
 	// Never mark excluded scripts as text/partytown.
 	foreach ( dc_swp_get_partytown_exclude_patterns() as $excl ) {
-		if ( $excl !== '' && str_contains( $src, $excl ) ) {
+		if ( '' !== $excl && str_contains( $src, $excl ) ) {
 			return $attributes;
 		}
 	}
 	// GDPR guard: if an upstream filter (rare at priority 5 but possible) has already
 	// set a non-standard type, leave it alone so the CMP's blocking is not disturbed.
 	$current_type = strtolower( $attributes['type'] ?? '' );
-	if ( $current_type !== '' && $current_type !== 'text/javascript' ) {
+	if ( '' !== $current_type && 'text/javascript' !== $current_type ) {
 		return $attributes;
 	}
 	foreach ( dc_swp_get_partytown_patterns() as $pattern ) {
-		if ( $pattern !== '' && str_contains( $src, $pattern ) ) {
+		if ( '' !== $pattern && str_contains( $src, $pattern ) ) {
 			// Consent granted → off-load via Partytown; no consent → block silently.
 			$attributes['type'] = dc_swp_has_marketing_consent() ? 'text/partytown' : 'text/plain';
 			unset( $attributes['async'] );
@@ -1082,50 +1160,54 @@ function dc_swp_partytown_script_attrs( $attributes ) {
 // Bust the in-request static cache, object cache, and W3TC page cache when settings change.
 add_action( 'update_option_dc_swp_partytown_scripts', 'dc_swp_bust_page_cache' );
 add_action( 'update_option_dc_swp_partytown_exclude', 'dc_swp_bust_page_cache' );
-add_action( 'update_option_dc_swp_inline_scripts',    'dc_swp_bust_page_cache' );
+add_action( 'update_option_dc_swp_inline_scripts', 'dc_swp_bust_page_cache' );
 
 /**
  * Delete all object-cache pattern keys and flush W3TC page cache (if active),
  * so stale cached HTML with old type attributes is never served.
  */
-// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
-function dc_swp_bust_page_cache() {
+function dc_swp_bust_page_cache() { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
 	wp_cache_delete( 'patterns', 'dc_swp' );
 	wp_cache_delete( 'exclude_patterns', 'dc_swp' );
-	// W3TC page cache flush
+	// W3TC page cache flush.
 	if ( function_exists( 'w3tc_pgcache_flush' ) ) {
 		w3tc_pgcache_flush();
 	}
 }
 
 /**
- * Return admin-configured Partytown EXCLUSION patterns, object-cache memoised.
- * Scripts whose src matches any of these are never rewritten to text/partytown.
- *
- * @return string[]
- */
-/**
  * Default exclude list: scripts known to be incompatible with Partytown.
  * Pre-populated into the admin textarea on first use (when option is empty).
  * Users can edit the list freely — remove patterns they do not need.
+ *
+ * @since 1.0.0
+ * @return string Newline-separated list of incompatible script patterns.
  */
-// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
-function dc_swp_default_exclude_list() {
-	return implode( "\n", [
-		'widget.trustpilot.com',
-		'invitejs.trustpilot.com',
-		'tp.widget.bootstrap',
-		'cdn.reamaze.com',
-		'js.stripe.com',
-		'js.braintreegateway.com',
-		'checkout.paypal.com',
-		'maps.googleapis.com',
-		'connect.facebook.net/en_US/sdk',
-	] );
+function dc_swp_default_exclude_list() { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
+	return implode(
+		"\n",
+		array(
+			'widget.trustpilot.com',
+			'invitejs.trustpilot.com',
+			'tp.widget.bootstrap',
+			'cdn.reamaze.com',
+			'js.stripe.com',
+			'js.braintreegateway.com',
+			'checkout.paypal.com',
+			'maps.googleapis.com',
+			'connect.facebook.net/en_US/sdk',
+		)
+	);
 }
 
-// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
-function dc_swp_get_partytown_exclude_patterns() {
+/**
+ * Return admin-configured Partytown EXCLUSION patterns, object-cache memoised.
+ * Scripts whose src matches any of these are never rewritten to text/partytown.
+ *
+ * @since 1.0.0
+ * @return string[]
+ */
+function dc_swp_get_partytown_exclude_patterns() { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
 	static $exclude = null;
 	if ( null !== $exclude ) {
 		return $exclude;
@@ -1136,10 +1218,12 @@ function dc_swp_get_partytown_exclude_patterns() {
 		return $exclude;
 	}
 	$raw     = (string) get_option( 'dc_swp_partytown_exclude', '' );
-	$exclude = array_values( array_filter(
-		array_map( 'trim', explode( "\n", $raw ) ),
-		static fn( $line ) => $line !== ''
-	) );
+	$exclude = array_values(
+		array_filter(
+			array_map( 'trim', explode( "\n", $raw ) ),
+			static fn( $line ) => '' !== $line
+		)
+	);
 	wp_cache_set( 'exclude_patterns', $exclude, 'dc_swp', HOUR_IN_SECONDS );
 	return $exclude;
 }
@@ -1160,8 +1244,7 @@ add_action( 'template_redirect', 'dc_swp_partytown_buffer_start', 2 );
  * Start output buffering so dc_swp_partytown_buffer_rewrite()
  * can rewrite the full HTML response before it is sent.
  */
-// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
-function dc_swp_partytown_buffer_start() {
+function dc_swp_partytown_buffer_start() { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
 	if ( is_admin() ) {
 		return;
 	}
@@ -1199,8 +1282,7 @@ function dc_swp_partytown_buffer_start() {
  * @param string $html Full page HTML.
  * @return string Modified HTML.
  */
-// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
-function dc_swp_partytown_buffer_rewrite( $html ) {
+function dc_swp_partytown_buffer_rewrite( $html ) { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
 	$patterns = dc_swp_get_partytown_patterns();
 	if ( empty( $patterns ) ) {
 		return $html;
@@ -1222,16 +1304,19 @@ function dc_swp_partytown_buffer_rewrite( $html ) {
 	 * @var array<string,string> $companion_map  key = URL substring, value = body regex
 	 */
 	// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound
-	$companion_map = (array) apply_filters( 'dc_swp_inline_companion_map', [
-		// Google gtag.js (Google Analytics 4 / Google Site Kit):
-		//   <script src="…/gtag/js?id=G-…"></script>
-		//   <script>window.dataLayer=…;function gtag(){…}</script>
-		'googletagmanager.com/gtag/js' => '/\bdataLayer\b|\bgtag\s*\(/i',
-	] );
+	$companion_map = (array) apply_filters(
+		'dc_swp_inline_companion_map',
+		array(
+			// Google gtag.js (Google Analytics 4 / Google Site Kit):
+			// <script src="…/gtag/js?id=G-…"></script>
+			// <script>window.dataLayer=…;function gtag(){…}</script>.
+			'googletagmanager.com/gtag/js' => '/\bdataLayer\b|\bgtag\s*\(/i',
+		)
+	);
 
 	// Pending companion state:
 	// null  → previous matched script has no known inline companion.
-	// array → [ 'type' => 'text/partytown'|'text/plain', 'validator' => '/regex/' ]
+	// array → [ 'type' => 'text/partytown'|'text/plain', 'validator' => '/regex/' ].
 	$pending_companion = null;
 
 	return preg_replace_callback(
@@ -1244,7 +1329,7 @@ function dc_swp_partytown_buffer_rewrite( $html ) {
 			if ( ! preg_match( '/\bsrc=(["\'])([^"\']+)\1/i', $tag_inner, $src_match ) ) {
 				if ( null !== $pending_companion ) {
 					$carry             = $pending_companion;
-					$pending_companion = null; // consume — one companion per src= script
+					$pending_companion = null; // Consume — one companion per src= script.
 
 					// Content guard: inline body must match the service's expected
 					// initializer pattern. If it doesn't, this is an unrelated inline
@@ -1278,14 +1363,14 @@ function dc_swp_partytown_buffer_rewrite( $html ) {
 
 			// Exclusion list — always takes priority.
 			foreach ( dc_swp_get_partytown_exclude_patterns() as $excl ) {
-				if ( $excl !== '' && str_contains( $src, $excl ) ) {
+				if ( '' !== $excl && str_contains( $src, $excl ) ) {
 					$pending_companion = null;
 					return $matches[0];
 				}
 			}
 
 			foreach ( $patterns as $pattern ) {
-				if ( $pattern === '' || ! str_contains( $src, $pattern ) ) {
+				if ( '' === $pattern || ! str_contains( $src, $pattern ) ) {
 					continue;
 				}
 
@@ -1296,13 +1381,13 @@ function dc_swp_partytown_buffer_rewrite( $html ) {
 
 				// wp_script_attributes already set text/partytown — honour it and
 				// still arm the companion state in case this src has a known companion.
-				if ( $existing_type_val === 'text/partytown' ) {
+				if ( 'text/partytown' === $existing_type_val ) {
 					$pending_companion = dc_swp_resolve_companion( $src, 'text/partytown', $companion_map );
 					return $matches[0];
 				}
 
 				// GDPR guard: CMP has blocked this script — leave untouched entirely.
-				if ( $existing_type_val !== '' && $existing_type_val !== 'text/javascript' ) {
+				if ( '' !== $existing_type_val && 'text/javascript' !== $existing_type_val ) {
 					$pending_companion = null;
 					return $matches[0];
 				}
@@ -1339,11 +1424,13 @@ function dc_swp_partytown_buffer_rewrite( $html ) {
  * @param array<string,string> $companion_map Map of URL substring → body validator regex.
  * @return array{type:string,validator:string}|null
  */
-// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
-function dc_swp_resolve_companion( $src, $type, $companion_map ) {
+function dc_swp_resolve_companion( $src, $type, $companion_map ) { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
 	foreach ( $companion_map as $cdn_pattern => $validator_regex ) {
 		if ( str_contains( $src, $cdn_pattern ) ) {
-			return [ 'type' => $type, 'validator' => $validator_regex ];
+			return array(
+				'type'      => $type,
+				'validator' => $validator_regex,
+			);
 		}
 	}
 	return null;
@@ -1374,8 +1461,7 @@ add_action( 'wp_head', 'dc_swp_output_inline_scripts', 3 );
  *
  * Runs at wp_head priority 3, after Partytown lib is loaded (priority 2).
  */
-// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
-function dc_swp_output_inline_scripts() {
+function dc_swp_output_inline_scripts() { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
 	if ( dc_swp_is_bot_request() ) {
 		return;
 	}
@@ -1384,15 +1470,15 @@ function dc_swp_output_inline_scripts() {
 	}
 	// Skip cart, checkout, and account pages.
 	if (
-		( function_exists( 'is_cart' )         && is_cart() ) ||
-		( function_exists( 'is_checkout' )     && is_checkout() ) ||
+		( function_exists( 'is_cart' ) && is_cart() ) ||
+		( function_exists( 'is_checkout' ) && is_checkout() ) ||
 		( function_exists( 'is_account_page' ) && is_account_page() )
 	) {
 		return;
 	}
 
 	$raw_stored = (string) get_option( 'dc_swp_inline_scripts', '' );
-	if ( $raw_stored === '' ) {
+	if ( '' === $raw_stored ) {
 		return;
 	}
 
@@ -1400,7 +1486,7 @@ function dc_swp_output_inline_scripts() {
 	// Legacy plain-text format (old): use as-is for backward compatibility.
 	$decoded_stored = json_decode( $raw_stored, true );
 	if ( is_array( $decoded_stored ) ) {
-		$enabled_parts = [];
+		$enabled_parts = array();
 		foreach ( $decoded_stored as $blk ) {
 			if ( ! empty( $blk['enabled'] ) && '' !== trim( (string) ( $blk['code'] ?? '' ) ) ) {
 				$enabled_parts[] = $blk['code'];
@@ -1408,23 +1494,23 @@ function dc_swp_output_inline_scripts() {
 		}
 		$raw = implode( "\n", $enabled_parts );
 	} else {
-		$raw = $raw_stored; // legacy plain-text
+		$raw = $raw_stored; // Legacy plain-text format.
 	}
 
-	if ( $raw === '' ) {
+	if ( '' === $raw ) {
 		return;
 	}
 
 	// Extract inline <script> blocks — skip any that have a src= attribute
 	// (those are external scripts handled by the include-list / output buffer).
-	$js_blocks = [];
+	$js_blocks = array();
 	if ( preg_match_all( '/<script\b([^>]*)>(.*?)<\/script>/is', $raw, $matches, PREG_SET_ORDER ) ) {
 		foreach ( $matches as $m ) {
 			if ( preg_match( '/\bsrc\s*=/i', $m[1] ) ) {
-				continue; // external — handled elsewhere
+				continue; // External — handled elsewhere.
 			}
 			$content = trim( $m[2] );
-			if ( $content !== '' ) {
+			if ( '' !== $content ) {
 				$js_blocks[] = $content;
 			}
 		}
@@ -1437,7 +1523,7 @@ function dc_swp_output_inline_scripts() {
 	$pt_enabled = get_option( 'dampcig_pwa_sw_enabled', 'yes' ) === 'yes';
 	$consent    = dc_swp_has_marketing_consent();
 	$nonce      = dc_swp_get_csp_nonce();
-	$nonce_attr = $nonce !== '' ? ' nonce="' . esc_attr( $nonce ) . '"' : '';
+	$nonce_attr = '' !== $nonce ? ' nonce="' . esc_attr( $nonce ) . '"' : '';
 
 	if ( $pt_enabled ) {
 		// Partytown active — run in Web Worker, consent-gated.
@@ -1451,7 +1537,7 @@ function dc_swp_output_inline_scripts() {
 			if ( preg_match_all( '/<noscript\b[^>]*>(.*?)<\/noscript>/is', $raw, $ns_matches ) ) {
 				foreach ( $ns_matches[1] as $ns_content ) {
 					$ns_content = trim( $ns_content );
-					if ( $ns_content !== '' ) {
+					if ( '' !== $ns_content ) {
 						// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- admin-controlled noscript fallback.
 						echo '<noscript>' . $ns_content . "</noscript>\n";
 					}
@@ -1471,7 +1557,7 @@ function dc_swp_output_inline_scripts() {
 			if ( preg_match_all( '/<noscript\b[^>]*>(.*?)<\/noscript>/is', $raw, $ns_matches ) ) {
 				foreach ( $ns_matches[1] as $ns_content ) {
 					$ns_content = trim( $ns_content );
-					if ( $ns_content !== '' ) {
+					if ( '' !== $ns_content ) {
 						// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- admin-controlled noscript fallback.
 						echo '<noscript>' . $ns_content . "</noscript>\n";
 					}
