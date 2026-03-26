@@ -711,8 +711,8 @@ function dc_swp_partytown_config() { // phpcs:ignore WordPress.NamingConventions
 	// return $map;
 	// } );
 	// phpcs:enable Squiz.Commenting.InlineComment.InvalidEndChar
-	// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound
-	$path_rewrites      = apply_filters(
+	$path_rewrites = apply_filters(
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound
 		'dc_swp_partytown_path_rewrites',
 		array(
 			'/api/event' => 'https://analytics.ahrefs.com/api/event', // Ahrefs Analytics.
@@ -1303,8 +1303,8 @@ function dc_swp_partytown_buffer_rewrite( $html ) { // phpcs:ignore WordPress.Na
 	 *
 	 * @var array<string,string> $companion_map  key = URL substring, value = body regex
 	 */
-	// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound
 	$companion_map = (array) apply_filters(
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound
 		'dc_swp_inline_companion_map',
 		array(
 			// Google gtag.js (Google Analytics 4 / Google Site Kit):
