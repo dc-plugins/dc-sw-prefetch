@@ -1320,10 +1320,15 @@ function dc_swp_partytown_buffer_rewrite( $html ) { // phpcs:ignore WordPress.Na
 				'widget.trustpilot.com',
 			)
 		);
+		// Restrict crossorigin mutations to hosts that are part of the active
+		// Partytown configuration (Script List + enabled Script Blocks). This
+		// avoids touching unrelated third-party scripts that still run on the
+		// main thread and should remain unaffected by Atomic Bridge hardening.
+		$managed_hosts = dc_swp_get_proxy_allowed_hosts();
 		if ( ! empty( $crossorigin_patterns ) ) {
 			$html = preg_replace_callback(
 				'/<script\b([^>]*)>/i',
-				static function ( $s_match ) use ( $site_host, $crossorigin_patterns ) {
+				static function ( $s_match ) use ( $site_host, $crossorigin_patterns, $managed_hosts ) {
 					$tag_inner = $s_match[1];
 					// Need a cross-origin src=.
 					if ( ! preg_match( '/\bsrc=(["\'])([^"\']+)\1/i', $tag_inner, $src_m ) ) {
@@ -1331,6 +1336,18 @@ function dc_swp_partytown_buffer_rewrite( $html ) { // phpcs:ignore WordPress.Na
 					}
 					$script_host = (string) wp_parse_url( $src_m[2], PHP_URL_HOST );
 					if ( '' === $script_host || $site_host === $script_host ) {
+						return $s_match[0];
+					}
+					// Only mutate hosts the plugin explicitly handles via
+					// Partytown configuration/proxy allowlist.
+					$is_managed = false;
+					foreach ( $managed_hosts as $managed_host ) {
+						if ( '' !== $managed_host && str_ends_with( $script_host, $managed_host ) ) {
+							$is_managed = true;
+							break;
+						}
+					}
+					if ( ! $is_managed ) {
 						return $s_match[0];
 					}
 					// Already has crossorigin — leave untouched.
