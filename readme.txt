@@ -5,7 +5,7 @@ Requires at least: 6.8
 Tested up to: 6.9
 Requires PHP: 8.0
 WC tested up to: 10.4.3
-Stable tag: 1.3.4
+Stable tag: 1.3.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -118,6 +118,9 @@ All officially tested services from [partytown.qwik.dev/common-services](https:/
 3. DevTools showing Partytown service worker registered at `/~partytown/`.
 
 == Changelog ==
+
+= 1.3.5 =
+* Revert: restore `partytown-config.js` as a normal enqueued file (the inline approach in 1.3.3 was a misdiagnosis — the Partytown SW does not intercept regular script requests). The `file_get_contents()` load and unnecessary inline output are removed.
 
 = 1.3.4 =
 * Fix: `resolveUrl` in `partytown-config.js` now uses `this.pathRewrites` / `this.proxyAllowedHosts` / `this.proxyUrl` instead of referencing `dcSwpPartytownData` directly. Partytown serialises `resolveUrl` to a string and reconstructs it with `new Function()` inside the web worker, so closures are lost — the function must be fully self-contained. Data is now stored as plain properties on `window.partytown` and accessed via `this`.

@@ -6,7 +6,7 @@
  * Plugin Name: DC Service Worker Prefetcher
  * Plugin URI:  https://github.com/dc-plugins/dc-sw-prefetch
  * Description: Partytown service worker with viewport/pagination prefetching for WooCommerce. Offloads third-party scripts via Partytown and pre-fetches visible products & next pages.
- * Version:     1.3.4
+ * Version:     1.3.5
  * Author:      lennilg
  * Author URI:  https://github.com/lennilg
  * License:     GPL-2.0+
@@ -696,13 +696,11 @@ function dc_swp_partytown_config() { // phpcs:ignore WordPress.NamingConventions
 	$coi_active = get_option( 'dc_swp_coi_headers', 'no' ) === 'yes';
 
 	// Partytown config must load in <head> before any type="text/partytown" scripts.
-	// partytown-config.js sets window.partytown and window.partytown.resolveUrl.
-	// It MUST be output inline — if served as a separate file the Partytown service
-	// worker intercepts the fetch and evaluates it in the sandbox context where
-	// dcSwpPartytownData (from wp_localize_script) does not exist, causing a
-	// ReferenceError inside resolveUrl when Partytown tries to call it.
-	// phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion -- inline-only handle, no file to version.
-	wp_register_script( 'dc-swp-partytown-config', false, array(), null, array( 'in_footer' => false ) );
+	// partytown-config.js reads dcSwpPartytownData (injected below) to set window.partytown
+	// and window.partytown.resolveUrl. resolveUrl uses only `this.*` properties (not the
+	// dcSwpPartytownData variable) so it remains self-contained after Partytown serialises
+	// it to a string and reconstructs it with new Function() inside the web worker.
+	wp_register_script( 'dc-swp-partytown-config', plugins_url( 'assets/js/partytown-config.js', __FILE__ ), array(), DC_SWP_VERSION, array( 'in_footer' => false ) );
 	wp_localize_script(
 		'dc-swp-partytown-config',
 		'dcSwpPartytownData',
@@ -713,8 +711,6 @@ function dc_swp_partytown_config() { // phpcs:ignore WordPress.NamingConventions
 			'proxyAllowedHosts' => dc_swp_get_proxy_allowed_hosts(),
 		)
 	);
-	// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- local plugin file, no HTTP.
-	wp_add_inline_script( 'dc-swp-partytown-config', file_get_contents( plugin_dir_path( __FILE__ ) . 'assets/js/partytown-config.js' ) );
 	wp_enqueue_script( 'dc-swp-partytown-config' );
 
 	// Partytown inline snippet — initializes the service worker bridge.
