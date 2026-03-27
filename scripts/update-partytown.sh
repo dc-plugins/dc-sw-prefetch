@@ -33,6 +33,16 @@ if [ "$CURRENT" = "$VERSION" ]; then
   exit 0
 fi
 
+# Prevent accidental downgrades (e.g. when a pre-release is vendored from source
+# but npm still reports an older version as "latest").
+if [ "$CURRENT" != "none" ]; then
+  HIGHER=$(printf '%s\n%s' "$CURRENT" "$VERSION" | sort -V | tail -1)
+  if [ "$HIGHER" != "$VERSION" ]; then
+    echo "⚠️  Target $VERSION is older than current $CURRENT — refusing downgrade."
+    exit 0
+  fi
+fi
+
 # ── Download & extract tarball ────────────────────────────────
 TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT

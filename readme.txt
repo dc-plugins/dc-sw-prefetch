@@ -5,7 +5,7 @@ Requires at least: 6.8
 Tested up to: 6.9
 Requires PHP: 8.0
 WC tested up to: 10.4.3
-Stable tag: 1.3.1
+Stable tag: 1.3.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -118,6 +118,9 @@ All officially tested services from [partytown.qwik.dev/common-services](https:/
 3. DevTools showing Partytown service worker registered at `/~partytown/`.
 
 == Changelog ==
+
+= 1.3.2 =
+* Update: Vendor Partytown 0.13.1 (built from source, pre-release). Fixes Lighthouse deprecated-API warnings caused by Chrome Privacy Sandbox properties (SharedStorage, AttributionReporting) being accessed during window introspection.
 
 = 1.3.1 =
 * Refactor: Move all inline JS to static files in `assets/js/` with `wp_localize_script()` for PHP data injection.
