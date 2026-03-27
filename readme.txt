@@ -5,7 +5,7 @@ Requires at least: 6.8
 Tested up to: 6.9
 Requires PHP: 8.0
 WC tested up to: 10.4.3
-Stable tag: 1.3.2
+Stable tag: 1.3.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -118,6 +118,9 @@ All officially tested services from [partytown.qwik.dev/common-services](https:/
 3. DevTools showing Partytown service worker registered at `/~partytown/`.
 
 == Changelog ==
+
+= 1.3.3 =
+* Fix: Inline `partytown-config.js` output to prevent `ReferenceError: dcSwpPartytownData is not defined` inside the Partytown service worker sandbox. The config script must be inline — when served as a separate file the Partytown SW intercepts the fetch and evaluates it in a context where `wp_localize_script` data is unavailable.
 
 = 1.3.2 =
 * Update: Vendor Partytown 0.13.1 (built from source, pre-release). Fixes Lighthouse deprecated-API warnings caused by Chrome Privacy Sandbox properties (SharedStorage, AttributionReporting) being accessed during window introspection.

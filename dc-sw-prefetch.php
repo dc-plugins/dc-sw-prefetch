@@ -6,7 +6,7 @@
  * Plugin Name: DC Service Worker Prefetcher
  * Plugin URI:  https://github.com/dc-plugins/dc-sw-prefetch
  * Description: Partytown service worker with viewport/pagination prefetching for WooCommerce. Offloads third-party scripts via Partytown and pre-fetches visible products & next pages.
- * Version:     1.3.2
+ * Version:     1.3.3
  * Author:      lennilg
  * Author URI:  https://github.com/lennilg
  * License:     GPL-2.0+
