@@ -6,7 +6,7 @@
  * Plugin Name: DC Service Worker Prefetcher
  * Plugin URI:  https://github.com/dc-plugins/dc-sw-prefetch
  * Description: Partytown service worker with viewport/pagination prefetching for WooCommerce. Offloads third-party scripts via Partytown and pre-fetches visible products & next pages.
- * Version:     1.3.6
+ * Version:     1.3.7
  * Author:      lennilg
  * Author URI:  https://github.com/lennilg
  * License:     GPL-2.0+
@@ -255,44 +255,6 @@ function dc_swp_footer_credit_js() { // phpcs:ignore WordPress.NamingConventions
 	wp_enqueue_script( 'dc-swp-footer-credit' );
 }
 
-
-// ============================================================
-// CROSS-ORIGIN ATTRIBUTE FIXES
-// ============================================================
-
-/**
- * Strip crossorigin="anonymous" from third-party scripts that do not send
- * Access-Control-Allow-Origin headers.
- *
- * Under Cross-Origin-Embedder-Policy: credentialless, a script tag with
- * crossorigin="anonymous" is fetched in CORS mode and will be blocked if the
- * remote server does not respond with an ACAO header. Without the attribute the
- * browser uses no-cors mode, which succeeds and is correct for main-thread scripts
- * that are explicitly excluded from Partytown via loadScriptsOnMainThread.
- *
- * The Trustpilot WP plugin registers widget-bootstrap-js with crossorigin via the
- * WP 6.3+ $args API, but widget.trustpilot.com does not send CORS headers.
- *
- * @param string $tag    The full <script> HTML tag.
- * @param string $handle The script handle.
- * @return string
- */
-add_filter( 'script_loader_tag', 'dc_swp_fix_crossorigin_no_cors_scripts', 10, 2 );
-
-/**
- * Remove crossorigin attribute from scripts that lack CORS headers on their server.
- *
- * @param string $tag    Script tag HTML.
- * @param string $handle Script handle.
- * @return string
- */
-function dc_swp_fix_crossorigin_no_cors_scripts( $tag, $handle ) { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
-	$handles = array( 'widget-bootstrap-js' );
-	if ( in_array( $handle, $handles, true ) ) {
-		$tag = preg_replace( '/\s+crossorigin=["\'][^"\']*["\']/', '', $tag );
-	}
-	return $tag;
-}
 
 // ============================================================
 // FALLBACK CACHE HEADERS (when W3 Total Cache is not active)
