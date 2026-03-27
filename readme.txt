@@ -5,7 +5,7 @@ Requires at least: 6.8
 Tested up to: 6.9
 Requires PHP: 8.0
 WC tested up to: 10.4.3
-Stable tag: 1.3.3
+Stable tag: 1.3.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -118,6 +118,9 @@ All officially tested services from [partytown.qwik.dev/common-services](https:/
 3. DevTools showing Partytown service worker registered at `/~partytown/`.
 
 == Changelog ==
+
+= 1.3.4 =
+* Fix: `resolveUrl` in `partytown-config.js` now uses `this.pathRewrites` / `this.proxyAllowedHosts` / `this.proxyUrl` instead of referencing `dcSwpPartytownData` directly. Partytown serialises `resolveUrl` to a string and reconstructs it with `new Function()` inside the web worker, so closures are lost — the function must be fully self-contained. Data is now stored as plain properties on `window.partytown` and accessed via `this`.
 
 = 1.3.3 =
 * Fix: Inline `partytown-config.js` output to prevent `ReferenceError: dcSwpPartytownData is not defined` inside the Partytown service worker sandbox. The config script must be inline — when served as a separate file the Partytown SW intercepts the fetch and evaluates it in a context where `wp_localize_script` data is unavailable.

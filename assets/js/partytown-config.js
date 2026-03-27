@@ -27,20 +27,31 @@ if ( window.crossOriginIsolated ) {
 // Set Partytown config from PHP-injected data (lib, debug, forward, nonce, etc.).
 window.partytown = dcSwpPartytownData.config;
 
+// Store path-rewrite data as plain properties on the partytown config object so
+// they are serialised to JSON alongside the function source and available via
+// `this` inside resolveUrl when Partytown reconstructs it with new Function()
+// in the web worker (closures are lost during that serialisation round-trip).
+window.partytown.pathRewrites      = dcSwpPartytownData.pathRewrites;
+window.partytown.proxyAllowedHosts = dcSwpPartytownData.proxyAllowedHosts;
+window.partytown.proxyUrl          = dcSwpPartytownData.proxyUrl;
+
 // resolveUrl — same-origin path rewrites + CORS proxy for Partytown workers.
+// NOTE: this function is serialised to a string by Partytown and eval'd inside
+// the web worker via new Function(), so it MUST be self-contained. Use `this`
+// (the config object) instead of any outer-scope variable references.
 window.partytown.resolveUrl = function ( url, location, type ) {
 	// Reroute known same-origin analytics paths to their real external endpoints.
 	// Only applies to non-script requests (fetch/XHR/sendBeacon) so that script
 	// loads at a same-origin path are never rerouted to an external endpoint.
-	const pr = dcSwpPartytownData.pathRewrites;
+	const pr = this.pathRewrites;
 	if ( type !== 'script' && url && url.hostname === location.hostname && pr[ url.pathname ] ) {
 		return new URL( pr[ url.pathname ] );
 	}
 	// Forward external scripts through the server-side CORS proxy, but only for
 	// hostnames the admin has explicitly allowed in the Partytown Script List.
-	const ph = dcSwpPartytownData.proxyAllowedHosts;
+	const ph = this.proxyAllowedHosts;
 	if ( type === 'script' && url.hostname !== location.hostname && ph.indexOf( url.hostname ) !== -1 ) {
-		const p = new URL( dcSwpPartytownData.proxyUrl );
+		const p = new URL( this.proxyUrl );
 		p.searchParams.append( 'url', url.href );
 		return p;
 	}
