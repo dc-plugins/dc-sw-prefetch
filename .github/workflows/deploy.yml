@@ -37,6 +37,21 @@ jobs:
             --exclude='vendor' \
             ./ ${{ vars.SSH_USER }}@${{ vars.SSH_HOST }}:${{ vars.DEPLOY_PATH }}dc-sw-prefetch/
 
+      - name: Remove dev-only files from server
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -p 22 \
+            ${{ vars.SSH_USER }}@${{ vars.SSH_HOST }} \
+            "rm -f ${{ vars.DEPLOY_PATH }}dc-sw-prefetch/.distignore \
+                   ${{ vars.DEPLOY_PATH }}dc-sw-prefetch/.gitignore \
+                   ${{ vars.DEPLOY_PATH }}dc-sw-prefetch/.gitattributes \
+                   ${{ vars.DEPLOY_PATH }}dc-sw-prefetch/phpcs.xml \
+                   ${{ vars.DEPLOY_PATH }}dc-sw-prefetch/composer.json \
+                   ${{ vars.DEPLOY_PATH }}dc-sw-prefetch/composer.lock \
+                   ${{ vars.DEPLOY_PATH }}dc-sw-prefetch/README.md && \
+             rm -rf ${{ vars.DEPLOY_PATH }}dc-sw-prefetch/.github \
+                    ${{ vars.DEPLOY_PATH }}dc-sw-prefetch/scripts \
+                    ${{ vars.DEPLOY_PATH }}dc-sw-prefetch/vendor"
+
       - name: Build wordpress.org ZIP
         run: |
           mkdir -p dist

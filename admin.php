@@ -181,7 +181,7 @@ add_action( 'admin_enqueue_scripts', 'dc_swp_enqueue_admin_assets' );
  * @param string $hook Current admin page hook suffix.
  * @return void
  */
-function dc_swp_enqueue_admin_assets( $hook ) {
+function dc_swp_enqueue_admin_assets( $hook ) { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
 	if ( 'toplevel_page_dc-sw-prefetch' !== $hook ) {
 		return;
 	}

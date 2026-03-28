@@ -1333,7 +1333,7 @@ function dc_swp_partytown_buffer_rewrite( $html ) { // phpcs:ignore WordPress.Na
 		// Usage: add_filter( 'dc_swp_coi_crossorigin_patterns', function( $p ) {
 		// $p[] = 'cdn.example.com'; return $p;
 		// } );
-		$crossorigin_patterns = (array) apply_filters(
+		$crossorigin_patterns = (array) apply_filters( // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound
 			'dc_swp_coi_crossorigin_patterns',
 			array(
 				'widget.trustpilot.com',
