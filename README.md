@@ -6,13 +6,15 @@
 **WooCommerce tested up to:** 10.4.3  
 **License:** GPLv2 or later
 
-Partytown service worker + consent-aware third-party script management + viewport/pagination prefetching for WooCommerce. Fully vendored — no npm required.
+Lazy-loaded Partytown library + consent-aware third-party script management + viewport/pagination prefetching for WooCommerce. Fully vendored — no npm required.
 
 ---
 
 ## What it does
 
-1. **Partytown Web Worker execution** — unlike `async`/`defer` which only delay loading (scripts still run on the main thread after download), Partytown executes third-party scripts entirely in a Web Worker. The browser main thread is freed from analytics and ad code — no layout jank, no TBT impact, no competition with user interactions. Officially tested compatible services: **Google Tag Manager**, **Facebook Pixel**, **HubSpot**, **Intercom**, **Klaviyo**, **TikTok Pixel**, **Mixpanel** ([full list](https://partytown.qwik.dev/common-services/)). Scripts are consent-gated: output as `type="text/partytown"` when consent is present, `type="text/plain"` (browser-blocked) when it is not.
+1. **Partytown Web Worker execution** — [Partytown](https://partytown.qwik.dev/) is a lazy-loaded library that relocates resource-intensive scripts into a web worker and off the main thread, dedicating the main thread to your code. Unlike `async`/`defer` (which still execute on the main thread and can block `window.onload`), Partytown executes third-party scripts entirely in a Web Worker. The browser main thread is freed from analytics and ad code — no layout jank, no TBT impact, no competition with user interactions. Officially tested compatible services: **Google Tag Manager**, **Facebook Pixel**, **HubSpot**, **Intercom**, **Klaviyo**, **TikTok Pixel**, **Mixpanel** ([full list](https://partytown.qwik.dev/common-services/)). Scripts are consent-gated: output as `type="text/partytown"` when consent is present, `type="text/plain"` (browser-blocked) when it is not.
+
+> **Note:** Partytown is currently in beta. It is not guaranteed to work in every scenario. Review the [trade-offs](https://partytown.qwik.dev/trade-offs) before enabling on production.
 
 2. **Viewport/pagination prefetching** — `IntersectionObserver` watches visible WooCommerce products and issues `<link rel="prefetch">` before the user clicks. The next-page link is also prefetched 2 s after page load.
 
@@ -34,6 +36,18 @@ Partytown service worker + consent-aware third-party script management + viewpor
 | Moove GDPR | `moove_gdpr_popup` JSON `.thirdparty = 1` |
 
 If no supported CMP cookie is found, scripts remain `type="text/plain"` — safe default.
+
+---
+
+## How Partytown works
+
+1. Scripts matching your configured patterns are output with `type="text/partytown"` — this tells the browser **not** to execute them on the main thread.
+2. Partytown's **service worker** intercepts fetch requests originating from the web worker.
+3. A **web worker** receives and executes the scripts entirely off the main thread.
+4. **JavaScript Proxies** replicate main thread APIs (DOM reads/writes) synchronously inside the worker — third-party scripts run exactly as coded, without modification.
+5. Communication between the web worker and main thread uses either:
+   - **Synchronous XHR + Service Worker** (default)
+   - **Atomics bridge** when `crossOriginIsolated` is enabled — roughly **10× faster**. Enabled via the **SharedArrayBuffer** setting, which sends the required `Cross-Origin-Opener-Policy` and `Cross-Origin-Embedder-Policy` headers.
 
 ---
 
