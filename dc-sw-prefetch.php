@@ -1147,6 +1147,51 @@ function dc_swp_partytown_script_attrs( $attributes ) { // phpcs:ignore WordPres
 	return $attributes;
 }
 
+add_filter( 'wp_script_attributes', 'dc_swp_partytown_script_attrs_disabled', 9999 );
+
+/**
+ * Late-priority fallback (runs after CMP plugins at priority ~10) that restores
+ * executability for Script List patterns when Partytown is in diagnostic/disabled mode.
+ *
+ * When Partytown is enabled, consent management is handled exclusively by
+ * dc_swp_partytown_script_attrs() at priority 5 (before any CMP). When Partytown
+ * is DISABLED the admin has chosen "diagnostic mode" which the UI describes as
+ * "no consent gating" — scripts render on the main thread. However, CMPs still run
+ * their own wp_script_attributes hook (priority ~10) and stamp type="text/plain" on
+ * scripts they recognise, silently blocking them. By running at priority 9999 we
+ * override that and guarantee matched scripts are executable in diagnostic mode.
+ *
+ * Note: raw HTML scripts (not WP-enqueued) bypass wp_script_attributes entirely,
+ * which is why the admin reports they "already work" — this hook is the symmetric
+ * fix for WP-enqueued scripts.
+ *
+ * @param array $attributes Script element attributes.
+ * @return array Modified attributes.
+ */
+function dc_swp_partytown_script_attrs_disabled( $attributes ) { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
+	if ( get_option( 'dampcig_pwa_sw_enabled', 'yes' ) === 'yes' ) {
+		return $attributes; // Partytown enabled — priority-5 hook owns this path entirely.
+	}
+	if ( dc_swp_is_bot_request() ) {
+		return $attributes;
+	}
+	$src = $attributes['src'] ?? '';
+	if ( ! $src ) {
+		return $attributes;
+	}
+	foreach ( dc_swp_get_partytown_patterns() as $pattern ) {
+		if ( '' !== $pattern && str_contains( $src, $pattern ) ) {
+			// Diagnostic mode: remove any type the CMP stamped so the browser executes
+			// the script on the main thread. Also ensure defer (no-async) is set.
+			unset( $attributes['type'] );
+			$attributes['defer'] = true;
+			unset( $attributes['async'] );
+			break;
+		}
+	}
+	return $attributes;
+}
+
 // Bust the in-request static cache, object cache, and W3TC page cache when settings change.
 add_action( 'update_option_dc_swp_partytown_scripts', 'dc_swp_bust_page_cache' );
 add_action( 'update_option_dc_swp_partytown_exclude', 'dc_swp_bust_page_cache' );
