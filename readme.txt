@@ -1,6 +1,6 @@
 === DC Script Worker Prefetcher ===
 Contributors: lennilg
-Tags: scripts, worker, prefetch, partytown, performance, woocommerce, analytics, pagespeed, vitals
+Tags: thirdparty, performance, analytics, pagespeed, vitals
 Requires at least: 6.8
 Tested up to: 6.9
 Requires PHP: 8.0
