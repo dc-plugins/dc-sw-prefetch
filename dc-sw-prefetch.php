@@ -567,6 +567,95 @@ function dc_swp_get_product_base() { // phpcs:ignore WordPress.NamingConventions
 // PARTYTOWN SNIPPET + VIEWPORT/PAGINATION PREFETCHER IN FOOTER
 // ============================================================
 
+/**
+ * Known Partytown path-rewrite rules, keyed by a hostname substring.
+ *
+ * Each entry maps one or more relative URL paths (as the web worker sees them
+ * after the resolveUrl() rewrite) to the absolute CDN endpoint they must reach.
+ * These rules are only injected into the Partytown config when the matching
+ * hostname is actually present in the admin-configured Script List or Inline
+ * Script Blocks — so a site that has never added Ahrefs will never see the
+ * Ahrefs rewrite shipped to its visitors.
+ *
+ * To add a new service here: find the relative path that the analytics script
+ * POSTs or fetches at runtime (visible in DevTools → Network while the script
+ * runs inside the Partytown worker) and add a hostname → [ path => absolute_url ]
+ * entry below.
+ *
+ * @return array<string, array<string, string>>
+ *   Keys are hostname substrings; values are path → absolute-URL maps.
+ */
+function dc_swp_get_known_path_rewrites() { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
+	return array(
+		// Ahrefs Analytics — script posts beacon events to /api/event on its
+		// own domain; Partytown sees only the relative path so we must remap it.
+		'analytics.ahrefs.com' => array(
+			'/api/event' => 'https://analytics.ahrefs.com/api/event',
+		),
+	);
+}
+
+/**
+ * Build the active path-rewrite map by scanning the admin-configured patterns
+ * against the known-services lookup table, then allowing developer overrides.
+ *
+ * Only rewrites whose host appears in the active Script List (or Inline Blocks,
+ * via dc_swp_get_proxy_allowed_hosts) are included, so pages never receive
+ * rewrite rules for services that aren't configured on that site.
+ *
+ * @return array<string, string>  path => absolute-URL map ready for Partytown.
+ */
+function dc_swp_build_path_rewrites() { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
+	$active_patterns = dc_swp_get_partytown_patterns();
+	// Also check inline-block sources so a hardcoded script URL there triggers
+	// the same automatic detection as an entry in the Script List.
+	$active_hosts = dc_swp_get_proxy_allowed_hosts();
+
+	$rewrites = array();
+	foreach ( dc_swp_get_known_path_rewrites() as $host => $host_rewrites ) {
+		$host_active = false;
+		// Match against raw patterns (may be partial paths, e.g. "analytics.ahrefs.com/analytics.js").
+		foreach ( $active_patterns as $pattern ) {
+			if ( str_contains( $pattern, $host ) ) {
+				$host_active = true;
+				break;
+			}
+		}
+		// Fallback: match against resolved allow-listed hostnames.
+		if ( ! $host_active ) {
+			foreach ( $active_hosts as $allowed_host ) {
+				if ( str_contains( $allowed_host, $host ) || str_contains( $host, $allowed_host ) ) {
+					$host_active = true;
+					break;
+				}
+			}
+		}
+		if ( $host_active ) {
+			$rewrites = array_merge( $rewrites, $host_rewrites );
+		}
+	}
+
+	/**
+	 * Filter the Partytown path-rewrite map.
+	 *
+	 * Allows themes and plugins to add custom rewrites for services not in the
+	 * built-in lookup table. Runs after auto-detection so custom entries always win.
+	 *
+	 * Example:
+	 *   add_filter( 'dc_swp_partytown_path_rewrites', function( $map ) {
+	 *       $map['/collect'] = 'https://analytics.example.com/collect';
+	 *       return $map;
+	 *   } );
+	 *
+	 * @param array<string,string> $rewrites path => absolute-URL map.
+	 */
+	return apply_filters(
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound
+		'dc_swp_partytown_path_rewrites',
+		$rewrites
+	);
+}
+
 add_action( 'wp_enqueue_scripts', 'dc_swp_partytown_config', 2 );
 
 /**
@@ -738,23 +827,10 @@ function dc_swp_partytown_config() { // phpcs:ignore WordPress.NamingConventions
 		$config['logStackTraces']        = true;
 	}
 
-	// resolveUrl + path-rewrite logic lives in assets/js/partytown-config.js.
-	// PHP passes the data via wp_localize_script (dcSwpPartytownData) below.
-	//
-	// Path-rewrite map: to add a new entry from a theme/plugin, use add_filter on 'dc_swp_partytown_path_rewrites'.
-	// phpcs:disable Squiz.Commenting.InlineComment.InvalidEndChar
-	// add_filter( 'dc_swp_partytown_path_rewrites', function( $map ) {
-	// $map['/collect'] = 'https://analytics.example.com/collect';
-	// return $map;
-	// } );
-	// phpcs:enable Squiz.Commenting.InlineComment.InvalidEndChar
-	$path_rewrites = apply_filters(
-		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound
-		'dc_swp_partytown_path_rewrites',
-		array(
-			'/api/event' => 'https://analytics.ahrefs.com/api/event', // Ahrefs Analytics.
-		)
-	);
+	// Path-rewrite map: auto-detected from the known-services lookup table based
+	// on which hostnames are active in the Script List. Developer overrides via
+	// the 'dc_swp_partytown_path_rewrites' filter (handled inside dc_swp_build_path_rewrites).
+	$path_rewrites = dc_swp_build_path_rewrites();
 
 	$coi_active = get_option( 'dc_swp_coi_headers', 'no' ) === 'yes';
 
