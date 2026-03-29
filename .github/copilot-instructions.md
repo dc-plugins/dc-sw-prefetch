@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-**DC Service Worker Prefetcher** is a WordPress/WooCommerce plugin (PHP 8.0+, WordPress 6.8+) that:
+**DC Script Worker Prefetcher** is a WordPress/WooCommerce plugin (PHP 8.0+, WordPress 6.8+) that:
 
 1. Integrates [Partytown](https://github.com/QwikDev/partytown) to offload third-party scripts (Google Analytics, Meta Pixel, LinkedIn Insight, Twitter/X) into a dedicated service worker, keeping them off the browser main thread.
 2. Provides viewport/pagination prefetching via `IntersectionObserver` so WooCommerce product pages load instantly from cache.

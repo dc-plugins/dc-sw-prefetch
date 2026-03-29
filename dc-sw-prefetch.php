@@ -1,6 +1,6 @@
 <?php
 /**
- * DC Service Worker Prefetcher — Main Plugin File
+ * DC Script Worker Prefetcher — Main Plugin File
  *
  * @wordpress-plugin
  * Plugin Name: DC Script Worker Prefetcher

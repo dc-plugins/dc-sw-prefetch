@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
-<ruleset name="DC Service Worker Prefetcher">
-    <description>PHPCS rules for DC Service Worker Prefetcher plugin.</description>
+<ruleset name="DC Script Worker Prefetcher">
+    <description>PHPCS rules for DC Script Worker Prefetcher plugin.</description>
 
     <file>.</file>
     <arg value="sp"/>

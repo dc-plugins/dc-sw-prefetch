@@ -1,6 +1,6 @@
 <?php
 /**
- * DC Service Worker Prefetcher — Uninstall
+ * DC Script Worker Prefetcher — Uninstall
  *
  * Fired when the plugin is deleted via the WordPress admin.
  * Removes all plugin-specific options and transients from the database.

@@ -1,6 +1,6 @@
 <?php
 /**
- * DC Service Worker Prefetcher — Admin Interface
+ * DC Script Worker Prefetcher — Admin Interface
  * Partytown third-party script offloading + viewport/pagination prefetching
  * DampCig.dk
  *
