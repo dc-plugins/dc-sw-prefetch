@@ -12,7 +12,6 @@ node_modules/
 
 # ESLint
 package-lock.json
-eslint.config.mjs
 
 # Composer
 vendor/

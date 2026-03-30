@@ -77,7 +77,6 @@ Product/page prefetch    DC Prefetch (IntersectionObserver)
 - **No npm / no build step** — Partytown lib files are vendored in `assets/partytown/`
 - **Auto-detect** — one-click scan in admin discovers external scripts on your homepage
 - **Pattern-based** — enter one URL pattern per line; full URLs and partial patterns both work
-- **Exclusion list** — built-in exclusions for Trustpilot, Stripe, PayPal, Braintree, Facebook SDK, Google Maps, and Reamaze; add your own
 - **Bot-safe** — bots receive no Partytown JS (clean HTML for crawlers)
 - **Cart/checkout safe** — Partytown and prefetcher disabled on cart, checkout, account pages
 - **Bilingual admin** — English default, Danish auto-detected from WP locale

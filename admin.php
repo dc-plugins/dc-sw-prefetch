@@ -577,8 +577,8 @@ function dc_swp_admin_page_html() { // phpcs:ignore WordPress.NamingConventions.
 			'delMsg'           => dc_swp_str( 'inline_scripts_del_confirm' ),
 			'blocks'           => $inline_script_blocks,
 			'knownServices'    => dc_swp_get_known_services(),
-			'badgeSupported'   => '✓ Supported / Partytown',
-			'badgeUnsupported' => '⚠ Unsupported / Deferred',
+			'badgeSupported'   => '✓ Supported | Partytown',
+			'badgeUnsupported' => '⚠ Unsupported | Deferred',
 			'forcePtLabel'     => 'Force Enable Partytown',
 			'forcePtNotice'    => 'Running script with unknown Partytown compatibility — test your site in debug mode to confirm no render errors.',
 		)

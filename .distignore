@@ -5,6 +5,7 @@
 .github
 composer.json
 composer.lock
+eslint.config.mjs
 phpcs.xml
 README.md
 scripts

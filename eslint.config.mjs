@@ -29,6 +29,7 @@ export default [
 				IntersectionObserver: 'readonly',
 				SharedArrayBuffer: 'readonly',
 				HTMLIFrameElement: 'readonly',
+				Image: 'readonly',
 				NodeFilter: 'readonly',
 				Object: 'readonly',
 				JSON: 'readonly',

@@ -136,6 +136,32 @@ jQuery( function ( $ ) {
 	}
 
 	/**
+	 * Render a shields.io badge image into $badge; fall back to styled text on error/offline.
+	 *
+	 * @param {jQuery} $badge       The badge span element.
+	 * @param {string} shieldsUrl   Full shields.io badge URL.
+	 * @param {string} altText      Alt / accessible text for the image.
+	 * @param {string} fallbackText Text content for the offline/firewall fallback.
+	 * @param {Object} fallbackCss  jQuery CSS map applied when falling back to text.
+	 */
+	function setBadgeImg( $badge, shieldsUrl, altText, fallbackText, fallbackCss ) {
+		const img = new Image();
+		img.alt   = altText;
+		img.style.verticalAlign = 'middle';
+		img.onload = function () {
+			$badge
+				.empty()
+				.css( { color: '', background: '', border: '', padding: '0' } )
+				.append( img )
+				.show();
+		};
+		img.onerror = function () {
+			$badge.empty().text( fallbackText ).css( fallbackCss ).show();
+		};
+		img.src = shieldsUrl;
+	}
+
+	/**
 	 * Refresh the badge, force-toggle visibility, and warning notice for a block item.
 	 *
 	 * @param {jQuery} $item  The .dc-swp-blk-item element.
@@ -165,24 +191,33 @@ jQuery( function ( $ ) {
 
 		if ( ! hasUnknown ) {
 			// Everything identified resolves to a known Partytown service.
-			$badge
-				.text( dcSwpAdminData.badgeSupported )
-				.css( { color: '#00a32a', background: '#f0fdf0', border: '1px solid #00a32a' } )
-				.show();
+			setBadgeImg(
+				$badge,
+				'https://img.shields.io/badge/Supported-Partytown-brightgreen',
+				dcSwpAdminData.badgeSupported,
+				dcSwpAdminData.badgeSupported,
+				{ color: '#00a32a', background: '#f0fdf0', border: '1px solid #00a32a' }
+			);
 			$fwrap.hide();
 			$notice.hide();
 		} else if ( force ) {
-			$badge
-				.text( '⚡ Forced / Partytown' )
-				.css( { color: '#a16207', background: '#fefce8', border: '1px solid #ca8a04' } )
-				.show();
+			setBadgeImg(
+				$badge,
+				'https://img.shields.io/badge/Forced-Partytown-orange',
+				'⚡ Forced / Partytown',
+				'⚡ Forced / Partytown',
+				{ color: '#a16207', background: '#fefce8', border: '1px solid #ca8a04' }
+			);
 			$fwrap.show();
 			$notice.show();
 		} else {
-			$badge
-				.text( dcSwpAdminData.badgeUnsupported )
-				.css( { color: '#d63638', background: '#fdf2f2', border: '1px solid #d63638' } )
-				.show();
+			setBadgeImg(
+				$badge,
+				'https://img.shields.io/badge/Unsupported-Deferred-red',
+				dcSwpAdminData.badgeUnsupported,
+				dcSwpAdminData.badgeUnsupported,
+				{ color: '#d63638', background: '#fdf2f2', border: '1px solid #d63638' }
+			);
 			$fwrap.show();
 			$notice.hide();
 		}
