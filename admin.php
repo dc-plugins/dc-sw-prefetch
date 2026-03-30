@@ -285,11 +285,12 @@ function dc_swp_sanitize_inline_scripts_option( $value ) { // phpcs:ignore WordP
 			continue;
 		}
 		$sanitized[] = array(
-			'id'      => sanitize_key( $blk['id'] ?? '' ),
-			'label'   => sanitize_text_field( $blk['label'] ?? '' ),
+			'id'              => sanitize_key( $blk['id'] ?? '' ),
+			'label'           => sanitize_text_field( $blk['label'] ?? '' ),
 			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- admin-only JS code; capability-gated by manage_options.
-			'code'    => $blk['code'] ?? '',
-			'enabled' => ! empty( $blk['enabled'] ),
+			'code'            => $blk['code'] ?? '',
+			'enabled'         => ! empty( $blk['enabled'] ),
+			'force_partytown' => ! empty( $blk['force_partytown'] ),
 		);
 	}
 	return wp_json_encode( $sanitized );
@@ -344,11 +345,12 @@ function dc_swp_admin_page_html() { // phpcs:ignore WordPress.NamingConventions.
 						continue;
 					}
 					$sanitized_blocks[] = array(
-						'id'      => sanitize_key( $blk['id'] ?? '' ),
-						'label'   => sanitize_text_field( $blk['label'] ?? '' ),
+						'id'              => sanitize_key( $blk['id'] ?? '' ),
+						'label'           => sanitize_text_field( $blk['label'] ?? '' ),
                         // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- admin-only JS code.
-						'code'    => $blk['code'] ?? '',
-						'enabled' => ! empty( $blk['enabled'] ),
+						'code'            => $blk['code'] ?? '',
+						'enabled'         => ! empty( $blk['enabled'] ),
+						'force_partytown' => ! empty( $blk['force_partytown'] ),
 					);
 				}
 			}
