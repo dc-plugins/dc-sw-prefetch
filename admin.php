@@ -64,8 +64,6 @@ function dc_swp_str( $key ) { // phpcs:ignore WordPress.NamingConventions.Prefix
 			'inline_scripts_empty'       => 'Ingen script-blokke tilføjet endnu.',
 			'inline_scripts_del_confirm' => 'Slet denne script-blok?',
 			'inline_scripts_imported'    => 'Importerede Scripts',
-			'partytown_exclude_label'    => 'Udelad Scripts (Ekskluderingsliste)',
-			'partytown_exclude_desc'     => 'Én URL-mønster per linje. Scripts der matcher udelades fra Partytown-omskrivning — selv om de er på inkluderingslisten. Listen er forhåndsudfyldt med kendte inkompatible scripts. Rediger frit — fjern mønstre du ikke har brug for.',
 			'emoji_label'                => 'Fjern WP Emoji',
 			'emoji_desc'                 => 'Fjerner WordPress emoji-detection script og tilhørende CSS (s.w.org fetch). Anbefalet — moderne browsere har native emoji.',
 			'coi_label'                  => 'SharedArrayBuffer (Atomics Bridge)',
@@ -120,8 +118,6 @@ function dc_swp_str( $key ) { // phpcs:ignore WordPress.NamingConventions.Prefix
 			'inline_scripts_empty'       => 'No script blocks added yet.',
 			'inline_scripts_del_confirm' => 'Delete this script block?',
 			'inline_scripts_imported'    => 'Imported Scripts',
-			'partytown_exclude_label'    => 'Exclude Scripts (Blocklist)',
-			'partytown_exclude_desc'     => 'One URL pattern per line. Scripts matching these patterns are never rewritten to Partytown — even if they appear on the include list. Pre-filled with known incompatible scripts. Edit freely — remove patterns you do not need.',
 			'emoji_label'                => 'Remove WP Emoji',
 			'emoji_desc'                 => 'Removes the WordPress emoji detection script and its CSS (s.w.org fetch). Recommended — modern browsers have native emoji support.',
 			'coi_label'                  => 'SharedArrayBuffer (Atomics Bridge)',
@@ -312,7 +308,6 @@ function dc_swp_register_settings() { // phpcs:ignore WordPress.NamingConvention
 	register_setting( 'dc-sw-prefetch-settings', 'dampcig_pwa_footer_credit', array( 'sanitize_callback' => 'sanitize_text_field' ) );
 	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_disable_emoji', array( 'sanitize_callback' => 'sanitize_text_field' ) );
 	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_partytown_scripts', array( 'sanitize_callback' => 'sanitize_textarea_field' ) );
-	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_partytown_exclude', array( 'sanitize_callback' => 'sanitize_textarea_field' ) );
 	// Inline script blocks — admin-only JS content stored as JSON; validated via dc_swp_sanitize_inline_scripts_option.
 	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_inline_scripts', array( 'sanitize_callback' => 'dc_swp_sanitize_inline_scripts_option' ) );
 	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_coi_headers', array( 'sanitize_callback' => 'sanitize_text_field' ) );
@@ -337,7 +332,6 @@ function dc_swp_admin_page_html() { // phpcs:ignore WordPress.NamingConventions.
 		update_option( 'dampcig_pwa_footer_credit', isset( $_POST['dampcig_pwa_footer_credit'] ) ? 'yes' : 'no' );
 		update_option( 'dc_swp_disable_emoji', isset( $_POST['dc_swp_disable_emoji'] ) ? 'yes' : 'no' );
 		update_option( 'dc_swp_partytown_scripts', sanitize_textarea_field( wp_unslash( $_POST['dc_swp_partytown_scripts'] ?? '' ) ) );
-		update_option( 'dc_swp_partytown_exclude', sanitize_textarea_field( wp_unslash( $_POST['dc_swp_partytown_exclude'] ?? '' ) ) );
 		// Inline script blocks: decode the JS-managed JSON accordion payload.
         // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- admin-only inline JS; trusted via nonce + manage_options.
 		$raw_json_blocks  = wp_unslash( $_POST['dc_swp_inline_scripts_json'] ?? '' );
@@ -371,7 +365,6 @@ function dc_swp_admin_page_html() { // phpcs:ignore WordPress.NamingConventions.
 	$coi_headers       = get_option( 'dc_swp_coi_headers', 'no' ) === 'yes';
 	$debug_mode        = get_option( 'dc_swp_debug_mode', 'no' ) === 'yes';
 	$partytown_scripts = get_option( 'dc_swp_partytown_scripts', '' );
-	$partytown_exclude = get_option( 'dc_swp_partytown_exclude', '' );
 	// Inline script blocks — decode JSON; auto-migrate legacy plain-text format.
 	$inline_scripts_raw   = get_option( 'dc_swp_inline_scripts', '' );
 	$inline_script_blocks = array();
@@ -476,15 +469,6 @@ function dc_swp_admin_page_html() { // phpcs:ignore WordPress.NamingConventions.
 					</td>
 				</tr>
 				<tr valign="top">
-					<th scope="row"><?php echo esc_html( dc_swp_str( 'partytown_exclude_label' ) ); ?></th>
-					<td>
-						<textarea name="dc_swp_partytown_exclude" rows="4" class="large-text code"
-							placeholder="e.g. widget.trustpilot.com&#10;js.stripe.com"
-						><?php echo esc_textarea( $partytown_exclude ); ?></textarea>
-						<p class="description"><?php echo esc_html( dc_swp_str( 'partytown_exclude_desc' ) ); ?></p>
-					</td>
-				</tr>
-				<tr valign="top">
 					<th scope="row"><?php echo esc_html( dc_swp_str( 'preload_label' ) ); ?></th>
 					<td>
 						<label class="pwa-toggle">
@@ -585,13 +569,18 @@ function dc_swp_admin_page_html() { // phpcs:ignore WordPress.NamingConventions.
 		'dc-swp-admin-script',
 		'dcSwpAdminData',
 		array(
-			'nonce'        => wp_create_nonce( 'dc_swp_detect_nonce' ),
-			'noScriptsMsg' => dc_swp_str( 'partytown_autodetect_none' ),
-			'unknownMsg'   => dc_swp_str( 'partytown_autodetect_warn' ),
-			'knownMsg'     => dc_swp_str( 'partytown_autodetect_known' ),
-			'noBlocksMsg'  => dc_swp_str( 'inline_scripts_empty' ),
-			'delMsg'       => dc_swp_str( 'inline_scripts_del_confirm' ),
-			'blocks'       => $inline_script_blocks,
+			'nonce'            => wp_create_nonce( 'dc_swp_detect_nonce' ),
+			'noScriptsMsg'     => dc_swp_str( 'partytown_autodetect_none' ),
+			'unknownMsg'       => dc_swp_str( 'partytown_autodetect_warn' ),
+			'knownMsg'         => dc_swp_str( 'partytown_autodetect_known' ),
+			'noBlocksMsg'      => dc_swp_str( 'inline_scripts_empty' ),
+			'delMsg'           => dc_swp_str( 'inline_scripts_del_confirm' ),
+			'blocks'           => $inline_script_blocks,
+			'knownServices'    => dc_swp_get_known_services(),
+			'badgeSupported'   => '✓ Supported / Partytown',
+			'badgeUnsupported' => '⚠ Unsupported / Deferred',
+			'forcePtLabel'     => 'Force Enable Partytown',
+			'forcePtNotice'    => 'Running script with unknown Partytown compatibility — test your site in debug mode to confirm no render errors.',
 		)
 	);
 }
@@ -634,28 +623,10 @@ function dc_swp_ajax_detect_scripts() { // phpcs:ignore WordPress.NamingConventi
 
 	// Patterns for services listed on the Partytown common-services page.
 	// phpcs:ignore Squiz.Commenting.InlineComment.InvalidEndChar
-	$known_patterns = array(
-		'googletagmanager.com',
-		'google-analytics.com',
-		'analytics.google.com',
-		'connect.facebook.net',
-		'js.hs-scripts.com',
-		'js.hsforms.net',
-		'js.hscollectedforms.net',
-		'js.hubspot.com',
-		'widget.intercom.io',
-		'js.intercomcdn.com',
-		'static.klaviyo.com',
-		'analytics.tiktok.com',
-		'cdn.mxpnl.com',
-		'cdn4.mxpnl.com',
-		'clarity.ms',
-		'static.hotjar.com',
-		'script.hotjar.com',
-		'snap.licdn.com',
-		'static.ads-twitter.com',
-		'cdn.segment.com',
-	);
+	$known_patterns = dc_swp_get_known_services();
+
+	// Already-configured hosts (include list + Script Block) — never suggest these.
+	$already_configured = dc_swp_get_proxy_allowed_hosts();
 
 	$seen    = array();
 	$scripts = array();
@@ -670,13 +641,25 @@ function dc_swp_ajax_detect_scripts() { // phpcs:ignore WordPress.NamingConventi
 		if ( empty( $parsed['host'] ) || $parsed['host'] === $site_host ) {
 			continue;
 		}
-		$host = $parsed['host'];
+		$host = strtolower( $parsed['host'] );
 		if ( isset( $seen[ $host ] ) ) {
 			continue; // Deduplicate by hostname.
 		}
 		$seen[ $host ] = true;
 
-		$is_known = false; // phpcs:ignore -- checked below.
+		// Skip hosts already in the include list or the Script Block.
+		$already = false;
+		foreach ( $already_configured as $configured_host ) {
+			if ( str_contains( $host, $configured_host ) || str_contains( $configured_host, $host ) ) {
+				$already = true;
+				break;
+			}
+		}
+		if ( $already ) {
+			continue;
+		}
+
+		$is_known = false;
 		foreach ( $known_patterns as $pat ) {
 			if ( str_contains( $host, $pat ) || str_contains( $pat, $host ) ) {
 				$is_known = true;

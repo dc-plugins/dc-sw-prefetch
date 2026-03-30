@@ -5,7 +5,7 @@ Requires at least: 6.8
 Tested up to: 6.9
 Requires PHP: 8.0
 WC tested up to: 10.4.3
-Stable tag: 1.4.1
+Stable tag: 1.4.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -189,6 +189,15 @@ The administrator may freely add other services through the Partytown Script Lis
 3. DevTools showing Partytown service worker registered at `/~partytown/`.
 
 == Changelog ==
+
+= 1.4.2 =
+* Feature: Script Block compatibility badges — each block now shows a "✓ Supported / Partytown" or "⚠ Unsupported / Deferred" badge based on whether its scripts (src= or inline) reference a Partytown-verified service.
+* Feature: "Force Enable Partytown" toggle for unsupported Script Block scripts — admin can force an unknown src= script into the Partytown worker, with a warning notice that render errors should be tested in debug mode.
+* Fix: Script Block inline scripts (e.g. Meta Pixel) that reference a known-service URL are now correctly routed to the Partytown worker; unknown inline scripts fall back to deferred main-thread execution instead of always entering the worker.
+* Fix: Script Block src= scripts with unknown hostnames now always run on the main thread (consent-gated), preventing the about:srcdoc sandbox error caused by Partytown trying to run iframe-dependent scripts (e.g. ContentSquare) in the worker.
+* Refactor: `dc_swp_get_known_services()` is now the single source of truth for Partytown compatibility decisions — shared by Script Block output, inline detection, and the auto-detect AJAX handler.
+* Refactor: `dc_swp_inline_matches_known_service()` added to mirror the JS-side known-service scan for inline script bodies.
+* Chore: Add vendor/ and node_modules/ exclude-patterns to phpcs.xml so `vendor/bin/phpcs` without arguments only lints plugin files.
 
 = 1.4.1 =
 * Chore: Rename plugin to "DC Script Worker Prefetcher" in all remaining source files (admin.php, uninstall.php, phpcs.xml, package.json, .pot file, copilot-instructions.md, PHP docblock headers).

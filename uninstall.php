@@ -26,7 +26,6 @@ function dc_swp_uninstall() { // phpcs:ignore WordPress.NamingConventions.Prefix
 		'dampcig_pwa_footer_credit',
 		'dc_swp_disable_emoji',
 		'dc_swp_partytown_scripts',
-		'dc_swp_partytown_exclude',
 		'dc_swp_inline_scripts',
 		'dc_swp_coi_headers',
 	) as $dc_swp_opt ) {
