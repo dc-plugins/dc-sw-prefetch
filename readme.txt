@@ -5,7 +5,7 @@ Requires at least: 6.8
 Tested up to: 6.9
 Requires PHP: 8.0
 WC tested up to: 10.4.3
-Stable tag: 1.5.1
+Stable tag: 1.5.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -189,6 +189,9 @@ The administrator may freely add other services through the Partytown Script Lis
 3. DevTools showing Partytown service worker registered at `/~partytown/`.
 
 == Changelog ==
+
+= 1.5.2 =
+* Fix: Google Consent Mode v2 — immediately follow the `gtag('consent','default',{denied})` stub with a `gtag('consent','update',{granted})` call when the visitor's CMP marketing cookie is already set, so GTM/GA4 receive the correct consent state without waiting for the CMP JavaScript to fire.
 
 = 1.5.1 =
 * Compat: Declare WooCommerce HPOS (High-Performance Order Storage / Custom Order Tables) compatibility. The plugin does not interact with the orders table, so it is unconditionally compatible. Resolves the "Incompatible plugin" warning in WooCommerce → Settings → Advanced → Features.

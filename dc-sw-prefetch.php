@@ -6,7 +6,7 @@
  * Plugin Name: DC Script Worker Prefetcher
  * Plugin URI:  https://github.com/dc-plugins/dc-sw-prefetch
  * Description: Partytown service worker with viewport/pagination prefetching for WooCommerce. Offloads third-party scripts via Partytown and pre-fetches visible products & next pages.
- * Version:     1.5.1
+ * Version:     1.5.2
  * Author:      lennilg
  * Author URI:  https://github.com/lennilg
  * License:           GPL-2.0-or-later
@@ -398,7 +398,7 @@ function dc_swp_fallback_cache_headers() { // phpcs:ignore WordPress.NamingConve
  * Partytown itself is registered at this virtual path.
  */
 define( 'DC_SWP_PARTYTOWN_LIB', '/wp-content/plugins/dc-sw-prefetch/assets/partytown/' );
-define( 'DC_SWP_VERSION', '1.5.1' );
+define( 'DC_SWP_VERSION', '1.5.2' );
 
 add_action( 'init', 'dc_swp_serve_partytown_files', 1 );
 
@@ -758,6 +758,18 @@ function dc_swp_inject_consent_mode_default() { // phpcs:ignore WordPress.Naming
 	$consent_js .= "  'ad_personalization':'denied',\n";
 	$consent_js .= "  'wait_for_update':500\n";
 	$consent_js .= "});\n";
+
+	// For returning visitors who have already granted marketing consent,
+	// immediately fire an update so GTM/GA4 don't wait for the CMP JS to load.
+	if ( dc_swp_has_marketing_consent() ) {
+		$consent_js .= "gtag('consent','update',{\n";
+		$consent_js .= "  'ad_storage':'granted',\n";
+		$consent_js .= "  'analytics_storage':'granted',\n";
+		$consent_js .= "  'ad_user_data':'granted',\n";
+		$consent_js .= "  'ad_personalization':'granted'\n";
+		$consent_js .= "});\n";
+	}
+
 	// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- fully static JS; nonce is pre-escaped via esc_attr.
 	echo '<script' . $nonce_attr . ">\n" . $consent_js . "</script>\n";
 }
