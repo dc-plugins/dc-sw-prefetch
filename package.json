@@ -1,6 +1,6 @@
 {
   "name": "dc-sw-prefetch",
-  "version": "1.5.0",
+  "version": "1.5.1",
   "description": "DC Script Worker Prefetcher \u2014 Partytown + viewport/pagination prefetch for WooCommerce",
   "private": true,
   "vendored": {

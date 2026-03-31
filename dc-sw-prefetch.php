@@ -6,7 +6,7 @@
  * Plugin Name: DC Script Worker Prefetcher
  * Plugin URI:  https://github.com/dc-plugins/dc-sw-prefetch
  * Description: Partytown service worker with viewport/pagination prefetching for WooCommerce. Offloads third-party scripts via Partytown and pre-fetches visible products & next pages.
- * Version:     1.5.0
+ * Version:     1.5.1
  * Author:      lennilg
  * Author URI:  https://github.com/lennilg
  * License:           GPL-2.0-or-later
@@ -24,6 +24,25 @@
 
 if ( ! defined( 'ABSPATH' ) ) {
 	die(); }
+
+// ============================================================
+// WOOCOMMERCE HPOS COMPATIBILITY DECLARATION
+// Declares compatibility with High-Performance Order Storage
+// (Custom Order Tables). This plugin does not query the orders
+// table at all, so it is fully compatible with HPOS.
+// ============================================================
+add_action(
+	'before_woocommerce_init',
+	function () {
+		if ( class_exists( \Automattic\WooCommerce\Utilities\FeaturesUtil::class ) ) {
+			\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility(
+				'custom_order_tables',
+				__FILE__,
+				true
+			);
+		}
+	}
+);
 
 // ============================================================
 // BOT DETECTION
@@ -379,7 +398,7 @@ function dc_swp_fallback_cache_headers() { // phpcs:ignore WordPress.NamingConve
  * Partytown itself is registered at this virtual path.
  */
 define( 'DC_SWP_PARTYTOWN_LIB', '/wp-content/plugins/dc-sw-prefetch/assets/partytown/' );
-define( 'DC_SWP_VERSION', '1.5.0' );
+define( 'DC_SWP_VERSION', '1.5.1' );
 
 add_action( 'init', 'dc_swp_serve_partytown_files', 1 );
 

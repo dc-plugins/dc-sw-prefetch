@@ -5,7 +5,7 @@ Requires at least: 6.8
 Tested up to: 6.9
 Requires PHP: 8.0
 WC tested up to: 10.4.3
-Stable tag: 1.5.0
+Stable tag: 1.5.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -189,6 +189,9 @@ The administrator may freely add other services through the Partytown Script Lis
 3. DevTools showing Partytown service worker registered at `/~partytown/`.
 
 == Changelog ==
+
+= 1.5.1 =
+* Compat: Declare WooCommerce HPOS (High-Performance Order Storage / Custom Order Tables) compatibility. The plugin does not interact with the orders table, so it is unconditionally compatible. Resolves the "Incompatible plugin" warning in WooCommerce → Settings → Advanced → Features.
 
 = 1.5.0 =
 **Google Consent Mode v2 — per-service consent architecture**

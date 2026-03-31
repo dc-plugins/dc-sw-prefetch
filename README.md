@@ -2,7 +2,7 @@
 
 > Offload third-party scripts to a Web Worker via Partytown + consent-aware loading + WooCommerce prefetching.
 
-![Version](https://img.shields.io/badge/version-1.5.0-blue)
+![Version](https://img.shields.io/badge/version-1.5.1-blue)
 ![WordPress](https://img.shields.io/badge/WordPress-6.8%2B-21759b)
 ![PHP](https://img.shields.io/badge/PHP-8.0%2B-777bb4)
 ![WooCommerce](https://img.shields.io/badge/WooCommerce-10.4%2B-96588a)
@@ -195,6 +195,9 @@ The administrator may configure additional services via the Partytown Script Lis
 ---
 
 ## Changelog
+
+### 1.5.1
+- Compat: Declare WooCommerce HPOS (High-Performance Order Storage) compatibility via `FeaturesUtil::declare_compatibility('custom_order_tables', ...)`. Resolves the "Incompatible plugin" admin warning. The plugin does not touch the orders table.
 
 ### 1.5.0
 
