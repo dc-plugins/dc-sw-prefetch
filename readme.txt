@@ -5,7 +5,7 @@ Requires at least: 6.8
 Tested up to: 6.9
 Requires PHP: 8.0
 WC tested up to: 10.4.3
-Stable tag: 1.5.2
+Stable tag: 1.5.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -189,6 +189,9 @@ The administrator may freely add other services through the Partytown Script Lis
 3. DevTools showing Partytown service worker registered at `/~partytown/`.
 
 == Changelog ==
+
+= 1.5.3 =
+* Fix: Google Consent Mode v2 — set `gtag('consent','default')` directly to `granted` when the visitor's CMP cookie is already set, rather than emitting a redundant default-denied + update-granted pair. `wait_for_update` is only included when consent has not yet been given.
 
 = 1.5.2 =
 * Fix: Google Consent Mode v2 — immediately follow the `gtag('consent','default',{denied})` stub with a `gtag('consent','update',{granted})` call when the visitor's CMP marketing cookie is already set, so GTM/GA4 receive the correct consent state without waiting for the CMP JavaScript to fire.

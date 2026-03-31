@@ -2,7 +2,7 @@
 
 > Offload third-party scripts to a Web Worker via Partytown + consent-aware loading + WooCommerce prefetching.
 
-![Version](https://img.shields.io/badge/version-1.5.2-blue)
+![Version](https://img.shields.io/badge/version-1.5.3-blue)
 ![WordPress](https://img.shields.io/badge/WordPress-6.8%2B-21759b)
 ![PHP](https://img.shields.io/badge/PHP-8.0%2B-777bb4)
 ![WooCommerce](https://img.shields.io/badge/WooCommerce-10.4%2B-96588a)
@@ -195,6 +195,9 @@ The administrator may configure additional services via the Partytown Script Lis
 ---
 
 ## Changelog
+
+### 1.5.3
+- Fix: Google Consent Mode v2 — set `gtag('consent','default')` directly to `granted` for returning visitors whose CMP cookie is already present. Eliminates the redundant default-denied + update-granted pattern from 1.5.2. `wait_for_update:500` is only emitted when consent has not yet been given (new visitors), so the CMP JS can still fire its own `update` within the grace period.
 
 ### 1.5.2
 - Fix: Google Consent Mode v2 — immediately follow the `gtag('consent','default',{denied})` stub with a `gtag('consent','update',{granted})` call when the visitor's CMP marketing cookie is already set. GTM/GA4 now receive the correct granted state on every page load for returning visitors, without waiting for the CMP JavaScript to fire.

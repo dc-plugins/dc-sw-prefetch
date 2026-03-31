@@ -6,7 +6,7 @@
  * Plugin Name: DC Script Worker Prefetcher
  * Plugin URI:  https://github.com/dc-plugins/dc-sw-prefetch
  * Description: Partytown service worker with viewport/pagination prefetching for WooCommerce. Offloads third-party scripts via Partytown and pre-fetches visible products & next pages.
- * Version:     1.5.2
+ * Version:     1.5.3
  * Author:      lennilg
  * Author URI:  https://github.com/lennilg
  * License:           GPL-2.0-or-later
@@ -398,7 +398,7 @@ function dc_swp_fallback_cache_headers() { // phpcs:ignore WordPress.NamingConve
  * Partytown itself is registered at this virtual path.
  */
 define( 'DC_SWP_PARTYTOWN_LIB', '/wp-content/plugins/dc-sw-prefetch/assets/partytown/' );
-define( 'DC_SWP_VERSION', '1.5.2' );
+define( 'DC_SWP_VERSION', '1.5.3' );
 
 add_action( 'init', 'dc_swp_serve_partytown_files', 1 );
 
@@ -749,26 +749,25 @@ function dc_swp_inject_consent_mode_default() { // phpcs:ignore WordPress.Naming
 	$nonce      = dc_swp_get_csp_nonce();
 	$nonce_attr = '' !== $nonce ? ' nonce="' . esc_attr( $nonce ) . '"' : '';
 
+	// Resolve the consent state server-side from the CMP cookie so the
+	// default is set correctly on the very first gtag call — no redundant
+	// default-denied + update-granted round-trip for returning visitors.
+	$has_consent = dc_swp_has_marketing_consent();
+	$state       = $has_consent ? 'granted' : 'denied';
+
 	$consent_js  = "window.dataLayer=window.dataLayer||[];\n";
 	$consent_js .= "function gtag(){dataLayer.push(arguments);}\n";
 	$consent_js .= "gtag('consent','default',{\n";
-	$consent_js .= "  'ad_storage':'denied',\n";
-	$consent_js .= "  'analytics_storage':'denied',\n";
-	$consent_js .= "  'ad_user_data':'denied',\n";
-	$consent_js .= "  'ad_personalization':'denied',\n";
-	$consent_js .= "  'wait_for_update':500\n";
-	$consent_js .= "});\n";
-
-	// For returning visitors who have already granted marketing consent,
-	// immediately fire an update so GTM/GA4 don't wait for the CMP JS to load.
-	if ( dc_swp_has_marketing_consent() ) {
-		$consent_js .= "gtag('consent','update',{\n";
-		$consent_js .= "  'ad_storage':'granted',\n";
-		$consent_js .= "  'analytics_storage':'granted',\n";
-		$consent_js .= "  'ad_user_data':'granted',\n";
-		$consent_js .= "  'ad_personalization':'granted'\n";
-		$consent_js .= "});\n";
+	$consent_js .= "  'ad_storage':'" . $state . "',\n";
+	$consent_js .= "  'analytics_storage':'" . $state . "',\n";
+	$consent_js .= "  'ad_user_data':'" . $state . "',\n";
+	$consent_js .= "  'ad_personalization':'" . $state . "'";
+	if ( ! $has_consent ) {
+		// Only include wait_for_update when denied so the CMP JS can fire
+		// gtag('consent','update',{granted}) within the grace period.
+		$consent_js .= ",\n  'wait_for_update':500";
 	}
+	$consent_js .= "\n});\n";
 
 	// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- fully static JS; nonce is pre-escaped via esc_attr.
 	echo '<script' . $nonce_attr . ">\n" . $consent_js . "</script>\n";
