@@ -5,7 +5,7 @@ Requires at least: 6.8
 Tested up to: 6.9
 Requires PHP: 8.0
 WC tested up to: 10.4.3
-Stable tag: 1.5.3
+Stable tag: 1.6.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -189,6 +189,13 @@ The administrator may freely add other services through the Partytown Script Lis
 3. DevTools showing Partytown service worker registered at `/~partytown/`.
 
 == Changelog ==
+
+= 1.6.0 =
+* Standards: Renamed all `dampcig_pwa_*` options to `dc_swp_*` prefix; existing settings are migrated automatically on activation.
+* Standards: Removed global PHPCS EscapeOutput suppression; per-line justification comments used instead.
+* Standards: Renamed `dc_footer_credit_owner` sentinel function to `dc_swp_footer_credit_owner`.
+* Standards: Replaced `file_get_contents()` with the WP Filesystem API for local file reads.
+* Security: `dc_swp_sanitize_js_code()` now applied to inline script code fields at save time.
 
 = 1.5.3 =
 * Fix: Google Consent Mode v2 — set `gtag('consent','default')` directly to `granted` when the visitor's CMP cookie is already set, rather than emitting a redundant default-denied + update-granted pair. `wait_for_update` is only included when consent has not yet been given.

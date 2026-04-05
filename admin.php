@@ -20,7 +20,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @param string $key The string key to look up.
  * @return string The localised string, or the key itself if not found.
  */
-function dc_swp_str( $key ) { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
+function dc_swp_str( $key )  {
 	static $s = null;
 	if ( null === $s ) {
 		$da = strncmp( get_locale(), 'da_', 3 ) === 0;
@@ -194,7 +194,7 @@ add_action( 'admin_menu', 'dc_swp_setup_menu' );
  * @since 1.0.0
  * @return void
  */
-function dc_swp_setup_menu() { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
+function dc_swp_setup_menu()  {
 	add_menu_page(
 		dc_swp_str( 'page_title' ),
 		'SW Prefetch',
@@ -206,14 +206,13 @@ function dc_swp_setup_menu() { // phpcs:ignore WordPress.NamingConventions.Prefi
 }
 
 add_action( 'admin_enqueue_scripts', 'dc_swp_enqueue_admin_assets' );
-// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
 /**
  * Enqueue admin page styles and register the admin script handle.
  *
  * @param string $hook Current admin page hook suffix.
  * @return void
  */
-function dc_swp_enqueue_admin_assets( $hook ) { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
+function dc_swp_enqueue_admin_assets( $hook )  {
 	if ( 'toplevel_page_dc-sw-prefetch' !== $hook ) {
 		return;
 	}
@@ -287,8 +286,8 @@ function dc_swp_enqueue_admin_assets( $hook ) { // phpcs:ignore WordPress.Naming
     .dc-swp-consent-info summary { padding:7px 11px; font-weight:600; cursor:pointer; color:#2271b1; font-size:12px; user-select:none; list-style:none; }
     .dc-swp-consent-info summary::-webkit-details-marker { display:none; }
     .dc-swp-consent-info summary::marker { display:none; }
-    .dc-swp-consent-info summary::before { content:'\25B6\00A0'; font-size:9px; vertical-align:1px; }
-    .dc-swp-consent-info[open] summary::before { content:'\25BC\00A0'; }
+    .dc-swp-consent-info summary::before { content:'\\25B6\\00A0'; font-size:9px; vertical-align:1px; }
+    .dc-swp-consent-info[open] summary::before { content:'\\25BC\\00A0'; }
     .dc-swp-consent-info-body { padding:10px 13px 12px; border-top:1px solid #dcdcde; background:#fcfcfd; }
     .dc-swp-info-section { font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:.4px; color:#50575e; margin:12px 0 5px 0; }
     .dc-swp-info-section:first-child { margin-top:0; }
@@ -319,17 +318,34 @@ function dc_swp_enqueue_admin_assets( $hook ) { // phpcs:ignore WordPress.Naming
 add_action( 'admin_init', 'dc_swp_register_settings' );
 
 /**
+ * Sanitize a raw JavaScript code block entered by an admin.
+ *
+ * The field intentionally stores raw JavaScript wrapped in <script>/<noscript>
+ * tags; HTML-escaping would mangle JS operators. The only sanitization applied
+ * is stripping PHP opening tags to prevent server-side execution if the value
+ * is ever reflected outside the plugin's own echo context.
+ *
+ * @param string $code Raw JS code string supplied by an administrator.
+ * @return string Sanitized code string.
+ */
+function dc_swp_sanitize_js_code( $code )  {
+	// Strip PHP opening tags — prevents server-side execution if the stored value
+	// is ever used in a PHP-parsed context outside this plugin's own output path.
+	return preg_replace( '/<\?(?:php|=)?/i', '', (string) $code );
+}
+
+/**
  * Sanitize callback for the dc_swp_inline_scripts option.
  *
  * The value is a JSON-encoded array of inline script block objects managed by
  * the admin UI. Each block field is sanitized individually: id via sanitize_key(),
- * label via sanitize_text_field(), enabled as a boolean, and code is kept as-is
- * (admin-only JS content; capability-gated by manage_options).
+ * label via sanitize_text_field(), enabled as a boolean, and code via
+ * dc_swp_sanitize_js_code() (admin-only JS content; capability-gated by manage_options).
  *
  * @param mixed $value Raw option value (JSON string).
  * @return string Sanitized JSON string, or empty string if invalid.
  */
-function dc_swp_sanitize_inline_scripts_option( $value ) { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
+function dc_swp_sanitize_inline_scripts_option( $value )  {
 	if ( '' === $value || null === $value ) {
 		return '';
 	}
@@ -345,8 +361,7 @@ function dc_swp_sanitize_inline_scripts_option( $value ) { // phpcs:ignore WordP
 		$sanitized[] = array(
 			'id'              => sanitize_key( $blk['id'] ?? '' ),
 			'label'           => sanitize_text_field( $blk['label'] ?? '' ),
-			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- admin-only JS code; capability-gated by manage_options.
-			'code'            => $blk['code'] ?? '',
+			'code'            => dc_swp_sanitize_js_code( $blk['code'] ?? '' ),
 			'enabled'         => ! empty( $blk['enabled'] ),
 			'force_partytown' => ! empty( $blk['force_partytown'] ),
 		);
@@ -360,11 +375,11 @@ function dc_swp_sanitize_inline_scripts_option( $value ) { // phpcs:ignore WordP
  * @since 1.0.0
  * @return void
  */
-function dc_swp_register_settings() { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
-	register_setting( 'dc-sw-prefetch-settings', 'dampcig_pwa_sw_enabled', array( 'sanitize_callback' => 'sanitize_text_field' ) );
-	register_setting( 'dc-sw-prefetch-settings', 'dampcig_pwa_preload_products', array( 'sanitize_callback' => 'sanitize_text_field' ) );
-	register_setting( 'dc-sw-prefetch-settings', 'dampcig_pwa_product_base', array( 'sanitize_callback' => 'sanitize_text_field' ) );
-	register_setting( 'dc-sw-prefetch-settings', 'dampcig_pwa_footer_credit', array( 'sanitize_callback' => 'sanitize_text_field' ) );
+function dc_swp_register_settings()  {
+	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_sw_enabled', array( 'sanitize_callback' => 'sanitize_text_field' ) );
+	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_preload_products', array( 'sanitize_callback' => 'sanitize_text_field' ) );
+	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_product_base', array( 'sanitize_callback' => 'sanitize_text_field' ) );
+	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_footer_credit', array( 'sanitize_callback' => 'sanitize_text_field' ) );
 	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_disable_emoji', array( 'sanitize_callback' => 'sanitize_text_field' ) );
 	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_partytown_scripts', array( 'sanitize_callback' => 'sanitize_textarea_field' ) );
 	// Inline script blocks — admin-only JS content stored as JSON; validated via dc_swp_sanitize_inline_scripts_option.
@@ -382,20 +397,19 @@ function dc_swp_register_settings() { // phpcs:ignore WordPress.NamingConvention
  * @since 1.0.0
  * @return void
  */
-function dc_swp_admin_page_html() { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
+function dc_swp_admin_page_html()  {
 	if ( ! current_user_can( 'manage_options' ) ) {
 		return; }
 
 	if ( isset( $_POST['dc_swp_nonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['dc_swp_nonce'] ) ), 'dc_swp_save_settings' ) ) {
-		update_option( 'dampcig_pwa_sw_enabled', isset( $_POST['dampcig_pwa_sw_enabled'] ) ? 'yes' : 'no' );
-		update_option( 'dampcig_pwa_preload_products', isset( $_POST['dampcig_pwa_preload_products'] ) ? 'yes' : 'no' );
-		update_option( 'dampcig_pwa_product_base', sanitize_text_field( wp_unslash( $_POST['dampcig_pwa_product_base'] ?? '' ) ) );
-		update_option( 'dampcig_pwa_footer_credit', isset( $_POST['dampcig_pwa_footer_credit'] ) ? 'yes' : 'no' );
+		update_option( 'dc_swp_sw_enabled', isset( $_POST['dc_swp_sw_enabled'] ) ? 'yes' : 'no' );
+		update_option( 'dc_swp_preload_products', isset( $_POST['dc_swp_preload_products'] ) ? 'yes' : 'no' );
+		update_option( 'dc_swp_product_base', sanitize_text_field( wp_unslash( $_POST['dc_swp_product_base'] ?? '' ) ) );
+		update_option( 'dc_swp_footer_credit', isset( $_POST['dc_swp_footer_credit'] ) ? 'yes' : 'no' );
 		update_option( 'dc_swp_disable_emoji', isset( $_POST['dc_swp_disable_emoji'] ) ? 'yes' : 'no' );
 		update_option( 'dc_swp_partytown_scripts', sanitize_textarea_field( wp_unslash( $_POST['dc_swp_partytown_scripts'] ?? '' ) ) );
 		// Inline script blocks: decode the JS-managed JSON accordion payload.
-        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- admin-only inline JS; trusted via nonce + manage_options.
-		$raw_json_blocks  = wp_unslash( $_POST['dc_swp_inline_scripts_json'] ?? '' );
+		$raw_json_blocks  = wp_unslash( $_POST['dc_swp_inline_scripts_json'] ?? '' ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON envelope; each field sanitized individually below.
 		$sanitized_blocks = array();
 		if ( '' !== $raw_json_blocks ) {
 			$decoded_blocks = json_decode( $raw_json_blocks, true );
@@ -407,8 +421,7 @@ function dc_swp_admin_page_html() { // phpcs:ignore WordPress.NamingConventions.
 					$sanitized_blocks[] = array(
 						'id'              => sanitize_key( $blk['id'] ?? '' ),
 						'label'           => sanitize_text_field( $blk['label'] ?? '' ),
-                        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- admin-only JS code.
-						'code'            => $blk['code'] ?? '',
+						'code'            => dc_swp_sanitize_js_code( $blk['code'] ?? '' ),
 						'enabled'         => ! empty( $blk['enabled'] ),
 						'force_partytown' => ! empty( $blk['force_partytown'] ),
 					);
@@ -423,8 +436,8 @@ function dc_swp_admin_page_html() { // phpcs:ignore WordPress.NamingConventions.
 		echo '<div class="notice notice-success"><p>' . esc_html( dc_swp_str( 'saved' ) ) . '</p></div>';
 	}
 
-	$sw_enabled        = get_option( 'dampcig_pwa_sw_enabled', 'yes' ) === 'yes';
-	$preload_products  = get_option( 'dampcig_pwa_preload_products', 'yes' ) === 'yes';
+	$sw_enabled        = get_option( 'dc_swp_sw_enabled', 'yes' ) === 'yes';
+	$preload_products  = get_option( 'dc_swp_preload_products', 'yes' ) === 'yes';
 	$disable_emoji     = get_option( 'dc_swp_disable_emoji', 'yes' ) === 'yes';
 	$coi_headers       = get_option( 'dc_swp_coi_headers', 'no' ) === 'yes';
 	$consent_mode      = get_option( 'dc_swp_consent_mode', 'no' ) === 'yes';
@@ -451,19 +464,27 @@ function dc_swp_admin_page_html() { // phpcs:ignore WordPress.NamingConventions.
 			update_option( 'dc_swp_inline_scripts', wp_json_encode( $inline_script_blocks ) );
 		}
 	}
-	$product_base_val = get_option( 'dampcig_pwa_product_base', '' );
-	$footer_credit    = get_option( 'dampcig_pwa_footer_credit', 'no' ) === 'yes';
+	$product_base_val = get_option( 'dc_swp_product_base', '' );
+	$footer_credit    = get_option( 'dc_swp_footer_credit', 'no' ) === 'yes';
 
 	// Auto-detect for placeholder display.
 	$wc_perma = get_option( 'woocommerce_permalinks', array() );
 	$wc_base  = ! empty( $wc_perma['product_base'] ) ? '/' . explode( '/', trim( $wc_perma['product_base'], '/' ) )[0] . '/' : '/product/';
 
-	// Read vendored Partytown version from package.json.
+	// Read vendored Partytown version from package.json using WP_Filesystem.
 	$pkg_json   = plugin_dir_path( __FILE__ ) . 'package.json';
 	$pt_version = 'unknown';
 	if ( file_exists( $pkg_json ) ) {
-		$pkg        = json_decode( file_get_contents( $pkg_json ), true ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
-		$pt_version = $pkg['vendored']['@qwik.dev/partytown'] ?? 'unknown';
+		global $wp_filesystem;
+		if ( empty( $wp_filesystem ) ) {
+			require_once ABSPATH . 'wp-admin/includes/file.php';
+			WP_Filesystem();
+		}
+		$pkg_raw = $wp_filesystem->get_contents( $pkg_json );
+		if ( false !== $pkg_raw ) {
+			$pkg        = json_decode( $pkg_raw, true );
+			$pt_version = $pkg['vendored']['@qwik.dev/partytown'] ?? 'unknown';
+		}
 	}
 	?>
 	<div class="wrap">
@@ -484,7 +505,7 @@ function dc_swp_admin_page_html() { // phpcs:ignore WordPress.NamingConventions.
 					<th scope="row"><?php echo esc_html( dc_swp_str( 'sw_label' ) ); ?></th>
 					<td>
 						<label class="pwa-toggle">
-							<input type="checkbox" name="dampcig_pwa_sw_enabled" value="yes" <?php checked( $sw_enabled, true ); ?>>
+							<input type="checkbox" name="dc_swp_sw_enabled" value="yes" <?php checked( $sw_enabled, true ); ?>>
 							<span class="pwa-slider"></span>
 						</label>
 						<p class="description"><?php echo esc_html( dc_swp_str( 'sw_desc' ) ); ?></p>
@@ -538,7 +559,7 @@ function dc_swp_admin_page_html() { // phpcs:ignore WordPress.NamingConventions.
 					<th scope="row"><?php echo esc_html( dc_swp_str( 'preload_label' ) ); ?></th>
 					<td>
 						<label class="pwa-toggle">
-							<input type="checkbox" name="dampcig_pwa_preload_products" value="yes" <?php checked( $preload_products, true ); ?>>
+							<input type="checkbox" name="dc_swp_preload_products" value="yes" <?php checked( $preload_products, true ); ?>>
 							<span class="pwa-slider"></span>
 						</label>
 						<p class="description"><?php echo wp_kses_post( dc_swp_str( 'preload_desc' ) ); ?></p>
@@ -661,7 +682,7 @@ function dc_swp_admin_page_html() { // phpcs:ignore WordPress.NamingConventions.
 				<tr valign="top">
 					<th scope="row"><?php echo esc_html( dc_swp_str( 'product_base_label' ) ); ?></th>
 					<td>
-						<input type="text" name="dampcig_pwa_product_base"
+						<input type="text" name="dc_swp_product_base"
 								value="<?php echo esc_attr( $product_base_val ); ?>"
 								placeholder="<?php echo esc_attr( $wc_base ); ?>"
 								class="regular-text"
@@ -702,7 +723,7 @@ function dc_swp_admin_page_html() { // phpcs:ignore WordPress.NamingConventions.
 					<th scope="row"><?php echo esc_html( dc_swp_str( 'credit_label' ) ); ?></th>
 					<td>
 						<label>
-							<input type="checkbox" name="dampcig_pwa_footer_credit" value="yes" <?php checked( $footer_credit, true ); ?>>
+							<input type="checkbox" name="dc_swp_footer_credit" value="yes" <?php checked( $footer_credit, true ); ?>>
 							<?php echo esc_html( dc_swp_str( 'credit_checkbox' ) ); ?>
 						</label>
 						<p class="description"><?php echo wp_kses_post( dc_swp_str( 'credit_desc' ) ); ?></p>
@@ -746,7 +767,7 @@ add_action( 'wp_ajax_dc_swp_detect_scripts', 'dc_swp_ajax_detect_scripts' );
  * @since 1.0.0
  * @return void
  */
-function dc_swp_ajax_detect_scripts() { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
+function dc_swp_ajax_detect_scripts()  {
 	if ( ! current_user_can( 'manage_options' ) ) {
 		wp_send_json_error( 'Unauthorized' );
 	}

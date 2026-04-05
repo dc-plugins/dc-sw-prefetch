@@ -2,7 +2,7 @@
 
 > Offload third-party scripts to a Web Worker via Partytown + consent-aware loading + WooCommerce prefetching.
 
-![Version](https://img.shields.io/badge/version-1.5.3-blue)
+![Version](https://img.shields.io/badge/version-1.6.0-blue)
 ![WordPress](https://img.shields.io/badge/WordPress-6.8%2B-21759b)
 ![PHP](https://img.shields.io/badge/PHP-8.0%2B-777bb4)
 ![WooCommerce](https://img.shields.io/badge/WooCommerce-10.4%2B-96588a)
@@ -195,6 +195,13 @@ The administrator may configure additional services via the Partytown Script Lis
 ---
 
 ## Changelog
+
+### 1.6.0
+- Standards: Renamed all `dampcig_pwa_*` options to `dc_swp_*` prefix; existing settings are migrated automatically on activation.
+- Standards: Removed global PHPCS EscapeOutput suppression; per-line justification comments used instead.
+- Standards: Renamed `dc_footer_credit_owner` sentinel function to `dc_swp_footer_credit_owner`.
+- Standards: Replaced `file_get_contents()` with the WP Filesystem API for local file reads.
+- Security: `dc_swp_sanitize_js_code()` now applied to inline script code fields at save time.
 
 ### 1.5.3
 - Fix: Google Consent Mode v2 — set `gtag('consent','default')` directly to `granted` for returning visitors whose CMP cookie is already present. Eliminates the redundant default-denied + update-granted pattern from 1.5.2. `wait_for_update:500` is only emitted when consent has not yet been given (new visitors), so the CMP JS can still fire its own `update` within the grace period.

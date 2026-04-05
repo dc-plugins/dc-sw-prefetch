@@ -6,7 +6,7 @@
  * Plugin Name: DC Script Worker Prefetcher
  * Plugin URI:  https://github.com/dc-plugins/dc-sw-prefetch
  * Description: Partytown service worker with viewport/pagination prefetching for WooCommerce. Offloads third-party scripts via Partytown and pre-fetches visible products & next pages.
- * Version:     1.5.3
+ * Version:     1.6.0
  * Author:      lennilg
  * Author URI:  https://github.com/lennilg
  * License:           GPL-2.0-or-later
@@ -24,6 +24,36 @@
 
 if ( ! defined( 'ABSPATH' ) ) {
 	die(); }
+
+// ============================================================
+// ACTIVATION — OPTION MIGRATION
+// Migrates legacy dampcig_pwa_* option names to the canonical
+// dc_swp_* prefix introduced in v1.6.0. Safe to run multiple
+// times: only copies the value when the old key exists AND the
+// new key has not already been set.
+// ============================================================
+
+/**
+ * Migrate legacy option names to dc_swp_* on plugin activation.
+ *
+ * @since 1.6.0
+ * @return void
+ */
+function dc_swp_migrate_options() {
+	$migrations = array(
+		'dampcig_pwa_sw_enabled'      => 'dc_swp_sw_enabled',
+		'dampcig_pwa_preload_products' => 'dc_swp_preload_products',
+		'dampcig_pwa_product_base'     => 'dc_swp_product_base',
+		'dampcig_pwa_footer_credit'    => 'dc_swp_footer_credit',
+	);
+	foreach ( $migrations as $old => $new ) {
+		if ( false !== get_option( $old ) && false === get_option( $new ) ) {
+			update_option( $new, get_option( $old ) );
+			delete_option( $old );
+		}
+	}
+}
+register_activation_hook( __FILE__, 'dc_swp_migrate_options' );
 
 // ============================================================
 // WOOCOMMERCE HPOS COMPATIBILITY DECLARATION
@@ -56,7 +86,7 @@ if ( ! function_exists( 'dc_swp_is_bot_request' ) ) :
 	 * Bots bypass age verification, cookie modals, and the service worker
 	 * so they don't waste crawl budget and get clean, fast HTML.
 	 */
-	function dc_swp_is_bot_request() { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
+	function dc_swp_is_bot_request()  {
 		if ( ! isset( $_SERVER['HTTP_USER_AGENT'] ) ) {
 			return false;
 		}
@@ -161,7 +191,7 @@ endif; // End dc_swp_is_bot_request check.
  * Return true if the current visitor has granted marketing consent
  * according to any of the common CMP cookie conventions.
  */
-function dc_swp_has_marketing_consent() { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
+function dc_swp_has_marketing_consent()  {
 	// Complianz.
 	if ( isset( $_COOKIE['cmplz_marketing'] ) && 'allow' === $_COOKIE['cmplz_marketing'] ) {
 		return true;
@@ -232,7 +262,7 @@ function dc_swp_has_marketing_consent() { // phpcs:ignore WordPress.NamingConven
  *
  * @return bool
  */
-function dc_swp_is_consent_mode_enabled() { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
+function dc_swp_is_consent_mode_enabled()  {
 	return get_option( 'dc_swp_consent_mode', 'no' ) === 'yes';
 }
 
@@ -246,7 +276,7 @@ function dc_swp_is_consent_mode_enabled() { // phpcs:ignore WordPress.NamingConv
  *
  * @return bool
  */
-function dc_swp_is_meta_ldu_enabled() { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
+function dc_swp_is_meta_ldu_enabled()  {
 	return get_option( 'dc_swp_meta_ldu', 'no' ) === 'yes';
 }
 
@@ -266,14 +296,14 @@ require_once plugin_dir_path( __FILE__ ) . 'admin.php';
 // themes without any PHP output-buffer or regex fragility.
 // ============================================================
 
-// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
-if ( get_option( 'dampcig_pwa_footer_credit', 'no' ) === 'yes' && ! function_exists( 'dc_footer_credit_owner' ) ) {
+if ( get_option( 'dc_swp_footer_credit', 'no' ) === 'yes' && ! function_exists( 'dc_swp_footer_credit_owner' ) && ! function_exists( 'dc_footer_credit_owner' ) ) {
 	/**
 	 * Sentinel: marks this plugin as the active footer-credit owner.
-	 * Other DC plugins check function_exists( 'dc_footer_credit_owner' ) and skip
-	 * their own registration when this is already defined.
+	 * Other DC plugins check function_exists( 'dc_swp_footer_credit_owner' ) (or the
+	 * legacy 'dc_footer_credit_owner' for older plugin versions) and skip their own
+	 * registration when this is already defined.
 	 */
-	function dc_footer_credit_owner(): void {} // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
+	function dc_swp_footer_credit_owner(): void {}
 
 	add_action( 'wp_enqueue_scripts', 'dc_swp_footer_credit_js', PHP_INT_MAX );
 }
@@ -284,7 +314,7 @@ if ( get_option( 'dampcig_pwa_footer_credit', 'no' ) === 'yes' && ! function_exi
  * @since 1.0.0
  * @return void
  */
-function dc_swp_footer_credit_js() { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
+function dc_swp_footer_credit_js()  {
 	if ( is_admin() ) {
 		return;
 	}
@@ -327,7 +357,7 @@ add_action( 'send_headers', 'dc_swp_cross_origin_isolation_headers' );
  * Skipped for bots, logged-in users, and transactional pages (cart / checkout /
  * account). Skipped unless the dc_swp_coi_headers option is enabled.
  */
-function dc_swp_cross_origin_isolation_headers() { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
+function dc_swp_cross_origin_isolation_headers()  {
 	if ( get_option( 'dc_swp_coi_headers', 'no' ) !== 'yes' ) {
 		return;
 	}
@@ -351,7 +381,7 @@ function dc_swp_cross_origin_isolation_headers() { // phpcs:ignore WordPress.Nam
  *
  * Skipped entirely if W3TC is loaded (W3TC owns its own header logic).
  */
-function dc_swp_fallback_cache_headers() { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
+function dc_swp_fallback_cache_headers()  {
 	// W3TC is present — let it handle headers.
 	if ( defined( 'W3TC_DIR' ) || function_exists( 'w3tc_pgcache_flush' ) ) {
 		return;
@@ -409,7 +439,7 @@ add_action( 'init', 'dc_swp_serve_partytown_files', 1 );
  * Partytown resolves its own workers/sandboxes relative to the `lib` config
  * option, which we point to /~partytown/ in the inline snip below.
  */
-function dc_swp_serve_partytown_files() { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
+function dc_swp_serve_partytown_files()  {
 	$request_uri = isset( $_SERVER['REQUEST_URI'] )
 		? wp_parse_url( wp_unslash( $_SERVER['REQUEST_URI'] ), PHP_URL_PATH ) // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 		: '';
@@ -506,7 +536,7 @@ add_action( 'init', 'dc_swp_serve_partytown_proxy', 1 );
  *  - No redirect following (redirection=0) to prevent SSRF via redirect.
  *  - SSL verification enabled.
  */
-function dc_swp_serve_partytown_proxy() { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
+function dc_swp_serve_partytown_proxy()  {
 	$request_uri = isset( $_SERVER['REQUEST_URI'] )
 		? wp_parse_url( wp_unslash( $_SERVER['REQUEST_URI'] ), PHP_URL_PATH ) // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 		: '';
@@ -587,12 +617,12 @@ function dc_swp_serve_partytown_proxy() { // phpcs:ignore WordPress.NamingConven
  * e.g. "/product/" or "/produkt/" for localised installations.
  *
  * Priority:
- *  1. Admin override (dampcig_pwa_product_base)
+ *  1. Admin override (dc_swp_product_base)
  *  2. WooCommerce permalink setting (woocommerce_permalinks.product_base)
  *  3. Hard fallback: /product/
  */
-function dc_swp_get_product_base() { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
-	$override = trim( get_option( 'dampcig_pwa_product_base', '' ) );
+function dc_swp_get_product_base()  {
+	$override = trim( get_option( 'dc_swp_product_base', '' ) );
 	if ( '' !== $override ) {
 		// Normalise: ensure leading and trailing slash.
 		return '/' . trim( $override, '/' ) . '/';
@@ -633,7 +663,7 @@ function dc_swp_get_product_base() { // phpcs:ignore WordPress.NamingConventions
  * @return array<string, array<string, string>>
  *   Keys are hostname substrings; values are path → absolute-URL maps.
  */
-function dc_swp_get_known_path_rewrites() { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
+function dc_swp_get_known_path_rewrites()  {
 	return array(
 		// Ahrefs Analytics — script posts beacon events to /api/event on its
 		// own domain; Partytown sees only the relative path so we must remap it.
@@ -653,7 +683,7 @@ function dc_swp_get_known_path_rewrites() { // phpcs:ignore WordPress.NamingConv
  *
  * @return array<string, string>  path => absolute-URL map ready for Partytown.
  */
-function dc_swp_build_path_rewrites() { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
+function dc_swp_build_path_rewrites()  {
 	$active_patterns = dc_swp_get_partytown_patterns();
 	// Also check inline-block sources so a hardcoded script URL there triggers
 	// the same automatic detection as an entry in the Script List.
@@ -725,14 +755,14 @@ add_action( 'wp_head', 'dc_swp_inject_consent_mode_default', 1 );
  *
  * @return void
  */
-function dc_swp_inject_consent_mode_default() { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
+function dc_swp_inject_consent_mode_default()  {
 	if ( dc_swp_is_bot_request() ) {
 		return;
 	}
 	if ( is_admin() ) {
 		return;
 	}
-	if ( get_option( 'dampcig_pwa_sw_enabled', 'yes' ) !== 'yes' ) {
+	if ( get_option( 'dc_swp_sw_enabled', 'yes' ) !== 'yes' ) {
 		return;
 	}
 	if ( ! dc_swp_is_consent_mode_enabled() ) {
@@ -790,14 +820,14 @@ add_action( 'wp_head', 'dc_swp_inject_meta_ldu_default', 1 );
  *
  * @return void
  */
-function dc_swp_inject_meta_ldu_default() { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
+function dc_swp_inject_meta_ldu_default()  {
 	if ( dc_swp_is_bot_request() ) {
 		return;
 	}
 	if ( is_admin() ) {
 		return;
 	}
-	if ( get_option( 'dampcig_pwa_sw_enabled', 'yes' ) !== 'yes' ) {
+	if ( get_option( 'dc_swp_sw_enabled', 'yes' ) !== 'yes' ) {
 		return;
 	}
 	if ( ! dc_swp_is_meta_ldu_enabled() ) {
@@ -840,7 +870,7 @@ add_action( 'wp_enqueue_scripts', 'dc_swp_partytown_config', 2 );
  *
  * @return string Base64-safe nonce, or empty string on failure.
  */
-function dc_swp_get_csp_nonce() { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
+function dc_swp_get_csp_nonce()  {
 	static $nonce = null;
 	if ( null !== $nonce ) {
 		return $nonce;
@@ -873,7 +903,7 @@ function dc_swp_get_csp_nonce() { // phpcs:ignore WordPress.NamingConventions.Pr
  *
  * @return bool
  */
-function dc_swp_has_fullstory_configured() { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
+function dc_swp_has_fullstory_configured()  {
 	// ── 1. Script List patterns ──────────────────────────────────────────────
 	foreach ( dc_swp_get_partytown_patterns() as $pattern ) {
 		if ( str_contains( strtolower( $pattern ), 'fullstory' ) ) {
@@ -901,7 +931,7 @@ function dc_swp_has_fullstory_configured() { // phpcs:ignore WordPress.NamingCon
  * Emit the Partytown config object and the inline snippet in <head>.
  * Must run before any type="text/partytown" scripts.
  */
-function dc_swp_partytown_config() { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
+function dc_swp_partytown_config()  {
 	if ( dc_swp_is_bot_request() ) {
 		return;
 	}
@@ -909,7 +939,7 @@ function dc_swp_partytown_config() { // phpcs:ignore WordPress.NamingConventions
 		return;
 	}
 
-	$pt_enabled = get_option( 'dampcig_pwa_sw_enabled', 'yes' ) === 'yes';
+	$pt_enabled = get_option( 'dc_swp_sw_enabled', 'yes' ) === 'yes';
 	if ( ! $pt_enabled ) {
 		return;
 	}
@@ -1064,7 +1094,7 @@ add_action( 'wp_enqueue_scripts', 'dc_swp_prefetch_footer', 9999 );
  * Viewport/pagination prefetcher — runs in wp_footer.
  * Unchanged from original; does NOT depend on a service worker.
  */
-function dc_swp_prefetch_footer() { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
+function dc_swp_prefetch_footer()  {
 	if ( dc_swp_is_bot_request() ) {
 		return;
 	}
@@ -1077,7 +1107,7 @@ function dc_swp_prefetch_footer() { // phpcs:ignore WordPress.NamingConventions.
 		return;
 	}
 
-	$preload_enabled = get_option( 'dampcig_pwa_preload_products', 'yes' ) === 'yes';
+	$preload_enabled = get_option( 'dc_swp_preload_products', 'yes' ) === 'yes';
 	if ( ! $preload_enabled ) {
 		return;
 	}
@@ -1112,7 +1142,7 @@ add_action( 'init', 'dc_swp_maybe_remove_emoji', 1 );
  * @since 1.0.0
  * @return void
  */
-function dc_swp_maybe_remove_emoji() { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
+function dc_swp_maybe_remove_emoji()  {
 	if ( is_admin() ) {
 		return;
 	}
@@ -1169,7 +1199,7 @@ function dc_swp_maybe_remove_emoji() { // phpcs:ignore WordPress.NamingConventio
  *
  * @return string[]
  */
-function dc_swp_get_known_services() { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
+function dc_swp_get_known_services()  {
 	return array(
 		'googletagmanager.com',
 		'google-analytics.com',
@@ -1205,7 +1235,7 @@ function dc_swp_get_known_services() { // phpcs:ignore WordPress.NamingConventio
  * @param string $url Absolute URL to test.
  * @return bool
  */
-function dc_swp_url_matches_known_service( $url ) { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
+function dc_swp_url_matches_known_service( $url )  {
 	$host = strtolower( (string) wp_parse_url( $url, PHP_URL_HOST ) );
 	foreach ( dc_swp_get_known_services() as $pattern ) {
 		if ( false !== stripos( $host, $pattern ) ) {
@@ -1224,7 +1254,7 @@ function dc_swp_url_matches_known_service( $url ) { // phpcs:ignore WordPress.Na
  * @param string $code Raw inline JS content (between <script> tags).
  * @return bool
  */
-function dc_swp_inline_matches_known_service( $code ) { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
+function dc_swp_inline_matches_known_service( $code )  {
 	if ( ! preg_match_all( '/https?:\/\/([a-zA-Z0-9][a-zA-Z0-9.\-]+)/i', $code, $m ) ) {
 		return false;
 	}
@@ -1255,7 +1285,7 @@ function dc_swp_inline_matches_known_service( $code ) { // phpcs:ignore WordPres
  *
  * @return string[] Lowercase hostname substrings.
  */
-function dc_swp_get_gcm_v2_aware_services() { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
+function dc_swp_get_gcm_v2_aware_services()  {
 	$services = array(
 		'googletagmanager.com', // Google Tag Manager — owns the GCM v2 API.
 		'google-analytics.com', // Google Analytics (UA / GA4).
@@ -1291,7 +1321,7 @@ function dc_swp_get_gcm_v2_aware_services() { // phpcs:ignore WordPress.NamingCo
  * @param string $url Script src URL to test.
  * @return bool
  */
-function dc_swp_script_uses_gcm_v2( $url ) { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
+function dc_swp_script_uses_gcm_v2( $url )  {
 	$host = strtolower( (string) wp_parse_url( $url, PHP_URL_HOST ) );
 	foreach ( dc_swp_get_gcm_v2_aware_services() as $service ) {
 		if ( false !== stripos( $host, $service ) ) {
@@ -1310,7 +1340,7 @@ function dc_swp_script_uses_gcm_v2( $url ) { // phpcs:ignore WordPress.NamingCon
  * @param string $url Script src URL to test.
  * @return bool
  */
-function dc_swp_is_meta_script( $url ) { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
+function dc_swp_is_meta_script( $url )  {
 	$host = strtolower( (string) wp_parse_url( $url, PHP_URL_HOST ) );
 	return str_contains( $host, 'connect.facebook.net' );
 }
@@ -1325,7 +1355,7 @@ function dc_swp_is_meta_script( $url ) { // phpcs:ignore WordPress.NamingConvent
  * @param string $code Inline JS content.
  * @return bool
  */
-function dc_swp_inline_uses_gcm_v2( $code ) { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
+function dc_swp_inline_uses_gcm_v2( $code )  {
 	if ( ! preg_match_all( '/https?:\/\/([a-zA-Z0-9][a-zA-Z0-9.\-]+)/i', $code, $m ) ) {
 		return false;
 	}
@@ -1349,7 +1379,7 @@ function dc_swp_inline_uses_gcm_v2( $code ) { // phpcs:ignore WordPress.NamingCo
  * @param string $code Inline JS content.
  * @return bool
  */
-function dc_swp_inline_is_meta( $code ) { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
+function dc_swp_inline_is_meta( $code )  {
 	return str_contains( $code, 'connect.facebook.net' ) || str_contains( $code, 'fbevents' );
 }
 
@@ -1358,7 +1388,7 @@ function dc_swp_inline_is_meta( $code ) { // phpcs:ignore WordPress.NamingConven
  *
  * @return string[]
  */
-function dc_swp_get_partytown_patterns() { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
+function dc_swp_get_partytown_patterns()  {
 	static $patterns = null;
 	if ( null !== $patterns ) {
 		return $patterns;
@@ -1393,7 +1423,7 @@ function dc_swp_get_partytown_patterns() { // phpcs:ignore WordPress.NamingConve
  *
  * @return string[] Lowercase, unique hostnames eligible for proxy.
  */
-function dc_swp_get_proxy_allowed_hosts() { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
+function dc_swp_get_proxy_allowed_hosts()  {
 	// Static memoisation: consistent with dc_swp_get_partytown_patterns().
 	// Mid-request option updates clear the object cache on the next request via
 	// dc_swp_bust_page_cache(); the static variable intentionally holds for the
@@ -1466,7 +1496,7 @@ add_filter( 'wp_script_attributes', 'dc_swp_partytown_script_attrs', 5 );
  * @param array $attributes The script element attributes array.
  * @return array Modified attributes.
  */
-function dc_swp_partytown_script_attrs( $attributes ) { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
+function dc_swp_partytown_script_attrs( $attributes )  {
 	if ( dc_swp_is_bot_request() ) {
 		return $attributes;
 	}
@@ -1475,7 +1505,7 @@ function dc_swp_partytown_script_attrs( $attributes ) { // phpcs:ignore WordPres
 		return $attributes;
 	}
 
-	if ( get_option( 'dampcig_pwa_sw_enabled', 'yes' ) !== 'yes' ) {
+	if ( get_option( 'dc_swp_sw_enabled', 'yes' ) !== 'yes' ) {
 		// Partytown disabled → render matched scripts on the main thread with defer.
 		foreach ( dc_swp_get_partytown_patterns() as $pattern ) {
 			if ( '' !== $pattern && str_contains( $src, $pattern ) ) {
@@ -1529,8 +1559,8 @@ add_filter( 'wp_script_attributes', 'dc_swp_partytown_script_attrs_disabled', 99
  * @param array $attributes Script element attributes.
  * @return array Modified attributes.
  */
-function dc_swp_partytown_script_attrs_disabled( $attributes ) { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
-	if ( get_option( 'dampcig_pwa_sw_enabled', 'yes' ) === 'yes' ) {
+function dc_swp_partytown_script_attrs_disabled( $attributes )  {
+	if ( get_option( 'dc_swp_sw_enabled', 'yes' ) === 'yes' ) {
 		return $attributes; // Partytown enabled — priority-5 hook owns this path entirely.
 	}
 	if ( dc_swp_is_bot_request() ) {
@@ -1561,7 +1591,7 @@ add_action( 'update_option_dc_swp_inline_scripts', 'dc_swp_bust_page_cache' );
  * Delete all object-cache pattern keys and flush W3TC page cache (if active),
  * so stale cached HTML with old type attributes is never served.
  */
-function dc_swp_bust_page_cache() { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
+function dc_swp_bust_page_cache()  {
 	wp_cache_delete( 'patterns', 'dc_swp' );
 	// W3TC page cache flush.
 	if ( function_exists( 'w3tc_pgcache_flush' ) ) {
@@ -1589,14 +1619,14 @@ add_action( 'template_redirect', 'dc_swp_partytown_buffer_start', 2 );
  * the request lifecycle, preventing buffer-stack misalignment with other
  * plugins or themes.
  */
-function dc_swp_partytown_buffer_start() { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
+function dc_swp_partytown_buffer_start()  {
 	if ( is_admin() ) {
 		return;
 	}
 	if ( dc_swp_is_bot_request() ) {
 		return;
 	}
-	if ( get_option( 'dampcig_pwa_sw_enabled', 'yes' ) !== 'yes' ) {
+	if ( get_option( 'dc_swp_sw_enabled', 'yes' ) !== 'yes' ) {
 		return;
 	}
 	if ( empty( dc_swp_get_partytown_patterns() ) ) {
@@ -1613,7 +1643,7 @@ function dc_swp_partytown_buffer_start() { // phpcs:ignore WordPress.NamingConve
  * other plugins tear down) so the buffer is never left open. ob_end_flush()
  * invokes dc_swp_partytown_buffer_rewrite() and sends the rewritten HTML.
  */
-function dc_swp_partytown_buffer_end() { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
+function dc_swp_partytown_buffer_end()  {
 	if ( ob_get_level() > 0 && false !== ob_get_length() ) {
 		ob_end_flush();
 	}
@@ -1641,7 +1671,7 @@ function dc_swp_partytown_buffer_end() { // phpcs:ignore WordPress.NamingConvent
  * @param string $html Full page HTML.
  * @return string Modified HTML.
  */
-function dc_swp_partytown_buffer_rewrite( $html ) { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
+function dc_swp_partytown_buffer_rewrite( $html )  {
 	$patterns = dc_swp_get_partytown_patterns();
 	if ( empty( $patterns ) ) {
 		return $html;
@@ -1893,7 +1923,7 @@ function dc_swp_partytown_buffer_rewrite( $html ) { // phpcs:ignore WordPress.Na
  * @param array<string,string> $companion_map Map of URL substring → body validator regex.
  * @return array{type:string,validator:string}|null
  */
-function dc_swp_resolve_companion( $src, $type, $companion_map ) { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
+function dc_swp_resolve_companion( $src, $type, $companion_map )  {
 	foreach ( $companion_map as $cdn_pattern => $validator_regex ) {
 		if ( str_contains( $src, $cdn_pattern ) ) {
 			return array(
@@ -1937,7 +1967,7 @@ add_action( 'wp_head', 'dc_swp_output_inline_scripts', 3 );
  *
  * Runs at wp_head priority 3, after Partytown lib is loaded (priority 2).
  */
-function dc_swp_output_inline_scripts() { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
+function dc_swp_output_inline_scripts()  {
 	if ( dc_swp_is_bot_request() ) {
 		return;
 	}
@@ -2037,7 +2067,7 @@ function dc_swp_output_inline_scripts() { // phpcs:ignore WordPress.NamingConven
 		return;
 	}
 
-	$pt_enabled  = get_option( 'dampcig_pwa_sw_enabled', 'yes' ) === 'yes';
+	$pt_enabled  = get_option( 'dc_swp_sw_enabled', 'yes' ) === 'yes';
 	$consent     = dc_swp_has_marketing_consent();
 	$gcm_enabled = dc_swp_is_consent_mode_enabled();
 	$ldu_enabled = dc_swp_is_meta_ldu_enabled();

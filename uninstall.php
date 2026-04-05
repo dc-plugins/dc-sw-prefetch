@@ -18,12 +18,13 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
  * @since 1.0.0
  * @return void
  */
-function dc_swp_uninstall() { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound
+function dc_swp_uninstall() {
+	// Current dc_swp_* option names.
 	foreach ( array(
-		'dampcig_pwa_sw_enabled',
-		'dampcig_pwa_preload_products',
-		'dampcig_pwa_product_base',
-		'dampcig_pwa_footer_credit',
+		'dc_swp_sw_enabled',
+		'dc_swp_preload_products',
+		'dc_swp_product_base',
+		'dc_swp_footer_credit',
 		'dc_swp_disable_emoji',
 		'dc_swp_partytown_scripts',
 		'dc_swp_inline_scripts',
@@ -31,6 +32,11 @@ function dc_swp_uninstall() { // phpcs:ignore WordPress.NamingConventions.Prefix
 		'dc_swp_consent_mode',
 		'dc_swp_meta_ldu',
 		'dc_swp_debug_mode',
+		// Legacy names (pre-1.6.0) — remove if migration never ran.
+		'dampcig_pwa_sw_enabled',
+		'dampcig_pwa_preload_products',
+		'dampcig_pwa_product_base',
+		'dampcig_pwa_footer_credit',
 	) as $dc_swp_opt ) {
 		delete_option( $dc_swp_opt );
 	}

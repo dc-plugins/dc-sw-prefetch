@@ -29,8 +29,13 @@ languages/           — .pot translation template
 
 - **WordPress Coding Standards** are enforced via PHPCS (`phpcs.xml`). Run `vendor/bin/phpcs` to check.
 - All global functions, classes, and constants **must** use the `dc_swp_` / `DC_SWP_` prefix.
-- Escape all output with `esc_html()`, `esc_attr()`, `esc_url()`, etc. The only exception is the service worker JS endpoint output, which is excluded from the PHPCS escape rule.
+- Escape all output with `esc_html()`, `esc_attr()`, `esc_url()`, etc.
+  - **Exceptions requiring `phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped`:**
+    1. Service worker / Partytown JS endpoint (`readfile()` of vendored static files).
+    2. Fully-static PHP-constructed JS strings (`$consent_js`, `$ldu_js`) — include the comment `-- fully static JS; nonce is pre-escaped via esc_attr`.
+    3. Admin-entered inline script blocks — include the comment `-- admin-controlled inline JS` (content is sanitized at save time via `dc_swp_sanitize_js_code()`).
 - Use `sanitize_*` and `wp_unslash()` on all user-supplied input.
+- **Inline JS code fields** (the `code` key in inline script block objects) MUST be sanitized with `dc_swp_sanitize_js_code()` — NOT `wp_kses()` (which mangles JS operators) and NOT left unsanitized. This function strips PHP opening tags to prevent server-side execution while leaving JavaScript intact.
 - Guard every file with `if ( ! defined( 'ABSPATH' ) ) { die(); }`.
 - PHP 8.0+ features (named arguments, `str_contains`, etc.) are acceptable.
 - Wrap functions in `function_exists()` checks where child-theme coexistence is required (see bot detection).
@@ -41,7 +46,8 @@ languages/           — .pot translation template
 - **Bot detection** (`dc_swp_is_bot_request()`): runs before any JS is emitted; bots receive no service worker or prefetch code.
 - **Safe pages**: Partytown and prefetch JS are skipped on cart, checkout, and account pages (`dc_swp_is_safe_page()`).
 - **Partytown endpoint**: served by WordPress via a rewrite rule + query var; PHP streams the vendored JS files directly.
-- **Admin settings** are stored as a single serialised option (`dc_swp_options`) via `get_option` / `update_option`.
+- **Admin settings** are stored as individual named options (e.g. `dampcig_pwa_sw_enabled`, `dc_swp_inline_scripts`) via `get_option` / `update_option`. There is no single serialised bag option.
+- **Inline script blocks** (`dc_swp_inline_scripts`): JSON-encoded array of `{ id, label, code, enabled, force_partytown }` objects. The `code` field is sanitized via `dc_swp_sanitize_js_code()` at save time and output raw inside `<script>` tags (capability-gated to `manage_options`). Do not use `wp_kses()` on this field — it mangles JS operators.
 - **Cache headers** fall back to PHP `header()` calls when W3 Total Cache is not active.
 
 ## Build & Update Workflow
@@ -84,8 +90,23 @@ Pushing to `main` or creating a version tag triggers `deploy.yml`, which:
 
 - Do **not** hand-edit files inside `assets/partytown/` — always use the update script.
 - Do **not** introduce npm/build dependencies into the plugin runtime; keep it vendor-only.
-- Maintain backwards compatibility with the `dc_swp_options` option schema to avoid breaking existing installs on upgrade.
+- **All option names must use the `dc_swp_` prefix** (`dc_swp_sw_enabled`, `dc_swp_preload_products`, `dc_swp_product_base`, `dc_swp_footer_credit`). The old `dampcig_pwa_*` names are migrated via `dc_swp_migrate_options()` on activation and must not be reintroduced.
 - Do not remove or break bilingual support (EN/DA); use `get_locale()` checks as the existing code does.
+- **`phpcs.xml` must NOT globally suppress `WordPress.Security.EscapeOutput.OutputNotEscaped`** — use per-line `// phpcs:ignore` comments with justification comments only at the specific lines that require it. A global suppression hides real violations from your own linter AND triggers WP.org rejection.
+- **Do not add redundant `phpcs:ignore NonPrefixedFunctionFound`** on functions that already use the `dc_swp_` prefix — these are covered by the `<property name="prefixes">` declaration in `phpcs.xml`.
+- **Never use `file_get_contents()`** for local files — use `WP_Filesystem` (`global $wp_filesystem; WP_Filesystem(); $wp_filesystem->get_contents( $path )`).
+- **`dc_swp_footer_credit_owner()`** is the properly-prefixed sentinel function that prevents multiple DC plugins from registering the footer credit simultaneously. The cross-plugin check includes BOTH `dc_swp_footer_credit_owner` and `dc_footer_credit_owner` for backward compatibility with older DC plugin versions.
+
+## Known WP.org Rejection Reasons (resolved)
+
+| # | Issue | Resolution |
+|---|-------|-----------|
+| 1 | Global `EscapeOutput` PHPCS suppression in `phpcs.xml` | Removed; per-line ignores used instead |
+| 2 | `dc_footer_credit_owner` wrong prefix | Renamed to `dc_swp_footer_credit_owner` |
+| 3 | `dampcig_pwa_*` option names not prefixed with plugin slug | Migrated to `dc_swp_*` via activation hook |
+| 4 | 39 redundant `phpcs:ignore NonPrefixedFunctionFound` on `dc_swp_` functions | Removed — prefix covered by phpcs.xml declaration |
+| 5 | `file_get_contents()` instead of WP Filesystem API | Replaced with `WP_Filesystem` |
+| 6 | Proxy endpoint not explained to reviewers | Added to `readme.txt` under External Services |
 
 ## SYSTEM ##
 **Role** You are a senior WordPress plugin engineer and technical documentation expert working inside Visual Studio.

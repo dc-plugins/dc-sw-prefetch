@@ -9,8 +9,6 @@
     <arg name="extensions" value="php"/>
 
     <rule ref="WordPress">
-        <!-- JS output in SW endpoint cannot be escaped -->
-        <exclude name="WordPress.Security.EscapeOutput.OutputNotEscaped"/>
     </rule>
 
     <!-- Declare plugin prefix so NamingConventions don't flag dc_swp_ functions -->
