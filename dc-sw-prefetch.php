@@ -6,7 +6,7 @@
  * Plugin Name: DC Script Worker Prefetcher
  * Plugin URI:  https://github.com/dc-plugins/dc-sw-prefetch
  * Description: Partytown service worker with viewport/pagination prefetching for WooCommerce. Offloads third-party scripts via Partytown and pre-fetches visible products & next pages.
- * Version:     1.8.0
+ * Version:     1.8.1
  * Author:      lennilg
  * Author URI:  https://github.com/lennilg
  * License:           GPL-2.0-or-later
@@ -632,7 +632,7 @@ function dc_swp_fallback_cache_headers()  {
  * Partytown itself is registered at this virtual path.
  */
 define( 'DC_SWP_PARTYTOWN_LIB', '/wp-content/plugins/dc-sw-prefetch/assets/partytown/' );
-define( 'DC_SWP_VERSION', '1.8.0' );
+define( 'DC_SWP_VERSION', '1.8.1' );
 
 add_action( 'init', 'dc_swp_serve_partytown_files', 1 );
 
@@ -1215,17 +1215,32 @@ function dc_swp_inject_gtm_head()  {
 	$nonce      = dc_swp_get_csp_nonce();
 	$nonce_attr = '' !== $nonce ? ' nonce="' . esc_attr( $nonce ) . '"' : '';
 
+	// Ensure dataLayer and gtag() exist on the main thread before the Partytown
+	// worker script loads. This is required even when GCM v2 is active (idempotent
+	// due to ||=) so that main-thread code can call dataLayer.push() / gtag()
+	// before the worker is ready. Partytown's forward:['dataLayer.push'] config
+	// (preserveBehavior:true) proxies these calls into the worker automatically.
+	//
+	// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- fully static JS; nonce is pre-escaped via esc_attr.
+	echo '<script' . $nonce_attr . ">window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}</script>\n";
+
 	if ( 0 === stripos( $tag_id, 'GTM-' ) ) {
-		// GTM container — standard async loader snippet.
-		$safe_id = esc_js( $tag_id );
-		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- static JS template; tag ID is regex-validated and esc_js escaped.
-		echo "<script" . $nonce_attr . ">(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','" . $safe_id . "');</script>\n";
+		// GTM container — load the container script in a Partytown Web Worker.
+		// Using type="text/partytown" offloads GTM (and all tags firing inside it)
+		// entirely off the main thread. The dataLayer.push forward ensures consent
+		// signals and other main-thread pushes are relayed into the worker.
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- tag ID regex-validated; esc_attr applied.
+		echo '<script type="text/partytown"' . $nonce_attr . ' src="https://www.googletagmanager.com/gtm.js?id=' . esc_attr( $tag_id ) . '"></script>' . "\n";
 	} else {
-		// GA4 measurement ID — gtag.js direct.
+		// GA4 / UA measurement ID — load gtag.js in a Partytown Web Worker.
+		// The inline gtag('config',...) call runs on the main thread and is forwarded
+		// to the worker via the dataLayer.push proxy (gtag() internally calls dataLayer.push).
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- tag ID regex-validated; esc_attr/esc_js applied.
+		echo '<script type="text/partytown"' . $nonce_attr . ' src="https://www.googletagmanager.com/gtag/js?id=' . esc_attr( $tag_id ) . '"></script>' . "\n";
+
 		$safe_id = esc_js( $tag_id );
-		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- static JS template; tag ID is regex-validated and esc_js/esc_attr escaped.
-		echo '<script' . $nonce_attr . ' async src="https://www.googletagmanager.com/gtag/js?id=' . esc_attr( $tag_id ) . '"></script>' . "\n";
-		echo "<script" . $nonce_attr . ">window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','" . $safe_id . "');</script>\n";
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- fully static JS; tag ID is esc_js escaped; nonce is pre-escaped.
+		echo "<script" . $nonce_attr . ">gtag('js',new Date());gtag('config','" . $safe_id . "');</script>\n";
 	}
 }
 
