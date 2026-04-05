@@ -474,12 +474,32 @@ jQuery( function ( $ ) {
 				if ( r.success && r.data && r.data.id ) {
 					const safeId     = $( '<span>' ).text( r.data.id ).html();
 					const safePlugin = $( '<span>' ).text( r.data.plugin ).html();
-					$res.html(
-						'<p style="color:#3cb034">\u2714 ' + ( gtmStr.detected || 'Detected' ) +
-						': <strong><code>' + safeId + '</code></strong> (' + safePlugin + ')</p>' +
-						'<button type="button" class="button button-secondary" id="dc-swp-use-detected" data-id="' + safeId + '">' +
-						( gtmStr.use || 'Use This ID' ) + '</button>'
-					);
+
+					// If googletagmanager.com is already in the Partytown Script List,
+					// auto-switch to detect mode — the tag is already being offloaded.
+					const ptLines     = ( $( 'textarea[name="dc_swp_partytown_scripts"]' ).val() || '' ).split( '\n' );
+					const alreadyInPt = ptLines.some( function ( line ) {
+						return line.trim().toLowerCase().indexOf( 'googletagmanager.com' ) !== -1;
+					} );
+
+					if ( alreadyInPt ) {
+						$( 'input[name="dc_swp_gtm_mode"][value="detect"]' ).prop( 'checked', true ).trigger( 'change' );
+						syncId( r.data.id );
+						$res.html(
+							'<p style="color:#3cb034">\u2714 ' + ( gtmStr.detected || 'Detected' ) +
+							': <strong><code>' + safeId + '</code></strong> (' + safePlugin + ')</p>' +
+							'<p style="color:#3cb034;font-size:12px">' +
+							( gtmStr.autoSwitched || '\u2714 Auto-Detect selected \u2014 tag is already in the Partytown Script List.' ) +
+							'</p>'
+						);
+					} else {
+						$res.html(
+							'<p style="color:#3cb034">\u2714 ' + ( gtmStr.detected || 'Detected' ) +
+							': <strong><code>' + safeId + '</code></strong> (' + safePlugin + ')</p>' +
+							'<button type="button" class="button button-secondary" id="dc-swp-use-detected" data-id="' + safeId + '">' +
+							( gtmStr.use || 'Use This ID' ) + '</button>'
+						);
+					}
 				} else {
 					$res.html( '<p style="color:#787c82"><em>' + ( gtmStr.none || 'No tag detected.' ) + '</em></p>' );
 				}
