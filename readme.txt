@@ -5,7 +5,7 @@ Requires at least: 6.8
 Tested up to: 6.9
 Requires PHP: 8.0
 WC tested up to: 10.4.3
-Stable tag: 1.8.1
+Stable tag: 1.8.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -189,6 +189,9 @@ The administrator may freely add other services through the Partytown Script Lis
 3. DevTools showing Partytown service worker registered at `/~partytown/`.
 
 == Changelog ==
+
+= 1.8.2 =
+* Fix: PHPCS — resolved 78 auto-fixable code style violations (function brace spacing, inline comment spacing, single-line associative arrays, double-quote usage, scope indentation). Zero errors/warnings remain under the WordPress coding standard.
 
 = 1.8.1 =
 * Fix: GTM and GA4 scripts now load via `type="text/partytown"` so they run entirely in a Partytown Web Worker off the main thread, consistent with the plugin's core offloading principle. A thin main-thread stub (`window.dataLayer||=[];function gtag(){...}`) is emitted before the Partytown tag to support main-thread consent signals and CMP pushes; Partytown's existing `forward:['dataLayer.push',{preserveBehavior:true}]` config relays these into the worker automatically.

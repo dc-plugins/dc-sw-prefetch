@@ -2,7 +2,7 @@
 
 > Offload third-party scripts to a Web Worker via Partytown + consent-aware loading + WooCommerce prefetching.
 
-![Version](https://img.shields.io/badge/version-1.8.1-blue)
+![Version](https://img.shields.io/badge/version-1.8.2-blue)
 ![WordPress](https://img.shields.io/badge/WordPress-6.8%2B-21759b)
 ![PHP](https://img.shields.io/badge/PHP-8.0%2B-777bb4)
 ![WooCommerce](https://img.shields.io/badge/WooCommerce-10.4%2B-96588a)
@@ -195,6 +195,9 @@ The administrator may configure additional services via the Partytown Script Lis
 ---
 
 ## Changelog
+
+### 1.8.2
+- Fix: PHPCS — resolved 78 auto-fixable code style violations (function brace spacing, inline comment spacing, single-line associative arrays, double-quote usage, scope indentation). Zero errors/warnings remain under the WordPress coding standard.
 
 ### 1.8.1
 - Fix: GTM and GA4 scripts now load via `type="text/partytown"` so they run entirely in a Partytown Web Worker off the main thread. A thin main-thread stub (`window.dataLayer||=[]`) is emitted before the Partytown tag; Partytown's `forward:['dataLayer.push',{preserveBehavior:true}]` relay ensures GCM v2 consent signals and all main-thread `gtag()` calls reach the worker correctly.
