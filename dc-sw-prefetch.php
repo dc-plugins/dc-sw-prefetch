@@ -983,17 +983,6 @@ function dc_swp_inject_consent_mode_default() {
 	$nonce      = dc_swp_get_csp_nonce();
 	$nonce_attr = '' !== $nonce ? ' nonce="' . esc_attr( $nonce ) . '"' : '';
 
-	// Resolve per-category consent server-side from CMP cookies so the
-	// default is set correctly on the very first gtag call — no redundant
-	// default-denied + update-granted round-trip for returning visitors.
-	$has_marketing   = dc_swp_has_marketing_consent();
-	$has_statistics  = dc_swp_has_statistics_consent();
-	$has_preferences = dc_swp_has_preferences_consent();
-
-	$mkt_state   = $has_marketing ? 'granted' : 'denied';
-	$stats_state = $has_statistics ? 'granted' : 'denied';
-	$prefs_state = $has_preferences ? 'granted' : 'denied';
-
 	$url_passthrough    = get_option( 'dc_swp_url_passthrough', 'no' ) === 'yes';
 	$ads_data_redaction = get_option( 'dc_swp_ads_data_redaction', 'no' ) === 'yes';
 
@@ -1005,20 +994,26 @@ function dc_swp_inject_consent_mode_default() {
 	if ( $ads_data_redaction ) {
 		$consent_js .= "gtag('set','ads_data_redaction',true);\n";
 	}
+	// Always default-denied so the CMP owns the update call.
+	// Server-side cookie detection was removed: reading consent cookies in PHP
+	// and outputting 'granted' here is incompatible with full-page caching
+	// (W3 Total Cache, WP Rocket, etc.) — a cached 'granted' page served to
+	// a new unconsented visitor causes "granted → denied" in the browser
+	// console when the CMP's deferred JS fires its own update.  The correct
+	// GCM v2 pattern is: plugin sets default-denied + wait_for_update, CMP
+	// fires gtag('consent','update',{granted}) once consent is confirmed.
 	$consent_js .= "gtag('consent','default',{\n";
 	$consent_js .= "  'security_storage':'granted',\n";
 	$consent_js .= "  'functionality_storage':'granted',\n";
-	$consent_js .= "  'personalization_storage':'" . $prefs_state . "',\n";
-	$consent_js .= "  'analytics_storage':'" . $stats_state . "',\n";
-	$consent_js .= "  'ad_storage':'" . $mkt_state . "',\n";
-	$consent_js .= "  'ad_user_data':'" . $mkt_state . "',\n";
-	$consent_js .= "  'ad_personalization':'" . $mkt_state . "'";
-	if ( ! $has_marketing || ! $has_statistics || ! $has_preferences ) {
-		// Include wait_for_update when any category is denied so the CMP JS
-		// can fire gtag('consent','update',{granted}) within the grace period.
-		$consent_js .= ",\n  'wait_for_update':500";
-	}
-	$consent_js .= "\n});\n";
+	$consent_js .= "  'personalization_storage':'denied',\n";
+	$consent_js .= "  'analytics_storage':'denied',\n";
+	$consent_js .= "  'ad_storage':'denied',\n";
+	$consent_js .= "  'ad_user_data':'denied',\n";
+	$consent_js .= "  'ad_personalization':'denied',\n";
+	// 500 ms grace period for the CMP's deferred JS to update consent before
+	// the tag library fires its first beacon.
+	$consent_js .= "  'wait_for_update':500\n";
+	$consent_js .= "});\n";
 	// Signal to GTM that the consent default stub has been set, so any GTM
 	// tags/triggers that depend on consent initialisation can fire correctly.
 	$consent_js .= "dataLayer.push({'event':'default_consent'});\n";
