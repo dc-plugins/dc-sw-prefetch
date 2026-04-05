@@ -69,38 +69,6 @@ jQuery( function ( $ ) {
 
 		if ( toAdd.length ) {
 			$ta.val( existing.concat( toAdd ).join( '\n' ) );
-
-			// If googletagmanager.com was just added, auto-scan for a GTM plugin ID
-			// and switch GTM mode to "detect" if one is found.
-			const addedGtm = toAdd.some( function ( url ) {
-				return url.toLowerCase().indexOf( 'googletagmanager.com' ) !== -1;
-			} );
-			if ( addedGtm && $( 'input[name="dc_swp_gtm_mode"]' ).length ) {
-				$.post(
-					ajaxurl,
-					{ action: 'dc_swp_detect_gtm', nonce: dcSwpAdminData.nonce },
-					function ( r ) {
-						if ( r.success && r.data && r.data.id ) {
-							$( 'input[name="dc_swp_gtm_mode"][value="detect"]' )
-								.prop( 'checked', true )
-								.trigger( 'change' );
-							// Sync the hidden GTM ID field so it saves on next submit.
-							$( '#dc_swp_gtm_id_field' ).val( r.data.id );
-							// Show a brief notice in the detect result area.
-							const safeId     = $( '<span>' ).text( r.data.id ).html();
-							const safePlugin = $( '<span>' ).text( r.data.plugin ).html();
-							const gtmStr     = ( dcSwpAdminData.gtm || {} );
-							$( '#dc-swp-gtm-detect-result' ).html(
-								'<p style="color:#3cb034">\u2714 ' + ( gtmStr.detected || 'Detected' ) +
-								': <strong><code>' + safeId + '</code></strong> (' + safePlugin + ')</p>' +
-								'<p style="color:#3cb034;font-size:12px">' +
-								( gtmStr.autoSwitched || '\u2714 Auto-Detect selected \u2014 tag is already in the Partytown Script List.' ) +
-								'</p>'
-							);
-						}
-					}
-				);
-			}
 		}
 		$( '#dc-swp-autodetect-results' ).fadeOut();
 	} );

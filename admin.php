@@ -1035,6 +1035,9 @@ function dc_swp_ajax_detect_scripts() {
 	// phpcs:ignore Squiz.Commenting.InlineComment.InvalidEndChar
 	$known_patterns = dc_swp_get_known_services();
 
+	// Hosts with dedicated plugin panels — excluded from generic autodetect results.
+	$dedicated_hosts = array( 'googletagmanager.com', 'connect.facebook.net' );
+
 	// Already-configured hosts (include list + Script Block) — never suggest these.
 	$already_configured = dc_swp_get_proxy_allowed_hosts();
 
@@ -1056,6 +1059,18 @@ function dc_swp_ajax_detect_scripts() {
 			continue; // Deduplicate by hostname.
 		}
 		$seen[ $host ] = true;
+
+		// Skip hosts that have a dedicated plugin panel (GTM, Facebook Pixel).
+		$is_dedicated = false;
+		foreach ( $dedicated_hosts as $d_host ) {
+			if ( str_contains( $host, $d_host ) ) {
+				$is_dedicated = true;
+				break;
+			}
+		}
+		if ( $is_dedicated ) {
+			continue;
+		}
 
 		// Skip hosts already in the include list or the Script Block.
 		$already = false;
