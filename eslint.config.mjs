@@ -28,6 +28,7 @@ export default [
 				MutationObserver: 'readonly',
 				IntersectionObserver: 'readonly',
 				SharedArrayBuffer: 'readonly',
+				CustomEvent: 'readonly',
 				HTMLIFrameElement: 'readonly',
 				Image: 'readonly',
 				NodeFilter: 'readonly',

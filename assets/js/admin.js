@@ -332,173 +332,6 @@ jQuery( function ( $ ) {
 		refreshBlockBadge( $it, code, !! ( blk && blk.force_partytown ) );
 		$it.find( '.dc-swp-blk-force-label' ).toggle( $it.find( '.dc-swp-blk-force-wrap' ).is( ':visible' ) );
 	} );
-} )( jQuery );
-
-// ── Google Tag Management — panel switcher + wizard ─────────────────────────
-( function ( $ ) {
-	const GTM_REGEX = /^(GTM-[A-Z0-9]{4,10}|G-[A-Z0-9]{6,}|UA-\d{4,}-\d+)$/i;
-	const gtmStr    = ( dcSwpAdminData.gtm || {} );
-
-	/** Sync the hidden form field that actually gets submitted. */
-	function syncId( val ) {
-		$( '#dc_swp_gtm_id_field' ).val( val );
-	}
-
-	/** Validate and return true for acceptable tag IDs. */
-	function validId( val ) {
-		return GTM_REGEX.test( ( val || '' ).trim() );
-	}
-
-	/** Show the panel matching the active mode; hide the rest. */
-	function showPanel( mode ) {
-		$( '.dc-swp-gtm-panel' ).hide();
-		if ( 'off' !== mode ) {
-			$( '#dc-swp-gtm-panel-' + mode ).show();
-		}
-	}
-
-	// ── Wizard step navigation ──────────────────────────────────────────────
-	var currentStep = 1;
-
-	function goToStep( step ) {
-		$( '.dc-swp-wizard-step' ).removeClass( 'dc-swp-active' ).hide();
-		$( '#dc-swp-wizard-step-' + step ).addClass( 'dc-swp-active' ).show();
-		currentStep = step;
-		$( '.dc-swp-step-dot' ).each( function () {
-			var s = parseInt( $( this ).data( 'step' ), 10 );
-			$( this )
-				.toggleClass( 'active', s === step )
-				.toggleClass( 'done',   s < step );
-		} );
-	}
-
-	// ── Init ────────────────────────────────────────────────────────────────
-	var initMode = $( 'input[name="dc_swp_gtm_mode"]:checked' ).val() || 'off';
-	showPanel( initMode );
-	goToStep( 1 );
-
-	// If returning to managed mode with a stored ID, re-validate step 2.
-	if ( 'managed' === initMode ) {
-		var storedId = $( '#dc-swp-gtm-wizard-id' ).val().trim();
-		if ( validId( storedId ) ) {
-			$( '#dc-swp-wizard-step2-next' ).prop( 'disabled', false );
-		}
-	}
-
-	// ── Mode radio change ───────────────────────────────────────────────────
-	$( 'input[name="dc_swp_gtm_mode"]' ).on( 'change', function () {
-		var mode = $( this ).val();
-		showPanel( mode );
-
-		// Cross-fill: switching between own ↔ managed copies the ID.
-		if ( 'managed' === mode ) {
-			var ownVal = $( '#dc-swp-gtm-id-own' ).val().trim();
-			var wizVal = $( '#dc-swp-gtm-wizard-id' ).val().trim();
-			if ( ! wizVal && ownVal ) {
-				$( '#dc-swp-gtm-wizard-id' ).val( ownVal ).trigger( 'input' );
-			}
-		}
-		if ( 'own' === mode ) {
-			var wizVal2 = $( '#dc-swp-gtm-wizard-id' ).val().trim();
-			var ownEl   = $( '#dc-swp-gtm-id-own' );
-			if ( ! ownEl.val() && wizVal2 ) {
-				ownEl.val( wizVal2 ).trigger( 'input' );
-			}
-		}
-	} );
-
-	// ── Own mode: live validation ───────────────────────────────────────────
-	$( '#dc-swp-gtm-id-own' ).on( 'input', function () {
-		var val     = $( this ).val().trim();
-		var $status = $( '#dc-swp-gtm-id-status' );
-		if ( ! val ) {
-			$status.hide();
-			syncId( '' );
-			return;
-		}
-		if ( validId( val ) ) {
-			$status.text( gtmStr.valid || '\u2714 Valid' )
-				.addClass( 'dc-swp-gtm-valid' ).removeClass( 'dc-swp-gtm-invalid' ).show();
-			syncId( val.toUpperCase() );
-		} else {
-			$status.text( gtmStr.invalid || '\u26a0 Invalid format' )
-				.addClass( 'dc-swp-gtm-invalid' ).removeClass( 'dc-swp-gtm-valid' ).show();
-		}
-	} ).trigger( 'input' );
-
-	// ── Detect mode: scan button ────────────────────────────────────────────
-	$( '#dc-swp-gtm-detect-btn' ).on( 'click', function () {
-		var $btn  = $( this );
-		var $spin = $( '#dc-swp-gtm-detect-spinner' );
-		var $res  = $( '#dc-swp-gtm-detect-result' );
-		$btn.prop( 'disabled', true );
-		$spin.css( 'display', 'inline-block' );
-		$res.empty();
-
-		$.post( ajaxurl, { action: 'dc_swp_detect_gtm', nonce: dcSwpAdminData.nonce },
-			function ( r ) {
-				$btn.prop( 'disabled', false );
-				$spin.hide();
-				if ( r.success && r.data && r.data.id ) {
-					var safeId     = $( '<span>' ).text( r.data.id ).html();
-					var safePlugin = $( '<span>' ).text( r.data.plugin ).html();
-					$res.html(
-						'<p style="color:#3cb034">\u2714 ' + ( gtmStr.detected || 'Detected' ) +
-						': <strong><code>' + safeId + '</code></strong> (' + safePlugin + ')</p>' +
-						'<button type="button" class="button button-secondary" id="dc-swp-use-detected" data-id="' + safeId + '">' +
-						( gtmStr.use || 'Use This ID' ) + '</button>'
-					);
-				} else {
-					$res.html( '<p style="color:#787c82"><em>' + ( gtmStr.none || 'No tag detected.' ) + '</em></p>' );
-				}
-			}
-		).fail( function () { $btn.prop( 'disabled', false ); $spin.hide(); } );
-	} );
-
-	$( document ).on( 'click', '#dc-swp-use-detected', function () {
-		var id = $( this ).data( 'id' );
-		syncId( id );
-		var msg = '<span style="color:#3cb034;font-weight:600">\u2714 <code>' +
-			$( '<span>' ).text( id ).html() + '</code> \u2014 ' +
-			( gtmStr.willBeUsed || 'will be used on next save' ) + '</span>';
-		$( this ).replaceWith( msg );
-	} );
-
-	// ── Wizard: ID validation in step 2 ────────────────────────────────────
-	$( '#dc-swp-gtm-wizard-id' ).on( 'input', function () {
-		var val     = $( this ).val().trim();
-		var valid   = validId( val );
-		var $status = $( '#dc-swp-gtm-wizard-status' );
-		$( '#dc-swp-wizard-step2-next' ).prop( 'disabled', ! valid );
-		if ( ! val ) { $status.hide(); return; }
-		if ( valid ) {
-			$status.text( gtmStr.valid || '\u2714 Valid' )
-				.addClass( 'dc-swp-gtm-valid' ).removeClass( 'dc-swp-gtm-invalid' ).show();
-			syncId( val.toUpperCase() );
-		} else {
-			$status.text( gtmStr.invalid || '\u26a0 Invalid format' )
-				.addClass( 'dc-swp-gtm-invalid' ).removeClass( 'dc-swp-gtm-valid' ).show();
-		}
-	} ).trigger( 'input' );
-
-	// ── Wizard: next / prev navigation ─────────────────────────────────────
-	$( document ).on( 'click', '.dc-swp-wizard-btn', function () {
-		var dir  = $( this ).data( 'dir' );
-		var step = parseInt( $( this ).data( 'step' ), 10 );
-		goToStep( 'next' === dir ? step + 1 : step - 1 );
-	} );
-
-	// ── Wizard: complete ────────────────────────────────────────────────────
-	$( '#dc-swp-wizard-complete' ).on( 'click', function () {
-		var id = $( '#dc-swp-gtm-wizard-id' ).val().trim();
-		if ( validId( id ) ) {
-			syncId( id.toUpperCase() );
-			$( '#dc-swp-wizard-summary-id' ).text( id.toUpperCase() );
-			$( '#dc-swp-wizard-summary' ).show();
-			$( this ).text( gtmStr.saved || '\u2714 Saved' ).prop( 'disabled', true );
-		}
-	} );
-} )( jQuery );
 
 	// Add new block.
 	$( '#dc-swp-add-block-btn' ).on( 'click', function () {
@@ -533,4 +366,168 @@ jQuery( function ( $ ) {
 		} );
 		$( '#dc_swp_inline_scripts_json' ).val( JSON.stringify( blocks ) );
 	} );
-}( jQuery ) );
+} )( jQuery );
+
+// ── Google Tag Management — panel switcher + wizard ─────────────────────────
+( function ( $ ) {
+	const GTM_REGEX = /^(GTM-[A-Z0-9]{4,10}|G-[A-Z0-9]{6,}|UA-\d{4,}-\d+)$/i;
+	const gtmStr    = ( dcSwpAdminData.gtm || {} );
+
+	/** Sync the hidden form field that actually gets submitted. */
+	function syncId( val ) {
+		$( '#dc_swp_gtm_id_field' ).val( val );
+	}
+
+	/** Validate and return true for acceptable tag IDs. */
+	function validId( val ) {
+		return GTM_REGEX.test( ( val || '' ).trim() );
+	}
+
+	/** Show the panel matching the active mode; hide the rest. */
+	function showPanel( mode ) {
+		$( '.dc-swp-gtm-panel' ).hide();
+		if ( 'off' !== mode ) {
+			$( '#dc-swp-gtm-panel-' + mode ).show();
+		}
+	}
+
+	// ── Wizard step navigation ──────────────────────────────────────────────
+
+	function goToStep( step ) {
+		$( '.dc-swp-wizard-step' ).removeClass( 'dc-swp-active' ).hide();
+		$( '#dc-swp-wizard-step-' + step ).addClass( 'dc-swp-active' ).show();
+		$( '.dc-swp-step-dot' ).each( function () {
+			const s = parseInt( $( this ).data( 'step' ), 10 );
+			$( this )
+				.toggleClass( 'active', s === step )
+				.toggleClass( 'done',   s < step );
+		} );
+	}
+
+	// ── Init ────────────────────────────────────────────────────────────────
+	const initMode = $( 'input[name="dc_swp_gtm_mode"]:checked' ).val() || 'off';
+	showPanel( initMode );
+	goToStep( 1 );
+
+	// If returning to managed mode with a stored ID, re-validate step 2.
+	if ( 'managed' === initMode ) {
+		const storedId = $( '#dc-swp-gtm-wizard-id' ).val().trim();
+		if ( validId( storedId ) ) {
+			$( '#dc-swp-wizard-step2-next' ).prop( 'disabled', false );
+		}
+	}
+
+	// ── Mode radio change ───────────────────────────────────────────────────
+	$( 'input[name="dc_swp_gtm_mode"]' ).on( 'change', function () {
+		const mode = $( this ).val();
+		showPanel( mode );
+
+		// Cross-fill: switching between own ↔ managed copies the ID.
+		if ( 'managed' === mode ) {
+			const ownVal = $( '#dc-swp-gtm-id-own' ).val().trim();
+			const wizVal = $( '#dc-swp-gtm-wizard-id' ).val().trim();
+			if ( ! wizVal && ownVal ) {
+				$( '#dc-swp-gtm-wizard-id' ).val( ownVal ).trigger( 'input' );
+			}
+		}
+		if ( 'own' === mode ) {
+			const wizVal2 = $( '#dc-swp-gtm-wizard-id' ).val().trim();
+			const ownEl   = $( '#dc-swp-gtm-id-own' );
+			if ( ! ownEl.val() && wizVal2 ) {
+				ownEl.val( wizVal2 ).trigger( 'input' );
+			}
+		}
+	} );
+
+	// ── Own mode: live validation ───────────────────────────────────────────
+	$( '#dc-swp-gtm-id-own' ).on( 'input', function () {
+		const val     = $( this ).val().trim();
+		const $status = $( '#dc-swp-gtm-id-status' );
+		if ( ! val ) {
+			$status.hide();
+			syncId( '' );
+			return;
+		}
+		if ( validId( val ) ) {
+			$status.text( gtmStr.valid || '\u2714 Valid' )
+				.addClass( 'dc-swp-gtm-valid' ).removeClass( 'dc-swp-gtm-invalid' ).show();
+			syncId( val.toUpperCase() );
+		} else {
+			$status.text( gtmStr.invalid || '\u26a0 Invalid format' )
+				.addClass( 'dc-swp-gtm-invalid' ).removeClass( 'dc-swp-gtm-valid' ).show();
+		}
+	} ).trigger( 'input' );
+
+	// ── Detect mode: scan button ────────────────────────────────────────────
+	$( '#dc-swp-gtm-detect-btn' ).on( 'click', function () {
+		const $btn  = $( this );
+		const $spin = $( '#dc-swp-gtm-detect-spinner' );
+		const $res  = $( '#dc-swp-gtm-detect-result' );
+		$btn.prop( 'disabled', true );
+		$spin.css( 'display', 'inline-block' );
+		$res.empty();
+
+		$.post( ajaxurl, { action: 'dc_swp_detect_gtm', nonce: dcSwpAdminData.nonce },
+			function ( r ) {
+				$btn.prop( 'disabled', false );
+				$spin.hide();
+				if ( r.success && r.data && r.data.id ) {
+					const safeId     = $( '<span>' ).text( r.data.id ).html();
+					const safePlugin = $( '<span>' ).text( r.data.plugin ).html();
+					$res.html(
+						'<p style="color:#3cb034">\u2714 ' + ( gtmStr.detected || 'Detected' ) +
+						': <strong><code>' + safeId + '</code></strong> (' + safePlugin + ')</p>' +
+						'<button type="button" class="button button-secondary" id="dc-swp-use-detected" data-id="' + safeId + '">' +
+						( gtmStr.use || 'Use This ID' ) + '</button>'
+					);
+				} else {
+					$res.html( '<p style="color:#787c82"><em>' + ( gtmStr.none || 'No tag detected.' ) + '</em></p>' );
+				}
+			}
+		).fail( function () { $btn.prop( 'disabled', false ); $spin.hide(); } );
+	} );
+
+	$( document ).on( 'click', '#dc-swp-use-detected', function () {
+		const id = $( this ).data( 'id' );
+		syncId( id );
+		const msg = '<span style="color:#3cb034;font-weight:600">\u2714 <code>' +
+			$( '<span>' ).text( id ).html() + '</code> \u2014 ' +
+			( gtmStr.willBeUsed || 'will be used on next save' ) + '</span>';
+		$( this ).replaceWith( msg );
+	} );
+
+	// ── Wizard: ID validation in step 2 ────────────────────────────────────
+	$( '#dc-swp-gtm-wizard-id' ).on( 'input', function () {
+		const val     = $( this ).val().trim();
+		const valid   = validId( val );
+		const $status = $( '#dc-swp-gtm-wizard-status' );
+		$( '#dc-swp-wizard-step2-next' ).prop( 'disabled', ! valid );
+		if ( ! val ) { $status.hide(); return; }
+		if ( valid ) {
+			$status.text( gtmStr.valid || '\u2714 Valid' )
+				.addClass( 'dc-swp-gtm-valid' ).removeClass( 'dc-swp-gtm-invalid' ).show();
+			syncId( val.toUpperCase() );
+		} else {
+			$status.text( gtmStr.invalid || '\u26a0 Invalid format' )
+				.addClass( 'dc-swp-gtm-invalid' ).removeClass( 'dc-swp-gtm-valid' ).show();
+		}
+	} ).trigger( 'input' );
+
+	// ── Wizard: next / prev navigation ─────────────────────────────────────
+	$( document ).on( 'click', '.dc-swp-wizard-btn', function () {
+		const dir  = $( this ).data( 'dir' );
+		const step = parseInt( $( this ).data( 'step' ), 10 );
+		goToStep( 'next' === dir ? step + 1 : step - 1 );
+	} );
+
+	// ── Wizard: complete ────────────────────────────────────────────────────
+	$( '#dc-swp-wizard-complete' ).on( 'click', function () {
+		const id = $( '#dc-swp-gtm-wizard-id' ).val().trim();
+		if ( validId( id ) ) {
+			syncId( id.toUpperCase() );
+			$( '#dc-swp-wizard-summary-id' ).text( id.toUpperCase() );
+			$( '#dc-swp-wizard-summary' ).show();
+			$( this ).text( gtmStr.saved || '\u2714 Saved' ).prop( 'disabled', true );
+		}
+	} );
+} )( jQuery );
