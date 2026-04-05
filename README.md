@@ -2,7 +2,7 @@
 
 > Offload third-party scripts to a Web Worker via Partytown + consent-aware loading + WooCommerce prefetching.
 
-![Version](https://img.shields.io/badge/version-1.7.0-blue)
+![Version](https://img.shields.io/badge/version-1.8.0-blue)
 ![WordPress](https://img.shields.io/badge/WordPress-6.8%2B-21759b)
 ![PHP](https://img.shields.io/badge/PHP-8.0%2B-777bb4)
 ![WooCommerce](https://img.shields.io/badge/WooCommerce-10.4%2B-96588a)
@@ -195,6 +195,11 @@ The administrator may configure additional services via the Partytown Script Lis
 ---
 
 ## Changelog
+
+### 1.8.0
+- Feature: Google Tag Management — three modes: Enter Tag ID, Auto-Detect (Site Kit / MonsterInsights / GTM4WP / CAOS / Analytify), Setup Guide (4-step onboarding wizard).
+- Feature: GTM snippet injection in `<head>` at priority 5 (after GCM v2 consent default), `<noscript>` iframe via `wp_body_open`. Supports GTM-XXXXXXX, G-XXXXXXXXXX (GA4), UA-XXXXX-X.
+- Feature: 4-step wizard with real-time Container ID validation, step indicator, and bilingual (EN/DA) UI.
 
 ### 1.7.0
 - Enhancement: Google Consent Mode v2 — all 7 parameters now declared (`security_storage`, `functionality_storage`, `personalization_storage`, `analytics_storage`, `ad_storage`, `ad_user_data`, `ad_personalization`).

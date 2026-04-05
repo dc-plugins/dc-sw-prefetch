@@ -6,7 +6,7 @@
  * Plugin Name: DC Script Worker Prefetcher
  * Plugin URI:  https://github.com/dc-plugins/dc-sw-prefetch
  * Description: Partytown service worker with viewport/pagination prefetching for WooCommerce. Offloads third-party scripts via Partytown and pre-fetches visible products & next pages.
- * Version:     1.7.0
+ * Version:     1.8.0
  * Author:      lennilg
  * Author URI:  https://github.com/lennilg
  * License:           GPL-2.0-or-later
@@ -632,7 +632,7 @@ function dc_swp_fallback_cache_headers()  {
  * Partytown itself is registered at this virtual path.
  */
 define( 'DC_SWP_PARTYTOWN_LIB', '/wp-content/plugins/dc-sw-prefetch/assets/partytown/' );
-define( 'DC_SWP_VERSION', '1.7.0' );
+define( 'DC_SWP_VERSION', '1.8.0' );
 
 add_action( 'init', 'dc_swp_serve_partytown_files', 1 );
 
@@ -1094,6 +1094,188 @@ function dc_swp_inject_gcm_revoke_listener()  {
 
 	// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- fully static JS; nonce is pre-escaped via esc_attr.
 	echo '<script' . $nonce_attr . ">\n" . $revoke_js . "</script>\n";
+}
+
+// ============================================================
+// GOOGLE TAG MANAGEMENT
+// Supports three active modes:
+//
+//   own     — user-supplied GTM container ID or GA4 measurement ID.
+//             Plugin injects the snippet in <head> at priority 5
+//             (after the GCM v2 consent default at priority 1) and
+//             the <noscript> iframe at wp_body_open.
+//
+//   detect  — scans known plugin options for an existing GTM/GA4
+//             tag; no injection (the other plugin handles it).
+//             GCM v2 consent default fires before any tag regardless.
+//
+//   managed — identical to "own" but the admin reaches the Container
+//             ID via the guided onboarding wizard in the admin UI.
+//
+//   off     — tag management disabled; GCM v2 still works independently.
+//
+// Validated ID formats:  GTM-XXXXXXX  |  G-XXXXXXXXXX  |  UA-XXXXX-X
+// ============================================================
+
+/**
+ * Return true when the given string is a valid Google Tag ID.
+ *
+ * Accepts GTM-XXXXXXX, G-XXXXXXXXXX (GA4), and UA-XXXXX-X (legacy UA).
+ *
+ * @param string $id Raw tag ID string.
+ * @return bool
+ */
+function dc_swp_is_valid_gtm_id( string $id ): bool {
+	return (bool) preg_match( '/^(GTM-[A-Z0-9]{4,10}|G-[A-Z0-9]{6,}|UA-\d{4,}-\d+)$/i', $id );
+}
+
+/**
+ * Detect a Google Tag ID already installed by a known WordPress plugin.
+ *
+ * Checks (in order): Site Kit by Google (GTM + GA4 modules), GTM4WP,
+ * MonsterInsights, CAOS, and Analytify.
+ *
+ * @return array{id: string, plugin: string}|array{} Non-empty when a tag is found.
+ */
+function dc_swp_detect_existing_gtm_id(): array {
+	// Site Kit by Google — GTM module.
+	$sitekit = get_option( 'googlesitekit_modules', array() );
+	if ( is_array( $sitekit ) ) {
+		$sk_gtm = $sitekit['tagmanager']['settings']['containerID'] ?? '';
+		if ( ! empty( $sk_gtm ) ) {
+			return array( 'id' => sanitize_text_field( $sk_gtm ), 'plugin' => 'Site Kit by Google' );
+		}
+		// Site Kit — GA4 / analytics-4 module.
+		$sk_ga4 = $sitekit['analytics-4']['settings']['measurementID'] ?? '';
+		if ( ! empty( $sk_ga4 ) ) {
+			return array( 'id' => sanitize_text_field( $sk_ga4 ), 'plugin' => 'Site Kit by Google (GA4)' );
+		}
+	}
+
+	// GTM4WP — Thomas Geiger.
+	$gtm4wp = get_option( 'gtm4wp_options', array() );
+	if ( is_array( $gtm4wp ) && ! empty( $gtm4wp['gtm-id'] ) ) {
+		return array( 'id' => sanitize_text_field( $gtm4wp['gtm-id'] ), 'plugin' => 'GTM4WP' );
+	}
+
+	// MonsterInsights — GTM ID or GA4 measurement ID.
+	$monster = get_option( 'monsterinsights_settings', array() );
+	if ( is_array( $monster ) ) {
+		$mid = $monster['gtm_id'] ?? $monster['ga4_id'] ?? $monster['ua_id'] ?? '';
+		if ( ! empty( $mid ) ) {
+			return array( 'id' => sanitize_text_field( $mid ), 'plugin' => 'MonsterInsights' );
+		}
+	}
+
+	// CAOS — Host Analytics Locally.
+	$caos = get_option( 'caos_analytics_tracking_id', '' );
+	if ( ! empty( $caos ) ) {
+		return array( 'id' => sanitize_text_field( $caos ), 'plugin' => 'CAOS' );
+	}
+
+	// Analytify.
+	$analytify = get_option( 'pa_google_analytics_settings', array() );
+	if ( is_array( $analytify ) && ! empty( $analytify['id'] ) ) {
+		return array( 'id' => sanitize_text_field( $analytify['id'] ), 'plugin' => 'Analytify' );
+	}
+
+	return array();
+}
+
+add_action( 'wp_head', 'dc_swp_inject_gtm_head', 5 );
+
+/**
+ * Inject the GTM / GA4 snippet in <head> for "own" and "managed" modes.
+ *
+ * Fires at priority 5 — after the GCM v2 consent default at priority 1 —
+ * so the consent state is already set before the container script loads.
+ *
+ * @return void
+ */
+function dc_swp_inject_gtm_head()  {
+	if ( dc_swp_is_bot_request() || is_admin() ) {
+		return;
+	}
+	$mode = get_option( 'dc_swp_gtm_mode', 'off' );
+	if ( 'own' !== $mode && 'managed' !== $mode ) {
+		return;
+	}
+	$tag_id = sanitize_text_field( get_option( 'dc_swp_gtm_id', '' ) );
+	if ( empty( $tag_id ) || ! dc_swp_is_valid_gtm_id( $tag_id ) ) {
+		return;
+	}
+	if (
+		( function_exists( 'is_cart' ) && is_cart() ) ||
+		( function_exists( 'is_checkout' ) && is_checkout() ) ||
+		( function_exists( 'is_account_page' ) && is_account_page() )
+	) {
+		return;
+	}
+
+	$nonce      = dc_swp_get_csp_nonce();
+	$nonce_attr = '' !== $nonce ? ' nonce="' . esc_attr( $nonce ) . '"' : '';
+
+	if ( 0 === stripos( $tag_id, 'GTM-' ) ) {
+		// GTM container — standard async loader snippet.
+		$safe_id = esc_js( $tag_id );
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- static JS template; tag ID is regex-validated and esc_js escaped.
+		echo "<script" . $nonce_attr . ">(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','" . $safe_id . "');</script>\n";
+	} else {
+		// GA4 measurement ID — gtag.js direct.
+		$safe_id = esc_js( $tag_id );
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- static JS template; tag ID is regex-validated and esc_js/esc_attr escaped.
+		echo '<script' . $nonce_attr . ' async src="https://www.googletagmanager.com/gtag/js?id=' . esc_attr( $tag_id ) . '"></script>' . "\n";
+		echo "<script" . $nonce_attr . ">window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','" . $safe_id . "');</script>\n";
+	}
+}
+
+add_action( 'wp_body_open', 'dc_swp_inject_gtm_body', 1 );
+
+/**
+ * Inject the GTM <noscript> iframe fallback immediately after <body>.
+ *
+ * Only relevant for GTM-XXXXXXX container IDs (not GA4 measurement IDs).
+ * Requires the active theme to call wp_body_open() — supported by all
+ * themes that follow the WordPress 5.2+ standards.
+ *
+ * @return void
+ */
+function dc_swp_inject_gtm_body()  {
+	if ( dc_swp_is_bot_request() || is_admin() ) {
+		return;
+	}
+	$mode = get_option( 'dc_swp_gtm_mode', 'off' );
+	if ( 'own' !== $mode && 'managed' !== $mode ) {
+		return;
+	}
+	$tag_id = sanitize_text_field( get_option( 'dc_swp_gtm_id', '' ) );
+	if ( empty( $tag_id ) || 0 !== stripos( $tag_id, 'GTM-' ) || ! dc_swp_is_valid_gtm_id( $tag_id ) ) {
+		return;
+	}
+	if (
+		( function_exists( 'is_cart' ) && is_cart() ) ||
+		( function_exists( 'is_checkout' ) && is_checkout() ) ||
+		( function_exists( 'is_account_page' ) && is_account_page() )
+	) {
+		return;
+	}
+	// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- tag ID regex-validated; esc_attr applied; static HTML template.
+	echo '<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=' . esc_attr( $tag_id ) . '" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>' . "\n";
+}
+
+add_action( 'wp_ajax_dc_swp_detect_gtm', 'dc_swp_ajax_detect_gtm' );
+
+/**
+ * AJAX handler: detect an existing Google Tag ID installed by a known plugin.
+ *
+ * @return void
+ */
+function dc_swp_ajax_detect_gtm()  {
+	check_ajax_referer( 'dc_swp_detect_nonce', 'nonce' );
+	if ( ! current_user_can( 'manage_options' ) ) {
+		wp_send_json_error( array( 'message' => 'Unauthorized' ), 403 );
+	}
+	wp_send_json_success( dc_swp_detect_existing_gtm_id() );
 }
 
 // ============================================================
@@ -1879,6 +2061,8 @@ function dc_swp_partytown_script_attrs_disabled( $attributes )  {
 // Bust the in-request static cache, object cache, and W3TC page cache when settings change.
 add_action( 'update_option_dc_swp_partytown_scripts', 'dc_swp_bust_page_cache' );
 add_action( 'update_option_dc_swp_inline_scripts', 'dc_swp_bust_page_cache' );
+add_action( 'update_option_dc_swp_gtm_mode', 'dc_swp_bust_page_cache' );
+add_action( 'update_option_dc_swp_gtm_id', 'dc_swp_bust_page_cache' );
 
 /**
  * Delete all object-cache pattern keys and flush W3TC page cache (if active),

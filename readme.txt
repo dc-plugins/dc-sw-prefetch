@@ -5,7 +5,7 @@ Requires at least: 6.8
 Tested up to: 6.9
 Requires PHP: 8.0
 WC tested up to: 10.4.3
-Stable tag: 1.7.0
+Stable tag: 1.8.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -189,6 +189,11 @@ The administrator may freely add other services through the Partytown Script Lis
 3. DevTools showing Partytown service worker registered at `/~partytown/`.
 
 == Changelog ==
+
+= 1.8.0 =
+* Feature: Google Tag Management — three modes for managing your Google Tag: Enter Tag ID (own GTM/GA4 ID), Auto-Detect (scans Site Kit, MonsterInsights, GTM4WP, CAOS), and Setup Guide (step-by-step onboarding wizard). GTM snippet injected in `<head>` at priority 5, after GCM v2 consent default; `<noscript>` iframe injected at `wp_body_open`.
+* Feature: GTM onboarding wizard — 4-step guided flow to create a GTM account and container, enter the Container ID with real-time validation, add tags in GTM (GA4, LinkedIn, TikTok etc.), and publish.
+* Feature: Auto-detect scans plugin options (Site Kit, MonsterInsights, GTM4WP, CAOS, Analytify) for existing tags and confirms GCM v2 consent mode fires before them.
 
 = 1.7.0 =
 * Enhancement: Google Consent Mode v2 — all 7 parameters now declared (`security_storage`, `functionality_storage`, `personalization_storage`, `analytics_storage`, `ad_storage`, `ad_user_data`, `ad_personalization`).

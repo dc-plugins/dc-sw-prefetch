@@ -98,6 +98,36 @@ function dc_swp_str( $key )  {
 			'badge_unsupported'          => '⚠ Ikke understøttet | Udskudt',
 			'force_pt_label'             => 'Tving Partytown aktivt',
 			'force_pt_notice'            => 'Kører script med ukendt Partytown-kompatibilitet — test dit site i debug-tilstand for at bekræfte ingen renderingsfejl.',
+			'gtm_section_label'          => 'Google Tag Management',
+			'gtm_mode_off'               => 'Deaktiveret — ingen tag-styring',
+			'gtm_mode_own'               => 'Angiv Tag-ID — jeg har mit eget GTM- eller GA4-ID',
+			'gtm_mode_detect'            => 'Auto-Detekter — find tag installeret af et andet plugin',
+			'gtm_mode_managed'           => 'Opsætningsguide — trin-for-trin GTM-onboarding',
+			'gtm_id_placeholder'         => 'GTM-XXXXXXX eller G-XXXXXXXXXX',
+			'gtm_id_invalid'             => '⚠ Ugyldigt format. Forventet: GTM-XXXXXXX, G-XXXXXXXXXX eller UA-XXXXXX-X.',
+			'gtm_id_valid'               => '✔ Gyldigt tag-ID',
+			'gtm_detect_btn'             => 'Scan installerede plugins',
+			'gtm_detect_none'            => 'Intet kendt Google Tag-plugin fundet.',
+			'gtm_detect_found'           => 'Fundet',
+			'gtm_detect_use'             => 'Brug dette ID',
+			'gtm_detect_will_use'        => 'bruges ved næste gem',
+			'gtm_wizard_step1_title'     => 'Trin 1 — Opret GTM-konto og container',
+			'gtm_wizard_step1_body'      => 'Gå til <a href="https://tagmanager.google.com" target="_blank" rel="noopener">tagmanager.google.com ↗</a>, log ind, klik <strong>Opret konto</strong>, angiv kontonavn + land, tilføj en Container (brug websiteadressen som navn), vælg type <strong>Web</strong> og klik <strong>Opret</strong>.',
+			'gtm_wizard_step2_title'     => 'Trin 2 — Angiv dit Container-ID',
+			'gtm_wizard_step2_body'      => 'Dit <strong>Container-ID</strong> vises øverst til højre i GTM-grænsefladen (format: <code>GTM-XXXXXXX</code>). Kopiér det og indsæt det herunder.',
+			'gtm_wizard_step3_title'     => 'Trin 3 — Tilføj tags i GTM',
+			'gtm_wizard_step3_body'      => 'Opret tags inde i GTM, f.eks. <strong>Google Analytics 4</strong> (brug "Google Tag"-konfiguration med dit <code>G-XXXXXXXXXX</code> Measurement ID), <strong>LinkedIn Insight Tag</strong>, <strong>TikTok Pixel</strong> osv. Sæt triggeren til <em>Alle sider</em>. GCM v2-samtykketilstand styrer automatisk dataindsamling pr. besøgende.',
+			'gtm_wizard_step4_title'     => 'Trin 4 — Publicér og bekræft',
+			'gtm_wizard_step4_body'      => 'Klik <strong>Send</strong> → <strong>Publicér</strong> i GTM for at udgive containeren. Pluginnet injicerer GTM-kodestykket i <code>&lt;head&gt;</code> med GCM v2-samtykke præ-konfigureret. Klik <strong>Fuldfør opsætning</strong> nedenfor for at gemme dit Container-ID.',
+			'gtm_wizard_next'            => 'Næste →',
+			'gtm_wizard_prev'            => '← Tilbage',
+			'gtm_wizard_done'            => '✔ Fuldfør opsætning',
+			'gtm_wizard_saved'           => '✔ Gemt',
+			'gtm_active_badge'           => 'GTM Aktiv',
+			'gtm_ga4_badge'              => 'GA4 Aktiv',
+			'gtm_desc_own'               => 'Angiv dit GTM Container-ID eller GA4 Measurement ID. Pluginnet injicerer kodestykket i <code>&lt;head&gt;</code> i korrekt rækkefølge — efter GCM v2-samtykkestandarden men før alle andre scripts.',
+			'gtm_desc_detect'            => 'Scanner kendte WordPress-plugins (Site Kit, MonsterInsights, GTM4WP, CAOS) for en eksisterende Google Tag. GCM v2-samtykkestandarden aktiveres automatisk inden det detekterede tag.',
+			'gtm_desc_managed'           => 'Følg trin-for-trin-guiden for at oprette din GTM-container og lad dette plugin injicere og administrere kodestykket.',
 		) : array(
 			'page_title'                 => 'SW Prefetch Settings',
 			'saved'                      => 'Settings saved!',
@@ -172,6 +202,36 @@ function dc_swp_str( $key )  {
 			'badge_unsupported'          => '⚠ Unsupported | Deferred',
 			'force_pt_label'             => 'Force Enable Partytown',
 			'force_pt_notice'            => 'Running script with unknown Partytown compatibility — test your site in debug mode to confirm no render errors.',
+			'gtm_section_label'          => 'Google Tag Management',
+			'gtm_mode_off'               => 'Disabled — no tag management',
+			'gtm_mode_own'               => 'Enter Tag ID — I have my own GTM or GA4 ID',
+			'gtm_mode_detect'            => 'Auto-Detect — find tag installed by another plugin',
+			'gtm_mode_managed'           => 'Setup Guide — step-by-step GTM onboarding',
+			'gtm_id_placeholder'         => 'GTM-XXXXXXX or G-XXXXXXXXXX',
+			'gtm_id_invalid'             => '⚠ Invalid format. Expected: GTM-XXXXXXX, G-XXXXXXXXXX, or UA-XXXXXX-X.',
+			'gtm_id_valid'               => '✔ Valid tag ID',
+			'gtm_detect_btn'             => 'Scan Installed Plugins',
+			'gtm_detect_none'            => 'No known Google Tag plugin detected.',
+			'gtm_detect_found'           => 'Detected',
+			'gtm_detect_use'             => 'Use This ID',
+			'gtm_detect_will_use'        => 'will be used on next save',
+			'gtm_wizard_step1_title'     => 'Step 1 — Create GTM Account & Container',
+			'gtm_wizard_step1_body'      => 'Visit <a href="https://tagmanager.google.com" target="_blank" rel="noopener">tagmanager.google.com ↗</a>, sign in, click <strong>Create Account</strong>, enter an account name and country, add a Container (use your website URL as the name), select <strong>Web</strong> as the platform, then click <strong>Create</strong>.',
+			'gtm_wizard_step2_title'     => 'Step 2 — Enter Your Container ID',
+			'gtm_wizard_step2_body'      => 'Your <strong>Container ID</strong> appears in the top-right of the GTM interface (format: <code>GTM-XXXXXXX</code>). Copy it and paste it below.',
+			'gtm_wizard_step3_title'     => 'Step 3 — Add Tags in GTM',
+			'gtm_wizard_step3_body'      => 'Inside GTM, add tags such as <strong>Google Analytics 4</strong> (use the &ldquo;Google Tag&rdquo; configuration tag with your GA4 Measurement ID <code>G-XXXXXXXXXX</code>), <strong>LinkedIn Insight Tag</strong>, <strong>TikTok Pixel</strong>, etc. Set each tag to fire on trigger <em>All Pages</em>. GCM v2 consent mode automatically controls data collection per visitor consent.',
+			'gtm_wizard_step4_title'     => 'Step 4 — Publish & Confirm',
+			'gtm_wizard_step4_body'      => 'Click <strong>Submit</strong> → <strong>Publish</strong> in GTM to deploy your container. This plugin injects the GTM snippet in <code>&lt;head&gt;</code> with GCM v2 consent pre-configured. Click <strong>Complete Setup</strong> below to save your Container ID.',
+			'gtm_wizard_next'            => 'Next →',
+			'gtm_wizard_prev'            => '← Back',
+			'gtm_wizard_done'            => '✔ Complete Setup',
+			'gtm_wizard_saved'           => '✔ Saved',
+			'gtm_active_badge'           => 'GTM Active',
+			'gtm_ga4_badge'              => 'GA4 Active',
+			'gtm_desc_own'               => 'Enter your GTM Container ID or GA4 Measurement ID. The plugin injects the snippet in <code>&lt;head&gt;</code> at the correct position — after the GCM v2 consent default but before any other scripts.',
+			'gtm_desc_detect'            => 'Scans known WordPress plugins (Site Kit, MonsterInsights, GTM4WP, CAOS) for an existing Google Tag. GCM v2 consent mode fires automatically before the detected tag.',
+			'gtm_desc_managed'           => 'Follow the step-by-step guide to create your GTM container and let this plugin inject and manage the snippet.',
 		);
 	}
 	return $s[ $key ] ?? $key;
@@ -315,6 +375,19 @@ function dc_swp_enqueue_admin_assets( $hook )  {
     .dc-swp-badge.dc-swp-loaded::before,
     .dc-swp-badge.dc-swp-loaded::after { display:none; }
     .dc-swp-badge.dc-swp-loaded img { display:block; }
+    /* ── GTM mode panels ─────────────────────────────────────────────────── */
+    .dc-swp-gtm-panel { margin-top:10px; padding:12px 14px; border:1px solid #dcdcde; border-radius:3px; background:#f9f9f9; }
+    .dc-swp-gtm-valid   { color:#3cb034; font-weight:600; font-size:12px; margin-left:6px; }
+    .dc-swp-gtm-invalid { color:#d63638; font-weight:600; font-size:12px; margin-left:6px; }
+    /* ── GTM Onboarding Wizard ──────────────────────────────────────────── */
+    .dc-swp-step-indicator { display:flex; gap:0; align-items:center; margin-bottom:16px; }
+    .dc-swp-step-dot { width:28px; height:28px; border-radius:50%; background:#dcdcde; color:#50575e; font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+    .dc-swp-step-dot.active { background:#2271b1; color:#fff; }
+    .dc-swp-step-dot.done   { background:#3cb034; color:#fff; }
+    .dc-swp-step-connector  { flex:1; height:2px; background:#dcdcde; min-width:16px; }
+    .dc-swp-wizard-step { display:none; }
+    .dc-swp-wizard-step.dc-swp-active { display:block; }
+    .dc-swp-wizard-nav { display:flex; gap:8px; align-items:center; margin-top:14px; }
     "
 	);
 	wp_enqueue_style( 'dc-swp-admin' );
@@ -398,6 +471,8 @@ function dc_swp_register_settings()  {
 	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_ads_data_redaction', array( 'sanitize_callback' => 'sanitize_text_field' ) );
 	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_meta_ldu', array( 'sanitize_callback' => 'sanitize_text_field' ) );
 	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_debug_mode', array( 'sanitize_callback' => 'sanitize_text_field' ) );
+	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_gtm_mode', array( 'sanitize_callback' => 'sanitize_text_field' ) );
+	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_gtm_id', array( 'sanitize_callback' => 'sanitize_text_field' ) );
 }
 
 // Admin page HTML.
@@ -445,6 +520,12 @@ function dc_swp_admin_page_html()  {
 		update_option( 'dc_swp_ads_data_redaction', isset( $_POST['dc_swp_ads_data_redaction'] ) ? 'yes' : 'no' );
 		update_option( 'dc_swp_meta_ldu', isset( $_POST['dc_swp_meta_ldu'] ) ? 'yes' : 'no' );
 		update_option( 'dc_swp_debug_mode', isset( $_POST['dc_swp_debug_mode'] ) ? 'yes' : 'no' );
+		$_valid_gtm_modes = array( 'off', 'own', 'detect', 'managed' );
+		$_gtm_mode_raw    = sanitize_text_field( wp_unslash( $_POST['dc_swp_gtm_mode'] ?? 'off' ) );
+		update_option( 'dc_swp_gtm_mode', in_array( $_gtm_mode_raw, $_valid_gtm_modes, true ) ? $_gtm_mode_raw : 'off' );
+		$_gtm_id_raw      = sanitize_text_field( wp_unslash( $_POST['dc_swp_gtm_id'] ?? '' ) );
+		// Accept empty string (disables injection) or a valid tag ID format.
+		update_option( 'dc_swp_gtm_id', ( '' === $_gtm_id_raw || preg_match( '/^(GTM-[A-Z0-9]{4,10}|G-[A-Z0-9]{6,}|UA-\d{4,}-\d+)$/i', $_gtm_id_raw ) ) ? strtoupper( $_gtm_id_raw ) : '' );
 		echo '<div class="notice notice-success"><p>' . esc_html( dc_swp_str( 'saved' ) ) . '</p></div>';
 	}
 
@@ -457,6 +538,7 @@ function dc_swp_admin_page_html()  {
 	$ads_data_redaction  = get_option( 'dc_swp_ads_data_redaction', 'no' ) === 'yes';
 	$meta_ldu            = get_option( 'dc_swp_meta_ldu', 'no' ) === 'yes';
 	$debug_mode        = get_option( 'dc_swp_debug_mode', 'no' ) === 'yes';
+	$gtm_mode          = get_option( 'dc_swp_gtm_mode', 'off' );
 	$partytown_scripts = get_option( 'dc_swp_partytown_scripts', '' );
 	// Inline script blocks — decode JSON; auto-migrate legacy plain-text format.
 	$inline_scripts_raw   = get_option( 'dc_swp_inline_scripts', '' );
@@ -663,6 +745,110 @@ function dc_swp_admin_page_html()  {
 					</details>
 					</td>
 				</tr>
+				<tr valign="top">
+					<th scope="row"><?php echo esc_html( dc_swp_str( 'gtm_section_label' ) ); ?></th>
+					<td>
+						<!-- Hidden field — always submitted; JS syncs it from whichever panel is active -->
+						<input type="hidden" name="dc_swp_gtm_id" id="dc_swp_gtm_id_field"
+							value="<?php echo esc_attr( get_option( 'dc_swp_gtm_id', '' ) ); ?>">
+						<fieldset>
+						<?php
+						$_gtm_modes = array(
+							'off'     => dc_swp_str( 'gtm_mode_off' ),
+							'own'     => dc_swp_str( 'gtm_mode_own' ),
+							'detect'  => dc_swp_str( 'gtm_mode_detect' ),
+							'managed' => dc_swp_str( 'gtm_mode_managed' ),
+						);
+						foreach ( $_gtm_modes as $_gv => $_gl ) :
+						?>
+						<label style="display:block;margin-bottom:6px">
+							<input type="radio" name="dc_swp_gtm_mode" value="<?php echo esc_attr( $_gv ); ?>"
+								<?php checked( $gtm_mode, $_gv ); ?>>
+							<?php echo esc_html( $_gl ); ?>
+						</label>
+						<?php endforeach; ?>
+						</fieldset>
+
+						<!-- Panel: own -->
+						<div id="dc-swp-gtm-panel-own" class="dc-swp-gtm-panel" <?php echo 'own' !== $gtm_mode ? 'style="display:none"' : ''; ?>>
+							<input type="text" id="dc-swp-gtm-id-own"
+								class="regular-text" style="font-family:monospace"
+								value="<?php echo esc_attr( get_option( 'dc_swp_gtm_id', '' ) ); ?>"
+								placeholder="<?php echo esc_attr( dc_swp_str( 'gtm_id_placeholder' ) ); ?>">
+							<span id="dc-swp-gtm-id-status"></span>
+							<p class="description" style="margin-top:6px"><?php echo wp_kses_post( dc_swp_str( 'gtm_desc_own' ) ); ?></p>
+						</div>
+
+						<!-- Panel: detect -->
+						<div id="dc-swp-gtm-panel-detect" class="dc-swp-gtm-panel" <?php echo 'detect' !== $gtm_mode ? 'style="display:none"' : ''; ?>>
+							<button type="button" id="dc-swp-gtm-detect-btn" class="button button-secondary">
+								<?php echo esc_html( dc_swp_str( 'gtm_detect_btn' ) ); ?>
+							</button>
+							<span id="dc-swp-gtm-detect-spinner" class="spinner" style="float:none;margin-left:4px;display:none;"></span>
+							<div id="dc-swp-gtm-detect-result" style="margin-top:8px"></div>
+							<p class="description" style="margin-top:6px"><?php echo wp_kses_post( dc_swp_str( 'gtm_desc_detect' ) ); ?></p>
+						</div>
+
+						<!-- Panel: managed (wizard) -->
+						<div id="dc-swp-gtm-panel-managed" class="dc-swp-gtm-panel" <?php echo 'managed' !== $gtm_mode ? 'style="display:none"' : ''; ?>>
+							<div class="dc-swp-step-indicator">
+							<?php for ( $_ws = 1; $_ws <= 4; $_ws++ ) : ?>
+								<?php if ( $_ws > 1 ) : ?><span class="dc-swp-step-connector"></span><?php endif; ?>
+								<span class="dc-swp-step-dot" data-step="<?php echo $_ws; ?>"><?php echo $_ws; ?></span>
+							<?php endfor; ?>
+							</div>
+							<?php
+							$_wiz_steps = array(
+								1 => array( dc_swp_str( 'gtm_wizard_step1_title' ), dc_swp_str( 'gtm_wizard_step1_body' ) ),
+								2 => array( dc_swp_str( 'gtm_wizard_step2_title' ), dc_swp_str( 'gtm_wizard_step2_body' ) ),
+								3 => array( dc_swp_str( 'gtm_wizard_step3_title' ), dc_swp_str( 'gtm_wizard_step3_body' ) ),
+								4 => array( dc_swp_str( 'gtm_wizard_step4_title' ), dc_swp_str( 'gtm_wizard_step4_body' ) ),
+							);
+							foreach ( $_wiz_steps as $_sn => $_wiz_step ) :
+								$_st = $_wiz_step[0];
+								$_sb = $_wiz_step[1];
+							?>
+							<div id="dc-swp-wizard-step-<?php echo $_sn; ?>" class="dc-swp-wizard-step">
+								<h4 style="margin-top:0"><?php echo esc_html( $_st ); ?></h4>
+								<p><?php echo wp_kses_post( $_sb ); ?></p>
+								<?php if ( 2 === $_sn ) : ?>
+								<div style="margin:10px 0">
+									<input type="text" id="dc-swp-gtm-wizard-id"
+										class="regular-text" style="font-family:monospace"
+										value="<?php echo esc_attr( get_option( 'dc_swp_gtm_id', '' ) ); ?>"
+										placeholder="<?php echo esc_attr( dc_swp_str( 'gtm_id_placeholder' ) ); ?>">
+									<span id="dc-swp-gtm-wizard-status"></span>
+								</div>
+								<?php endif; ?>
+								<?php if ( 4 === $_sn ) : ?>
+								<div id="dc-swp-wizard-summary" style="margin:10px 0;padding:10px;background:#f0f7f0;border:1px solid #3cb034;border-radius:3px;display:none">
+									<strong><?php echo esc_html( dc_swp_str( 'gtm_active_badge' ) ); ?>:</strong> <code id="dc-swp-wizard-summary-id"></code>
+								</div>
+								<?php endif; ?>
+								<div class="dc-swp-wizard-nav">
+									<?php if ( $_sn > 1 ) : ?>
+									<button type="button" class="button dc-swp-wizard-btn" data-dir="prev" data-step="<?php echo $_sn; ?>">
+										<?php echo esc_html( dc_swp_str( 'gtm_wizard_prev' ) ); ?>
+									</button>
+									<?php endif; ?>
+									<?php if ( $_sn < 4 ) : ?>
+									<button type="button" class="button button-primary dc-swp-wizard-btn"
+										data-dir="next" data-step="<?php echo $_sn; ?>"
+										<?php echo 2 === $_sn ? 'id="dc-swp-wizard-step2-next" disabled' : ''; ?>>
+										<?php echo esc_html( dc_swp_str( 'gtm_wizard_next' ) ); ?>
+									</button>
+									<?php else : ?>
+									<button type="button" class="button button-primary" id="dc-swp-wizard-complete">
+										<?php echo esc_html( dc_swp_str( 'gtm_wizard_done' ) ); ?>
+									</button>
+									<?php endif; ?>
+								</div>
+							</div>
+							<?php endforeach; ?>
+							<p class="description" style="margin-top:10px"><?php echo wp_kses_post( dc_swp_str( 'gtm_desc_managed' ) ); ?></p>
+						</div>
+					</td>
+				</tr>
 				<tr valign="top">					<th scope="row"><?php echo esc_html( dc_swp_str( 'url_passthrough_label' ) ); ?></th>
 					<td>
 						<label class="pwa-toggle">
@@ -784,6 +970,15 @@ function dc_swp_admin_page_html()  {
 			'badgeUnsupported' => dc_swp_str( 'badge_unsupported' ),
 			'forcePtLabel'     => dc_swp_str( 'force_pt_label' ),
 			'forcePtNotice'    => dc_swp_str( 'force_pt_notice' ),
+			'gtm'              => array(
+				'valid'      => dc_swp_str( 'gtm_id_valid' ),
+				'invalid'    => dc_swp_str( 'gtm_id_invalid' ),
+				'detected'   => dc_swp_str( 'gtm_detect_found' ),
+				'use'        => dc_swp_str( 'gtm_detect_use' ),
+				'none'       => dc_swp_str( 'gtm_detect_none' ),
+				'willBeUsed' => dc_swp_str( 'gtm_detect_will_use' ),
+				'saved'      => dc_swp_str( 'gtm_wizard_saved' ),
+			),
 		)
 	);
 }
