@@ -77,7 +77,11 @@ function dc_swp_str( $key )  {
 			'product_base_desc'          => 'URL-segmentet der identificerer produktsider, f.eks. <code>/product/</code> eller <code>/produkt/</code>. Lad feltet være tomt for at bruge den auto-detekterede WooCommerce-indstilling.',
 			'product_base_detected'      => 'Auto-detekteret fra WooCommerce',
 			'consent_mode_label'         => 'Google Consent Mode v2',
-			'consent_mode_desc'          => 'Global samtykkemyndighed for alle GCM v2-kompatible tjenester. Injicerer et <code>gtag("consent","default",{...denied})</code>-kodestykke i &lt;head&gt; inden nogen scripts indlæses. Når aktivt, afvikles scripts for GCM v2-bevidste tjenester (Google Tag Manager, Hotjar, LinkedIn Insight, TikTok Pixel, Microsoft Clarity) altid som <code>text/partytown</code> — hver tjeneste læser GCM v2-tilstanden og begrænser selv dataindsamling, når samtykke er nægtet. Din CMP fyrer <code>gtag("consent","update",{...granted})</code>, når brugeren giver samtykke. Meta Pixel er undtaget (bruger sin egen LDU-mekanisme). <strong>Kræver GTM eller gtag.js samt en GCM v2-kompatibel CMP.</strong>',
+			'consent_mode_desc'          => 'Global samtykkemyndighed for alle GCM v2-kompatible tjenester. Injicerer et 7-parameter <code>gtag("consent","default",{...})</code>-kodestykke i &lt;head&gt; inden nogen scripts indlæses — med per-kategori samtykke (marketing → annoncer, statistik → analyse, præferencer → personalisering). Når aktivt, afvikles scripts for GCM v2-bevidste tjenester (Google Tag Manager, Hotjar, LinkedIn Insight, TikTok Pixel, Microsoft Clarity) altid som <code>text/partytown</code>. <strong>Kræver GTM eller gtag.js samt en GCM v2-kompatibel CMP.</strong>',
+			'url_passthrough_label'      => 'URL Passthrough',
+			'url_passthrough_desc'       => 'Aktiverer <code>gtag(\"set\",\"url_passthrough\",true)</code>. Bevarar gclid / wbraid-parametre i URL-adresser, så konverteringsattribution fungerer cookiefrit — selv når <code>ad_storage</code> er nægtet. Anbefales til Google Ads-annoncører.',
+			'ads_data_redaction_label'   => 'Annonce-dataredigering',
+			'ads_data_redaction_desc'    => 'Aktiverer <code>gtag(\"set\",\"ads_data_redaction\",true)</code>. Redigerer klik-id\'er (gclid, wbraid) fra data sendt til Google, når <code>ad_storage</code> er nægtet — øget privatlivsbeskyttelse for besøgende der ikke har givet markedsføringsamtykke.',
 			'meta_ldu_label'             => 'Meta Pixel Limited Data Use (LDU)',
 			'meta_ldu_desc'              => 'Meta/Facebook Pixel understøtter ikke Google Consent Mode v2 — det bruger sin egen Limited Data Use (LDU) samtykke-API. Injicerer et fbq-stub + <code>fbq("dataProcessingOptions",["LDU"],0,0)</code> i &lt;head&gt; inden Partytown og Facebook Pixel-scripts indlæses. Meta Pixel afvikles altid som <code>text/partytown</code> — Meta anvender LDU-begrænsninger internt (ingen data brugt til annoncemålretning). Din CMP behøver ikke blokere scriptet via <code>text/plain</code>. Kræver at Meta Pixel er tilføjet via Partytown Script Liste eller en Inline Script Blok.',
 			'debug_label'                => 'Partytown Debug-tilstand',
@@ -147,7 +151,11 @@ function dc_swp_str( $key )  {
 			'product_base_desc'          => 'The URL segment that identifies product pages, e.g. <code>/product/</code> or <code>/shop/</code>. Leave blank to use the auto-detected WooCommerce setting.',
 			'product_base_detected'      => 'Auto-detected from WooCommerce',
 			'consent_mode_label'         => 'Google Consent Mode v2',
-			'consent_mode_desc'          => 'Global consent authority for all GCM v2-compatible services. Injects a <code>gtag("consent","default",{...denied})</code> snippet in &lt;head&gt; before any scripts load. When active, scripts for GCM v2-aware services (Google Tag Manager, Hotjar, LinkedIn Insight, TikTok Pixel, Microsoft Clarity) always run as <code>text/partytown</code> — each service reads the GCM v2 state and self-restricts data collection when consent is denied. Your CMP fires <code>gtag("consent","update",{...granted})</code> when the visitor grants consent. Meta Pixel is excluded (it uses its own LDU mechanism). <strong>Requires GTM or a gtag.js-based setup together with a GCM v2-compatible CMP.</strong>',
+			'consent_mode_desc'          => 'Global consent authority for all GCM v2-compatible services. Injects a full 7-parameter <code>gtag("consent","default",{...})</code> snippet in &lt;head&gt; before any scripts load — with per-category consent signals (marketing → ads, statistics → analytics, preferences → personalisation). When active, scripts for GCM v2-aware services (Google Tag Manager, Hotjar, LinkedIn Insight, TikTok Pixel, Microsoft Clarity) always run as <code>text/partytown</code>. A revoke listener is automatically injected to fire <code>gtag("consent","update",{...denied})</code> if the visitor withdraws consent. <strong>Requires GTM or a gtag.js-based setup together with a GCM v2-compatible CMP.</strong>',
+			'url_passthrough_label'      => 'URL Passthrough',
+			'url_passthrough_desc'       => 'Enables <code>gtag("set","url_passthrough",true)</code>. Preserves gclid / wbraid parameters in URLs so conversion attribution works cookieless — even when <code>ad_storage</code> is denied. Recommended for Google Ads advertisers.',
+			'ads_data_redaction_label'   => 'Ads Data Redaction',
+			'ads_data_redaction_desc'    => 'Enables <code>gtag("set","ads_data_redaction",true)</code>. Redacts click IDs (gclid, wbraid) from data sent to Google when <code>ad_storage</code> is denied — enhanced privacy for visitors who have not granted marketing consent.',
 			'meta_ldu_label'             => 'Meta Pixel Limited Data Use (LDU)',
 			'meta_ldu_desc'              => 'Meta/Facebook Pixel does not support Google Consent Mode v2 — it uses its own Limited Data Use (LDU) consent API. Injects an fbq stub + <code>fbq("dataProcessingOptions",["LDU"],0,0)</code> in &lt;head&gt; before Partytown and Facebook Pixel scripts load. The Meta Pixel always runs as <code>text/partytown</code> — Meta applies LDU restrictions internally (data not used for ad targeting). Your CMP does not need to block the script via <code>text/plain</code>. Requires Meta Pixel to be added via the Partytown Script List or an Inline Script Block.',
 			'debug_label'                => 'Partytown Debug Mode',
@@ -386,6 +394,8 @@ function dc_swp_register_settings()  {
 	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_inline_scripts', array( 'sanitize_callback' => 'dc_swp_sanitize_inline_scripts_option' ) );
 	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_coi_headers', array( 'sanitize_callback' => 'sanitize_text_field' ) );
 	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_consent_mode', array( 'sanitize_callback' => 'sanitize_text_field' ) );
+	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_url_passthrough', array( 'sanitize_callback' => 'sanitize_text_field' ) );
+	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_ads_data_redaction', array( 'sanitize_callback' => 'sanitize_text_field' ) );
 	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_meta_ldu', array( 'sanitize_callback' => 'sanitize_text_field' ) );
 	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_debug_mode', array( 'sanitize_callback' => 'sanitize_text_field' ) );
 }
@@ -431,6 +441,8 @@ function dc_swp_admin_page_html()  {
 		update_option( 'dc_swp_inline_scripts', wp_json_encode( $sanitized_blocks ) );
 		update_option( 'dc_swp_coi_headers', isset( $_POST['dc_swp_coi_headers'] ) ? 'yes' : 'no' );
 		update_option( 'dc_swp_consent_mode', isset( $_POST['dc_swp_consent_mode'] ) ? 'yes' : 'no' );
+		update_option( 'dc_swp_url_passthrough', isset( $_POST['dc_swp_url_passthrough'] ) ? 'yes' : 'no' );
+		update_option( 'dc_swp_ads_data_redaction', isset( $_POST['dc_swp_ads_data_redaction'] ) ? 'yes' : 'no' );
 		update_option( 'dc_swp_meta_ldu', isset( $_POST['dc_swp_meta_ldu'] ) ? 'yes' : 'no' );
 		update_option( 'dc_swp_debug_mode', isset( $_POST['dc_swp_debug_mode'] ) ? 'yes' : 'no' );
 		echo '<div class="notice notice-success"><p>' . esc_html( dc_swp_str( 'saved' ) ) . '</p></div>';
@@ -440,8 +452,10 @@ function dc_swp_admin_page_html()  {
 	$preload_products  = get_option( 'dc_swp_preload_products', 'yes' ) === 'yes';
 	$disable_emoji     = get_option( 'dc_swp_disable_emoji', 'yes' ) === 'yes';
 	$coi_headers       = get_option( 'dc_swp_coi_headers', 'no' ) === 'yes';
-	$consent_mode      = get_option( 'dc_swp_consent_mode', 'no' ) === 'yes';
-	$meta_ldu          = get_option( 'dc_swp_meta_ldu', 'no' ) === 'yes';
+	$consent_mode        = get_option( 'dc_swp_consent_mode', 'no' ) === 'yes';
+	$url_passthrough     = get_option( 'dc_swp_url_passthrough', 'no' ) === 'yes';
+	$ads_data_redaction  = get_option( 'dc_swp_ads_data_redaction', 'no' ) === 'yes';
+	$meta_ldu            = get_option( 'dc_swp_meta_ldu', 'no' ) === 'yes';
 	$debug_mode        = get_option( 'dc_swp_debug_mode', 'no' ) === 'yes';
 	$partytown_scripts = get_option( 'dc_swp_partytown_scripts', '' );
 	// Inline script blocks — decode JSON; auto-migrate legacy plain-text format.
@@ -649,8 +663,26 @@ function dc_swp_admin_page_html()  {
 					</details>
 					</td>
 				</tr>
+				<tr valign="top">					<th scope="row"><?php echo esc_html( dc_swp_str( 'url_passthrough_label' ) ); ?></th>
+					<td>
+						<label class="pwa-toggle">
+							<input type="checkbox" name="dc_swp_url_passthrough" value="yes" <?php checked( $url_passthrough, true ); ?>>
+							<span class="pwa-slider"></span>
+						</label>
+						<p class="description"><?php echo wp_kses_post( dc_swp_str( 'url_passthrough_desc' ) ); ?></p>
+					</td>
+				</tr>
 				<tr valign="top">
-					<th scope="row"><?php echo esc_html( dc_swp_str( 'meta_ldu_label' ) ); ?></th>
+					<th scope="row"><?php echo esc_html( dc_swp_str( 'ads_data_redaction_label' ) ); ?></th>
+					<td>
+						<label class="pwa-toggle">
+							<input type="checkbox" name="dc_swp_ads_data_redaction" value="yes" <?php checked( $ads_data_redaction, true ); ?>>
+							<span class="pwa-slider"></span>
+						</label>
+						<p class="description"><?php echo wp_kses_post( dc_swp_str( 'ads_data_redaction_desc' ) ); ?></p>
+					</td>
+				</tr>
+				<tr valign="top">					<th scope="row"><?php echo esc_html( dc_swp_str( 'meta_ldu_label' ) ); ?></th>
 					<td>
 						<label class="pwa-toggle">
 							<input type="checkbox" name="dc_swp_meta_ldu" value="yes" <?php checked( $meta_ldu, true ); ?>>

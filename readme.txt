@@ -5,7 +5,7 @@ Requires at least: 6.8
 Tested up to: 6.9
 Requires PHP: 8.0
 WC tested up to: 10.4.3
-Stable tag: 1.6.0
+Stable tag: 1.7.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -189,6 +189,13 @@ The administrator may freely add other services through the Partytown Script Lis
 3. DevTools showing Partytown service worker registered at `/~partytown/`.
 
 == Changelog ==
+
+= 1.7.0 =
+* Enhancement: Google Consent Mode v2 — all 7 parameters now declared (`security_storage`, `functionality_storage`, `personalization_storage`, `analytics_storage`, `ad_storage`, `ad_user_data`, `ad_personalization`).
+* Enhancement: GCM v2 consent defaults now split per category: `analytics_storage` follows statistics consent, `personalization_storage` follows preferences consent, ad signals follow marketing consent.
+* Enhancement: Consent revoke listener — fires `gtag('consent','update',{denied})` on `cmplz_revoke` and `dc_swp_consent_revoke` DOM events so withdrawn consent is immediately reflected without a page reload.
+* Enhancement: New admin options — `url_passthrough` and `ads_data_redaction` for GCM v2 cookieless measurement configuration.
+* Enhancement: Opt-out mode awareness — Complianz opt-out and CookieYes non-consent-region visitors correctly default to granted state; explicit denial cookies are still respected.
 
 = 1.6.0 =
 * Standards: Renamed all `dampcig_pwa_*` options to `dc_swp_*` prefix; existing settings are migrated automatically on activation.

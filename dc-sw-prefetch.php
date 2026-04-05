@@ -6,7 +6,7 @@
  * Plugin Name: DC Script Worker Prefetcher
  * Plugin URI:  https://github.com/dc-plugins/dc-sw-prefetch
  * Description: Partytown service worker with viewport/pagination prefetching for WooCommerce. Offloads third-party scripts via Partytown and pre-fetches visible products & next pages.
- * Version:     1.6.0
+ * Version:     1.7.0
  * Author:      lennilg
  * Author URI:  https://github.com/lennilg
  * License:           GPL-2.0-or-later
@@ -170,29 +170,85 @@ endif; // End dc_swp_is_bot_request check.
 
 
 // ============================================================
-// MARKETING CONSENT DETECTION
+// CONSENT DETECTION
 // Reads the first-party cookies set by the most common WordPress
-// consent management plugins. Returns true once the visitor has
-// granted marketing / analytics consent, so we can safely load
-// third-party scripts via Partytown.
+// consent management plugins. Three granular helpers map to the
+// GCM v2 consent signals used by dc_swp_inject_consent_mode_default():
+//
+//   dc_swp_has_marketing_consent()   → ad_storage / ad_user_data / ad_personalization
+//   dc_swp_has_statistics_consent()  → analytics_storage
+//   dc_swp_has_preferences_consent() → personalization_storage
+//
+// Opt-out mode: some CMPs (Complianz when configured for opt-out regions,
+// Cookie Notice) grant consent by default unless the visitor has explicitly
+// denied it. dc_swp_is_optout_cmp_active() detects this pattern so the
+// helpers can return true when no explicit denial cookie is present.
 //
 // Covers:
-// Complianz            — cmplz_marketing = "allow"
-// CookieYes            — cookieyes-consent contains "marketing:yes"
-// Borlabs Cookie       — borlabs-cookie JSON .consents.marketing = true
-// Cookie Notice (GDPR) — cookie_notice_accepted = "true"
-// WebToffee GDPR       — cookie_cat_marketing = "accept"
-// Cookiebot (Cybot)    — CookieConsent contains "marketing:true"
-// Cookie Information   — CookieInformationConsent JSON consents_approved[] contains "cookie_cat_marketing"
-// Moove GDPR           — moove_gdpr_popup JSON .thirdparty = 1
+// Complianz         — cmplz_marketing / cmplz_statistics / cmplz_preferences cookies
+//                    (opt-out: cmplz_<category> absent = granted; 'deny' = denied)
+// CookieYes         — cookieyes-consent: "marketing:yes" / "analytics:yes" / "preferences:yes"
+// Borlabs Cookie    — borlabs-cookie JSON .consents.marketing / .statistics / .preferences
+// Cookie Notice     — cookie_notice_accepted = "true" (all-or-nothing; applies to all)
+// WebToffee GDPR    — cookie_cat_marketing / cookie_cat_analytics
+// Cookiebot (Cybot) — CookieConsent: "marketing:true" / "statistics:true" / "preferences:true"
+// Cookie Info       — CookieInformationConsent consents_approved[]: "cookie_cat_marketing" / "cookie_cat_statistic" / "cookie_cat_functional"
+// Moove GDPR        — moove_gdpr_popup JSON .thirdparty / .analytics
 // ============================================================
+
+/**
+ * Return true when the active CMP is configured in opt-out mode,
+ * meaning visitors have consent by default and must actively deny.
+ *
+ * Detects:
+ *  - Complianz opt-out: cmplz_banner_status cookie === 'dismissed' or
+ *    cmplz_banner_status absent but cmplz_<category> cookies present (opt-out
+ *    sites typically don't show a blocking banner).
+ *  - Cookie Notice: this plugin is always opt-in-for-all or block-all;
+ *    presence of cookie_notice_accepted indicates the user saw it.
+ *  - WebToffee: cookie_cat_functional present without explicit cookie_cat_marketing
+ *    may indicate opt-out flow — too ambiguous, not detected here.
+ *
+ * The most reliable opt-out signal is Complianz's cmplz_consent_type
+ * cookie which contains the consenttype for the current visitor.
+ *
+ * @return bool
+ */
+function dc_swp_is_optout_cmp_active()  {
+	// Complianz sets a cmplz_consenttype cookie containing e.g. "optin" or "optout".
+	if ( isset( $_COOKIE['cmplz_consenttype'] ) ) {
+		$ct = sanitize_text_field( wp_unslash( $_COOKIE['cmplz_consenttype'] ) );
+		return str_contains( $ct, 'optout' );
+	}
+
+	// CookieYes indicates opt-out via "type:lss" or "type:no-consent" in the consent string.
+	if ( isset( $_COOKIE['cookieyes-consent'] ) ) {
+		$cy = sanitize_text_field( wp_unslash( $_COOKIE['cookieyes-consent'] ) );
+		if ( str_contains( $cy, 'type:lss' ) || str_contains( $cy, 'type:no-consent' ) ) {
+			return true;
+		}
+	}
+
+	return false;
+}
 
 /**
  * Return true if the current visitor has granted marketing consent
  * according to any of the common CMP cookie conventions.
  */
 function dc_swp_has_marketing_consent()  {
-	// Complianz.
+	// Complianz — opt-out mode: absent cookie means granted; explicit 'deny' means denied.
+	if ( dc_swp_is_optout_cmp_active() ) {
+		if ( ! isset( $_COOKIE['cmplz_marketing'] ) ) {
+			return true;
+		}
+		if ( isset( $_COOKIE['cmplz_marketing'] ) && 'deny' !== $_COOKIE['cmplz_marketing'] ) {
+			return true;
+		}
+		return false;
+	}
+
+	// Complianz — opt-in mode.
 	if ( isset( $_COOKIE['cmplz_marketing'] ) && 'allow' === $_COOKIE['cmplz_marketing'] ) {
 		return true;
 	}
@@ -246,6 +302,154 @@ function dc_swp_has_marketing_consent()  {
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON decoded for integer key check only; not used in HTML output.
 		$mg = json_decode( wp_unslash( $_COOKIE['moove_gdpr_popup'] ), true );
 		if ( isset( $mg['thirdparty'] ) && 1 === (int) $mg['thirdparty'] ) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+/**
+ * Return true if the current visitor has granted statistics/analytics consent
+ * according to any of the common CMP cookie conventions.
+ *
+ * Maps to analytics_storage in the GCM v2 default consent object.
+ *
+ * @return bool
+ */
+function dc_swp_has_statistics_consent()  {
+	// Complianz — opt-out mode.
+	if ( dc_swp_is_optout_cmp_active() ) {
+		if ( ! isset( $_COOKIE['cmplz_statistics'] ) ) {
+			return true;
+		}
+		if ( isset( $_COOKIE['cmplz_statistics'] ) && 'deny' !== $_COOKIE['cmplz_statistics'] ) {
+			return true;
+		}
+		return false;
+	}
+
+	// Complianz — opt-in mode.
+	if ( isset( $_COOKIE['cmplz_statistics'] ) && 'allow' === $_COOKIE['cmplz_statistics'] ) {
+		return true;
+	}
+
+	// CookieYes — "analytics:yes" in the consent string.
+	if ( isset( $_COOKIE['cookieyes-consent'] ) ) {
+		$cy = sanitize_text_field( wp_unslash( $_COOKIE['cookieyes-consent'] ) );
+		if ( str_contains( $cy, 'analytics:yes' ) ) {
+			return true;
+		}
+	}
+
+	// Borlabs Cookie — JSON-encoded object; .consents.statistics === true.
+	if ( isset( $_COOKIE['borlabs-cookie'] ) ) {
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON decoded for boolean key check only; not used in HTML output.
+		$raw = json_decode( wp_unslash( $_COOKIE['borlabs-cookie'] ), true );
+		if ( ! empty( $raw['consents']['statistics'] ) ) {
+			return true;
+		}
+	}
+
+	// Cookie Notice & Compliance for GDPR — single all-or-nothing cookie.
+	if ( isset( $_COOKIE['cookie_notice_accepted'] ) && 'true' === $_COOKIE['cookie_notice_accepted'] ) {
+		return true;
+	}
+
+	// WebToffee GDPR Cookie Consent.
+	if ( isset( $_COOKIE['cookie_cat_analytics'] ) && 'accept' === $_COOKIE['cookie_cat_analytics'] ) {
+		return true;
+	}
+
+	// Cookiebot (Cybot) — URL-encoded value contains "statistics:true".
+	if ( isset( $_COOKIE['CookieConsent'] ) ) {
+		$cc = sanitize_text_field( wp_unslash( $_COOKIE['CookieConsent'] ) );
+		if ( str_contains( $cc, 'statistics:true' ) ) {
+			return true;
+		}
+	}
+
+	// Cookie Information — consents_approved[] contains "cookie_cat_statistic".
+	if ( isset( $_COOKIE['CookieInformationConsent'] ) ) {
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON decoded for array key check only; not used in HTML output.
+		$ci = json_decode( wp_unslash( $_COOKIE['CookieInformationConsent'] ), true );
+		if ( ! empty( $ci['consents_approved'] ) && in_array( 'cookie_cat_statistic', $ci['consents_approved'], true ) ) {
+			return true;
+		}
+	}
+
+	// Moove GDPR Cookie Compliance — JSON; .analytics === 1.
+	if ( isset( $_COOKIE['moove_gdpr_popup'] ) ) {
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON decoded for integer key check only; not used in HTML output.
+		$mg = json_decode( wp_unslash( $_COOKIE['moove_gdpr_popup'] ), true );
+		if ( isset( $mg['analytics'] ) && 1 === (int) $mg['analytics'] ) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+/**
+ * Return true if the current visitor has granted preferences/personalisation consent
+ * according to any of the common CMP cookie conventions.
+ *
+ * Maps to personalization_storage in the GCM v2 default consent object.
+ *
+ * @return bool
+ */
+function dc_swp_has_preferences_consent()  {
+	// Complianz — opt-out mode.
+	if ( dc_swp_is_optout_cmp_active() ) {
+		if ( ! isset( $_COOKIE['cmplz_preferences'] ) ) {
+			return true;
+		}
+		if ( isset( $_COOKIE['cmplz_preferences'] ) && 'deny' !== $_COOKIE['cmplz_preferences'] ) {
+			return true;
+		}
+		return false;
+	}
+
+	// Complianz — opt-in mode.
+	if ( isset( $_COOKIE['cmplz_preferences'] ) && 'allow' === $_COOKIE['cmplz_preferences'] ) {
+		return true;
+	}
+
+	// CookieYes — "preferences:yes" in the consent string.
+	if ( isset( $_COOKIE['cookieyes-consent'] ) ) {
+		$cy = sanitize_text_field( wp_unslash( $_COOKIE['cookieyes-consent'] ) );
+		if ( str_contains( $cy, 'preferences:yes' ) ) {
+			return true;
+		}
+	}
+
+	// Borlabs Cookie — JSON-encoded object; .consents.preferences === true.
+	if ( isset( $_COOKIE['borlabs-cookie'] ) ) {
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON decoded for boolean key check only; not used in HTML output.
+		$raw = json_decode( wp_unslash( $_COOKIE['borlabs-cookie'] ), true );
+		if ( ! empty( $raw['consents']['preferences'] ) ) {
+			return true;
+		}
+	}
+
+	// Cookie Notice & Compliance for GDPR — single all-or-nothing cookie.
+	if ( isset( $_COOKIE['cookie_notice_accepted'] ) && 'true' === $_COOKIE['cookie_notice_accepted'] ) {
+		return true;
+	}
+
+	// Cookiebot (Cybot) — URL-encoded value contains "preferences:true".
+	if ( isset( $_COOKIE['CookieConsent'] ) ) {
+		$cc = sanitize_text_field( wp_unslash( $_COOKIE['CookieConsent'] ) );
+		if ( str_contains( $cc, 'preferences:true' ) ) {
+			return true;
+		}
+	}
+
+	// Cookie Information — consents_approved[] contains "cookie_cat_functional".
+	if ( isset( $_COOKIE['CookieInformationConsent'] ) ) {
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON decoded for array key check only; not used in HTML output.
+		$ci = json_decode( wp_unslash( $_COOKIE['CookieInformationConsent'] ), true );
+		if ( ! empty( $ci['consents_approved'] ) && in_array( 'cookie_cat_functional', $ci['consents_approved'], true ) ) {
 			return true;
 		}
 	}
@@ -428,7 +632,7 @@ function dc_swp_fallback_cache_headers()  {
  * Partytown itself is registered at this virtual path.
  */
 define( 'DC_SWP_PARTYTOWN_LIB', '/wp-content/plugins/dc-sw-prefetch/assets/partytown/' );
-define( 'DC_SWP_VERSION', '1.5.3' );
+define( 'DC_SWP_VERSION', '1.7.0' );
 
 add_action( 'init', 'dc_swp_serve_partytown_files', 1 );
 
@@ -779,28 +983,114 @@ function dc_swp_inject_consent_mode_default()  {
 	$nonce      = dc_swp_get_csp_nonce();
 	$nonce_attr = '' !== $nonce ? ' nonce="' . esc_attr( $nonce ) . '"' : '';
 
-	// Resolve the consent state server-side from the CMP cookie so the
+	// Resolve per-category consent server-side from CMP cookies so the
 	// default is set correctly on the very first gtag call — no redundant
 	// default-denied + update-granted round-trip for returning visitors.
-	$has_consent = dc_swp_has_marketing_consent();
-	$state       = $has_consent ? 'granted' : 'denied';
+	$has_marketing   = dc_swp_has_marketing_consent();
+	$has_statistics  = dc_swp_has_statistics_consent();
+	$has_preferences = dc_swp_has_preferences_consent();
+
+	$mkt_state   = $has_marketing ? 'granted' : 'denied';
+	$stats_state = $has_statistics ? 'granted' : 'denied';
+	$prefs_state = $has_preferences ? 'granted' : 'denied';
+
+	$url_passthrough    = get_option( 'dc_swp_url_passthrough', 'no' ) === 'yes';
+	$ads_data_redaction = get_option( 'dc_swp_ads_data_redaction', 'no' ) === 'yes';
 
 	$consent_js  = "window.dataLayer=window.dataLayer||[];\n";
 	$consent_js .= "function gtag(){dataLayer.push(arguments);}\n";
+	if ( $url_passthrough ) {
+		$consent_js .= "gtag('set','url_passthrough',true);\n";
+	}
+	if ( $ads_data_redaction ) {
+		$consent_js .= "gtag('set','ads_data_redaction',true);\n";
+	}
 	$consent_js .= "gtag('consent','default',{\n";
-	$consent_js .= "  'ad_storage':'" . $state . "',\n";
-	$consent_js .= "  'analytics_storage':'" . $state . "',\n";
-	$consent_js .= "  'ad_user_data':'" . $state . "',\n";
-	$consent_js .= "  'ad_personalization':'" . $state . "'";
-	if ( ! $has_consent ) {
-		// Only include wait_for_update when denied so the CMP JS can fire
-		// gtag('consent','update',{granted}) within the grace period.
+	$consent_js .= "  'security_storage':'granted',\n";
+	$consent_js .= "  'functionality_storage':'granted',\n";
+	$consent_js .= "  'personalization_storage':'" . $prefs_state . "',\n";
+	$consent_js .= "  'analytics_storage':'" . $stats_state . "',\n";
+	$consent_js .= "  'ad_storage':'" . $mkt_state . "',\n";
+	$consent_js .= "  'ad_user_data':'" . $mkt_state . "',\n";
+	$consent_js .= "  'ad_personalization':'" . $mkt_state . "'";
+	if ( ! $has_marketing || ! $has_statistics || ! $has_preferences ) {
+		// Include wait_for_update when any category is denied so the CMP JS
+		// can fire gtag('consent','update',{granted}) within the grace period.
 		$consent_js .= ",\n  'wait_for_update':500";
 	}
 	$consent_js .= "\n});\n";
 
 	// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- fully static JS; nonce is pre-escaped via esc_attr.
 	echo '<script' . $nonce_attr . ">\n" . $consent_js . "</script>\n";
+}
+
+// ============================================================
+// GCM v2 CONSENT REVOKE LISTENER
+// Injects a small JS snippet that fires gtag('consent','update',
+// {…denied}) when the visitor withdraws consent via their CMP.
+// Hooked at priority 2 — after the default stub at priority 1,
+// so gtag() is guaranteed to exist when the listener is parsed.
+//
+// Events handled:
+//   cmplz_revoke         — Complianz (CustomEvent on document)
+//   dc_swp_consent_revoke — generic; any CMP can dispatch this
+// ============================================================
+
+add_action( 'wp_head', 'dc_swp_inject_gcm_revoke_listener', 2 );
+
+/**
+ * Inject a lightweight JS revoke listener into <head>.
+ *
+ * Fires gtag('consent','update',{…denied}) when the visitor withdraws
+ * consent so GCM v2-aware services immediately stop collecting data
+ * without waiting for the next page load.
+ *
+ * @return void
+ */
+function dc_swp_inject_gcm_revoke_listener()  {
+	if ( dc_swp_is_bot_request() ) {
+		return;
+	}
+	if ( is_admin() ) {
+		return;
+	}
+	if ( get_option( 'dc_swp_sw_enabled', 'yes' ) !== 'yes' ) {
+		return;
+	}
+	if ( ! dc_swp_is_consent_mode_enabled() ) {
+		return;
+	}
+	if (
+		( function_exists( 'is_cart' ) && is_cart() ) ||
+		( function_exists( 'is_checkout' ) && is_checkout() ) ||
+		( function_exists( 'is_account_page' ) && is_account_page() )
+	) {
+		return;
+	}
+
+	$nonce      = dc_swp_get_csp_nonce();
+	$nonce_attr = '' !== $nonce ? ' nonce="' . esc_attr( $nonce ) . '"' : '';
+
+	$revoke_js  = "(function(){\n";
+	$revoke_js .= "  function dcSwpRevokeAll(){\n";
+	$revoke_js .= "    if(typeof window.gtag==='function'){\n";
+	$revoke_js .= "      window.gtag('consent','update',{\n";
+	$revoke_js .= "        'security_storage':'granted',\n";
+	$revoke_js .= "        'functionality_storage':'granted',\n";
+	$revoke_js .= "        'personalization_storage':'denied',\n";
+	$revoke_js .= "        'analytics_storage':'denied',\n";
+	$revoke_js .= "        'ad_storage':'denied',\n";
+	$revoke_js .= "        'ad_user_data':'denied',\n";
+	$revoke_js .= "        'ad_personalization':'denied'\n";
+	$revoke_js .= "      });\n";
+	$revoke_js .= "    }\n";
+	$revoke_js .= "  }\n";
+	$revoke_js .= "  document.addEventListener('cmplz_revoke',dcSwpRevokeAll);\n";
+	$revoke_js .= "  document.addEventListener('dc_swp_consent_revoke',dcSwpRevokeAll);\n";
+	$revoke_js .= "})();\n";
+
+	// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- fully static JS; nonce is pre-escaped via esc_attr.
+	echo '<script' . $nonce_attr . ">\n" . $revoke_js . "</script>\n";
 }
 
 // ============================================================

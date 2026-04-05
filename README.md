@@ -2,7 +2,7 @@
 
 > Offload third-party scripts to a Web Worker via Partytown + consent-aware loading + WooCommerce prefetching.
 
-![Version](https://img.shields.io/badge/version-1.6.0-blue)
+![Version](https://img.shields.io/badge/version-1.7.0-blue)
 ![WordPress](https://img.shields.io/badge/WordPress-6.8%2B-21759b)
 ![PHP](https://img.shields.io/badge/PHP-8.0%2B-777bb4)
 ![WooCommerce](https://img.shields.io/badge/WooCommerce-10.4%2B-96588a)
@@ -195,6 +195,13 @@ The administrator may configure additional services via the Partytown Script Lis
 ---
 
 ## Changelog
+
+### 1.7.0
+- Enhancement: Google Consent Mode v2 — all 7 parameters now declared (`security_storage`, `functionality_storage`, `personalization_storage`, `analytics_storage`, `ad_storage`, `ad_user_data`, `ad_personalization`).
+- Enhancement: GCM v2 consent defaults split per category: `analytics_storage` follows statistics consent, `personalization_storage` follows preferences consent, ad signals follow marketing consent.
+- Enhancement: Consent revoke listener — fires `gtag('consent','update',{denied})` on `cmplz_revoke` / `dc_swp_consent_revoke` DOM events so withdrawn consent is immediately reflected.
+- Enhancement: New admin options — `url_passthrough` and `ads_data_redaction` for GCM v2 cookieless measurement.
+- Enhancement: Opt-out mode awareness in all three consent helpers — Complianz opt-out and CookieYes non-consent-region visitors default to granted; explicit denial cookies still honoured.
 
 ### 1.6.0
 - Standards: Renamed all `dampcig_pwa_*` options to `dc_swp_*` prefix; existing settings are migrated automatically on activation.
