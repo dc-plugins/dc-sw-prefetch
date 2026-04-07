@@ -994,29 +994,76 @@ function dc_swp_inject_consent_mode_default() {
 	if ( $ads_data_redaction ) {
 		$consent_js .= "gtag('set','ads_data_redaction',true);\n";
 	}
-	// Always default-denied so the CMP owns the update call.
-	// Server-side cookie detection was removed: reading consent cookies in PHP
-	// and outputting 'granted' here is incompatible with full-page caching
-	// (W3 Total Cache, WP Rocket, etc.) — a cached 'granted' page served to
-	// a new unconsented visitor causes "granted → denied" in the browser
-	// console when the CMP's deferred JS fires its own update.  The correct
-	// GCM v2 pattern is: plugin sets default-denied + wait_for_update, CMP
-	// fires gtag('consent','update',{granted}) once consent is confirmed.
-	$consent_js .= "gtag('consent','default',{\n";
-	$consent_js .= "  'security_storage':'granted',\n";
-	$consent_js .= "  'functionality_storage':'granted',\n";
-	$consent_js .= "  'personalization_storage':'denied',\n";
-	$consent_js .= "  'analytics_storage':'denied',\n";
-	$consent_js .= "  'ad_storage':'denied',\n";
-	$consent_js .= "  'ad_user_data':'denied',\n";
-	$consent_js .= "  'ad_personalization':'denied',\n";
-	// 500 ms grace period for the CMP's deferred JS to update consent before
-	// the tag library fires its first beacon.
-	$consent_js .= "  'wait_for_update':500\n";
-	$consent_js .= "});\n";
-	// Signal to GTM that the consent default stub has been set, so any GTM
-	// tags/triggers that depend on consent initialisation can fire correctly.
-	$consent_js .= "dataLayer.push({'event':'default_consent'});\n";
+	// Consent values are determined by CMP cookies read in the browser at
+	// runtime — not in PHP — so full-page caching (W3 Total Cache, WP Rocket,
+	// etc.) never serves a cached 'granted' state to unconsented visitors.
+	// Supports: Complianz (opt-in + opt-out), CookieYes, Borlabs,
+	// Cookie Notice, WebToffee, Cookiebot, Cookie Information, Moove GDPR.
+	$consent_js .= "(function(){\n";
+	// Cookie helper: split on '; name=' to avoid regex escaping complexity.
+	$consent_js .= "  function _dcCk(n){var v='; '+document.cookie,p=v.split('; '+n+'=');if(p.length===2)return decodeURIComponent(p.pop().split(';')[0]);return null;}\n";
+	// Opt-out detection: Complianz cmplz_consenttype contains 'optout';
+	// CookieYes 'type:lss' or 'type:no-consent' means implicit consent.
+	$consent_js .= "  var _cy=_dcCk('cookieyes-consent')||'',_cc=_dcCk('CookieConsent')||'',_oo=false;\n";
+	$consent_js .= "  var _ct=_dcCk('cmplz_consenttype');if(_ct&&_ct.indexOf('optout')!==-1)_oo=true;\n";
+	$consent_js .= "  if(_cy.indexOf('type:lss')!==-1||_cy.indexOf('type:no-consent')!==-1)_oo=true;\n";
+	// JSON-cookie CMPs: parse once, fall back to empty object on error.
+	$consent_js .= "  function _dcJ(n){try{var v=_dcCk(n);return v?JSON.parse(v):{}}catch(e){return {};}}\n";
+	$consent_js .= "  var _bl=_dcJ('borlabs-cookie'),_ci=_dcJ('CookieInformationConsent'),_mg=_dcJ('moove_gdpr_popup');\n";
+	$consent_js .= "  var _ca=(_ci.consents_approved||[]);\n";
+	// Marketing consent → ad_storage, ad_user_data, ad_personalization.
+	$consent_js .= "  function _dcMkt(){\n";
+	$consent_js .= "    if(_oo){var v=_dcCk('cmplz_marketing');return v===null||v!=='deny';}\n";
+	$consent_js .= "    if(_dcCk('cmplz_marketing')==='allow')return true;\n";
+	$consent_js .= "    if(_cy.indexOf('marketing:yes')!==-1)return true;\n";
+	$consent_js .= "    if(_bl.consents&&_bl.consents.marketing)return true;\n";
+	$consent_js .= "    if(_dcCk('cookie_notice_accepted')==='true')return true;\n";
+	$consent_js .= "    if(_dcCk('cookie_cat_marketing')==='accept')return true;\n";
+	$consent_js .= "    if(_cc.indexOf('marketing:true')!==-1)return true;\n";
+	$consent_js .= "    if(_ca.indexOf('cookie_cat_marketing')!==-1)return true;\n";
+	$consent_js .= "    if(parseInt((_mg.thirdparty||0),10)===1)return true;\n";
+	$consent_js .= "    return false;\n";
+	$consent_js .= "  }\n";
+	// Statistics consent → analytics_storage.
+	$consent_js .= "  function _dcStat(){\n";
+	$consent_js .= "    if(_oo){var v=_dcCk('cmplz_statistics');return v===null||v!=='deny';}\n";
+	$consent_js .= "    if(_dcCk('cmplz_statistics')==='allow')return true;\n";
+	$consent_js .= "    if(_cy.indexOf('analytics:yes')!==-1)return true;\n";
+	$consent_js .= "    if(_bl.consents&&_bl.consents.statistics)return true;\n";
+	$consent_js .= "    if(_dcCk('cookie_notice_accepted')==='true')return true;\n";
+	$consent_js .= "    if(_dcCk('cookie_cat_analytics')==='accept')return true;\n";
+	$consent_js .= "    if(_cc.indexOf('statistics:true')!==-1)return true;\n";
+	$consent_js .= "    if(_ca.indexOf('cookie_cat_statistic')!==-1)return true;\n";
+	$consent_js .= "    if(parseInt((_mg.analytics||0),10)===1)return true;\n";
+	$consent_js .= "    return false;\n";
+	$consent_js .= "  }\n";
+	// Preferences consent → personalization_storage.
+	$consent_js .= "  function _dcPref(){\n";
+	$consent_js .= "    if(_oo){var v=_dcCk('cmplz_preferences');return v===null||v!=='deny';}\n";
+	$consent_js .= "    if(_dcCk('cmplz_preferences')==='allow')return true;\n";
+	$consent_js .= "    if(_cy.indexOf('preferences:yes')!==-1)return true;\n";
+	$consent_js .= "    if(_bl.consents&&_bl.consents.preferences)return true;\n";
+	$consent_js .= "    if(_dcCk('cookie_notice_accepted')==='true')return true;\n";
+	$consent_js .= "    if(_cc.indexOf('preferences:true')!==-1)return true;\n";
+	$consent_js .= "    if(_ca.indexOf('cookie_cat_functional')!==-1)return true;\n";
+	$consent_js .= "    return false;\n";
+	$consent_js .= "  }\n";
+	$consent_js .= "  var mkt=_dcMkt(),stat=_dcStat(),pref=_dcPref();\n";
+	$consent_js .= "  gtag('consent','default',{\n";
+	$consent_js .= "    'security_storage':'granted',\n";
+	$consent_js .= "    'functionality_storage':'granted',\n";
+	$consent_js .= "    'personalization_storage':pref?'granted':'denied',\n";
+	$consent_js .= "    'analytics_storage':stat?'granted':'denied',\n";
+	$consent_js .= "    'ad_storage':mkt?'granted':'denied',\n";
+	$consent_js .= "    'ad_user_data':mkt?'granted':'denied',\n";
+	$consent_js .= "    'ad_personalization':mkt?'granted':'denied',\n";
+	// 500 ms grace period for the CMP's deferred JS to call the update command
+	// on first-visit pages where no consent cookie exists yet.
+	$consent_js .= "    'wait_for_update':500\n";
+	$consent_js .= "  });\n";
+	// Signal to GTM that the consent default stub has been set.
+	$consent_js .= "  dataLayer.push({'event':'default_consent'});\n";
+	$consent_js .= "})();\n";
 
 	// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- fully static JS; nonce is pre-escaped via esc_attr.
 	echo '<script' . $nonce_attr . ">\n" . $consent_js . "</script>\n";
