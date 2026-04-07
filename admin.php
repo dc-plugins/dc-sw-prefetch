@@ -674,86 +674,6 @@ function dc_swp_admin_page_html() {
 					</td>
 				</tr>
 				<tr valign="top">
-					<th scope="row"><?php echo esc_html( dc_swp_str( 'consent_mode_label' ) ); ?></th>
-					<td>
-						<label class="pwa-toggle">
-							<input type="checkbox" name="dc_swp_consent_mode" value="yes" <?php checked( $consent_mode, true ); ?>>
-							<span class="pwa-slider"></span>
-						</label>
-						<p class="description"><?php echo wp_kses_post( dc_swp_str( 'consent_mode_desc' ) ); ?></p>
-					<?php
-					// ── Consent Architecture info panel ─────────────────────────────────
-					// CSS badges are always rendered as the fallback (pure CSS ::before/::after).
-					// The shields.io <img> fires onload to swap in the real badge when available;
-					// offline / firewalled environments automatically keep the CSS version.
-					$_si = 'https://img.shields.io/badge/';
-					$_sq = '?style=flat-square';
-					// phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- badge HTML built with fully-escaped values; onload handler is static JS, no user data.
-					$_badge = static function ( $label, $msg, $col, $url ) {
-						$onload = "this.closest('.dc-swp-badge').classList.add('dc-swp-loaded')";
-						return '<span class="dc-swp-badge dc-swp-badge-' . esc_attr( $col ) . '" '
-							. 'data-label="' . esc_attr( $label ) . '" '
-							. 'data-msg="' . esc_attr( $msg ) . '">'
-							. '<img src="' . esc_url( $url ) . '" '
-							. 'alt="' . esc_attr( $label . ' ' . $msg ) . '" '
-							. 'loading="lazy" decoding="async" '
-							. 'onload="' . esc_attr( $onload ) . '">'
-							. '</span>';
-					};
-					$_gcm   = array(
-						array( 'Google Tag Manager', 'GCM v2', 'blue', $_si . 'Google%20Tag%20Manager-GCM%20v2-0075ca' . $_sq ),
-						array( 'Google Analytics', 'GCM v2', 'blue', $_si . 'Google%20Analytics-GCM%20v2-0075ca' . $_sq ),
-						array( 'Hotjar', 'GCM v2', 'blue', $_si . 'Hotjar-GCM%20v2-0075ca' . $_sq ),
-						array( 'MS Clarity', 'GCM v2', 'blue', $_si . 'MS%20Clarity-GCM%20v2-0075ca' . $_sq ),
-						array( 'LinkedIn Insight', 'GCM v2', 'blue', $_si . 'LinkedIn%20Insight-GCM%20v2-0075ca' . $_sq ),
-						array( 'TikTok Pixel', 'GCM v2', 'blue', $_si . 'TikTok%20Pixel-GCM%20v2-0075ca' . $_sq ),
-					);
-					$_cmp   = array(
-						array( 'Complianz', 'native GCM v2', 'green', $_si . 'Complianz-native%20GCM%20v2-3cb034' . $_sq ),
-						array( 'CookieYes', 'native GCM v2', 'green', $_si . 'CookieYes-native%20GCM%20v2-3cb034' . $_sq ),
-						array( 'Cookiebot', 'native GCM v2', 'green', $_si . 'Cookiebot-native%20GCM%20v2-3cb034' . $_sq ),
-						array( 'Cookie Information', 'native GCM v2', 'green', $_si . 'Cookie%20Information-native%20GCM%20v2-3cb034' . $_sq ),
-						array( 'Borlabs Cookie', 'native GCM v2', 'green', $_si . 'Borlabs%20Cookie-native%20GCM%20v2-3cb034' . $_sq ),
-						array( 'WebToffee GDPR', 'native GCM v2', 'green', $_si . 'WebToffee%20GDPR-native%20GCM%20v2-3cb034' . $_sq ),
-						array( 'Moove GDPR', 'GCM v2 premium', 'amber', $_si . 'Moove%20GDPR-GCM%20v2%20premium-e08a00' . $_sq ),
-						array( 'Cookie Notice', 'fallback only', 'red', $_si . 'Cookie%20Notice-fallback%20only-e05d44' . $_sq ),
-					);
-					// phpcs:enable
-					?>
-					<details class="dc-swp-consent-info">
-						<summary><?php echo esc_html( dc_swp_str( 'consent_info_toggle' ) ); ?></summary>
-						<div class="dc-swp-consent-info-body">
-
-							<p class="dc-swp-info-section"><?php echo esc_html( dc_swp_str( 'consent_info_services_title' ) ); ?></p>
-							<p class="description" style="margin-bottom:6px"><?php echo esc_html( dc_swp_str( 'consent_info_services_desc' ) ); ?></p>
-							<div class="dc-swp-badges">
-								<?php
-								foreach ( $_gcm as $_b ) {
-									echo $_badge( $_b[0], $_b[1], $_b[2], $_b[3] ); } // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped 
-								?>
-							</div>
-
-							<p class="dc-swp-info-section"><?php echo esc_html( dc_swp_str( 'consent_info_meta_title' ) ); ?></p>
-							<p class="description" style="margin-bottom:6px"><?php echo esc_html( dc_swp_str( 'consent_info_meta_desc' ) ); ?></p>
-							<div class="dc-swp-badges">
-								<?php echo $_badge( 'Meta Pixel', 'LDU API', 'meta', $_si . 'Meta%20Pixel-LDU%20API-1877f2' . $_sq ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-							</div>
-
-							<p class="dc-swp-info-section"><?php echo esc_html( dc_swp_str( 'consent_info_cmp_title' ) ); ?></p>
-							<p class="description" style="margin-bottom:6px"><?php echo esc_html( dc_swp_str( 'consent_info_cmp_desc' ) ); ?></p>
-							<div class="dc-swp-badges">
-								<?php
-								foreach ( $_cmp as $_b ) {
-									echo $_badge( $_b[0], $_b[1], $_b[2], $_b[3] ); } // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped 
-								?>
-							</div>
-							<p class="description" style="margin-top:6px;font-style:italic"><?php echo esc_html( dc_swp_str( 'consent_info_cmp_note' ) ); ?></p>
-
-						</div>
-					</details>
-					</td>
-				</tr>
-				<tr valign="top">
 					<th scope="row"><?php echo esc_html( dc_swp_str( 'gtm_section_label' ) ); ?></th>
 					<td>
 						<!-- Hidden field — always submitted; JS syncs it from whichever panel is active -->
@@ -858,6 +778,86 @@ function dc_swp_admin_page_html() {
 							<?php endforeach; ?>
 							<p class="description" style="margin-top:10px"><?php echo wp_kses_post( dc_swp_str( 'gtm_desc_managed' ) ); ?></p>
 						</div>
+					</td>
+				</tr>
+				<tr valign="top" id="dc-swp-consent-mode-row"<?php echo 'off' === $gtm_mode ? ' style="display:none"' : ''; ?>>
+					<th scope="row"><?php echo esc_html( dc_swp_str( 'consent_mode_label' ) ); ?></th>
+					<td>
+						<label class="pwa-toggle">
+							<input type="checkbox" name="dc_swp_consent_mode" value="yes" <?php checked( $consent_mode, true ); ?>>
+							<span class="pwa-slider"></span>
+						</label>
+						<p class="description"><?php echo wp_kses_post( dc_swp_str( 'consent_mode_desc' ) ); ?></p>
+					<?php
+					// ── Consent Architecture info panel ─────────────────────────────────
+					// CSS badges are always rendered as the fallback (pure CSS ::before/::after).
+					// The shields.io <img> fires onload to swap in the real badge when available;
+					// offline / firewalled environments automatically keep the CSS version.
+					$_si = 'https://img.shields.io/badge/';
+					$_sq = '?style=flat-square';
+					// phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- badge HTML built with fully-escaped values; onload handler is static JS, no user data.
+					$_badge = static function ( $label, $msg, $col, $url ) {
+						$onload = "this.closest('.dc-swp-badge').classList.add('dc-swp-loaded')";
+						return '<span class="dc-swp-badge dc-swp-badge-' . esc_attr( $col ) . '" '
+							. 'data-label="' . esc_attr( $label ) . '" '
+							. 'data-msg="' . esc_attr( $msg ) . '">'
+							. '<img src="' . esc_url( $url ) . '" '
+							. 'alt="' . esc_attr( $label . ' ' . $msg ) . '" '
+							. 'loading="lazy" decoding="async" '
+							. 'onload="' . esc_attr( $onload ) . '">'
+							. '</span>';
+					};
+					$_gcm   = array(
+						array( 'Google Tag Manager', 'GCM v2', 'blue', $_si . 'Google%20Tag%20Manager-GCM%20v2-0075ca' . $_sq ),
+						array( 'Google Analytics', 'GCM v2', 'blue', $_si . 'Google%20Analytics-GCM%20v2-0075ca' . $_sq ),
+						array( 'Hotjar', 'GCM v2', 'blue', $_si . 'Hotjar-GCM%20v2-0075ca' . $_sq ),
+						array( 'MS Clarity', 'GCM v2', 'blue', $_si . 'MS%20Clarity-GCM%20v2-0075ca' . $_sq ),
+						array( 'LinkedIn Insight', 'GCM v2', 'blue', $_si . 'LinkedIn%20Insight-GCM%20v2-0075ca' . $_sq ),
+						array( 'TikTok Pixel', 'GCM v2', 'blue', $_si . 'TikTok%20Pixel-GCM%20v2-0075ca' . $_sq ),
+					);
+					$_cmp   = array(
+						array( 'Complianz', 'native GCM v2', 'green', $_si . 'Complianz-native%20GCM%20v2-3cb034' . $_sq ),
+						array( 'CookieYes', 'native GCM v2', 'green', $_si . 'CookieYes-native%20GCM%20v2-3cb034' . $_sq ),
+						array( 'Cookiebot', 'native GCM v2', 'green', $_si . 'Cookiebot-native%20GCM%20v2-3cb034' . $_sq ),
+						array( 'Cookie Information', 'native GCM v2', 'green', $_si . 'Cookie%20Information-native%20GCM%20v2-3cb034' . $_sq ),
+						array( 'Borlabs Cookie', 'native GCM v2', 'green', $_si . 'Borlabs%20Cookie-native%20GCM%20v2-3cb034' . $_sq ),
+						array( 'WebToffee GDPR', 'native GCM v2', 'green', $_si . 'WebToffee%20GDPR-native%20GCM%20v2-3cb034' . $_sq ),
+						array( 'Moove GDPR', 'GCM v2 premium', 'amber', $_si . 'Moove%20GDPR-GCM%20v2%20premium-e08a00' . $_sq ),
+						array( 'Cookie Notice', 'fallback only', 'red', $_si . 'Cookie%20Notice-fallback%20only-e05d44' . $_sq ),
+					);
+					// phpcs:enable
+					?>
+					<details class="dc-swp-consent-info">
+						<summary><?php echo esc_html( dc_swp_str( 'consent_info_toggle' ) ); ?></summary>
+						<div class="dc-swp-consent-info-body">
+
+							<p class="dc-swp-info-section"><?php echo esc_html( dc_swp_str( 'consent_info_services_title' ) ); ?></p>
+							<p class="description" style="margin-bottom:6px"><?php echo esc_html( dc_swp_str( 'consent_info_services_desc' ) ); ?></p>
+							<div class="dc-swp-badges">
+								<?php
+								foreach ( $_gcm as $_b ) {
+									echo $_badge( $_b[0], $_b[1], $_b[2], $_b[3] ); } // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped 
+								?>
+							</div>
+
+							<p class="dc-swp-info-section"><?php echo esc_html( dc_swp_str( 'consent_info_meta_title' ) ); ?></p>
+							<p class="description" style="margin-bottom:6px"><?php echo esc_html( dc_swp_str( 'consent_info_meta_desc' ) ); ?></p>
+							<div class="dc-swp-badges">
+								<?php echo $_badge( 'Meta Pixel', 'LDU API', 'meta', $_si . 'Meta%20Pixel-LDU%20API-1877f2' . $_sq ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+							</div>
+
+							<p class="dc-swp-info-section"><?php echo esc_html( dc_swp_str( 'consent_info_cmp_title' ) ); ?></p>
+							<p class="description" style="margin-bottom:6px"><?php echo esc_html( dc_swp_str( 'consent_info_cmp_desc' ) ); ?></p>
+							<div class="dc-swp-badges">
+								<?php
+								foreach ( $_cmp as $_b ) {
+									echo $_badge( $_b[0], $_b[1], $_b[2], $_b[3] ); } // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped 
+								?>
+							</div>
+							<p class="description" style="margin-top:6px;font-style:italic"><?php echo esc_html( dc_swp_str( 'consent_info_cmp_note' ) ); ?></p>
+
+						</div>
+					</details>
 					</td>
 				</tr>
 				<tr valign="top">					<th scope="row"><?php echo esc_html( dc_swp_str( 'url_passthrough_label' ) ); ?></th>

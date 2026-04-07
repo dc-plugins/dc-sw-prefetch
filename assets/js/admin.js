@@ -407,6 +407,7 @@ jQuery( function ( $ ) {
 	// ── Init ────────────────────────────────────────────────────────────────
 	const initMode = $( 'input[name="dc_swp_gtm_mode"]:checked' ).val() || 'off';
 	showPanel( initMode );
+	$( '#dc-swp-consent-mode-row' ).toggle( 'off' !== initMode );
 	goToStep( 1 );
 
 	// If returning to managed mode with a stored ID, re-validate step 2.
@@ -421,6 +422,7 @@ jQuery( function ( $ ) {
 	$( 'input[name="dc_swp_gtm_mode"]' ).on( 'change', function () {
 		const mode = $( this ).val();
 		showPanel( mode );
+		$( '#dc-swp-consent-mode-row' ).toggle( 'off' !== mode );
 
 		// Cross-fill: switching between own ↔ managed copies the ID.
 		if ( 'managed' === mode ) {

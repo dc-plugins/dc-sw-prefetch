@@ -993,6 +993,9 @@ function dc_swp_inject_consent_mode_default() {
 	if ( ! dc_swp_is_consent_mode_enabled() ) {
 		return;
 	}
+	if ( get_option( 'dc_swp_gtm_mode', 'off' ) === 'off' ) {
+		return;
+	}
 	if (
 		( function_exists( 'is_cart' ) && is_cart() ) ||
 		( function_exists( 'is_checkout' ) && is_checkout() ) ||
@@ -1056,6 +1059,9 @@ function dc_swp_enqueue_consent_scripts() {
 		return;
 	}
 	if ( ! dc_swp_is_consent_mode_enabled() ) {
+		return;
+	}
+	if ( get_option( 'dc_swp_gtm_mode', 'off' ) === 'off' ) {
 		return;
 	}
 	if (
