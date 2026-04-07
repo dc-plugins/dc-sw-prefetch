@@ -31,7 +31,7 @@
 	 * Maps WP Consent API / Complianz category names to GCM v2 signal names.
 	 * functional and security_storage are always 'granted' (set in the stub).
 	 */
-	var categoryMap = {
+	const categoryMap = {
 		marketing:   [ 'ad_storage', 'ad_user_data', 'ad_personalization' ],
 		statistics:  [ 'analytics_storage' ],
 		preferences: [ 'personalization_storage' ],
@@ -47,12 +47,12 @@
 		if ( typeof window.gtag !== 'function' ) {
 			return;
 		}
-		var signals = categoryMap[ category ];
+		const signals = categoryMap[ category ];
 		if ( ! signals ) {
 			return;
 		}
-		var gcmValue = ( value === 'allow' ) ? 'granted' : 'denied';
-		var update   = {};
+		const gcmValue = ( value === 'allow' ) ? 'granted' : 'denied';
+		const update   = {};
 		signals.forEach( function ( signal ) {
 			update[ signal ] = gcmValue;
 		} );
@@ -64,12 +64,12 @@
 	// currently consented categories, and again whenever consent changes.
 	// detail.categories = string[] of consented category names.
 	document.addEventListener( 'cmplz_fire_categories', function ( e ) {
-		var grantedCategories = ( e.detail && Array.isArray( e.detail.categories ) )
+		const grantedCategories = ( e.detail && Array.isArray( e.detail.categories ) )
 			? e.detail.categories
 			: [];
 
 		Object.keys( categoryMap ).forEach( function ( category ) {
-			var value = ( grantedCategories.indexOf( category ) !== -1 ) ? 'allow' : 'deny';
+			const value = ( grantedCategories.indexOf( category ) !== -1 ) ? 'allow' : 'deny';
 			updateGcm( category, value );
 		} );
 	} );
@@ -78,7 +78,7 @@
 	// Standard cross-CMP event. Complianz dispatches this via wp_set_consent()
 	// on every category change. detail: { [category]: 'allow'|'deny' }
 	document.addEventListener( 'wp_listen_for_consent_change', function ( e ) {
-		var changed = ( e.detail && typeof e.detail === 'object' ) ? e.detail : {};
+		const changed = ( e.detail && typeof e.detail === 'object' ) ? e.detail : {};
 		Object.keys( changed ).forEach( function ( category ) {
 			updateGcm( category, changed[ category ] );
 		} );
