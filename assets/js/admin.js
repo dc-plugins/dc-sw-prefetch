@@ -410,6 +410,18 @@ jQuery( function ( $ ) {
 	$( '#dc-swp-consent-mode-row' ).toggle( 'off' !== initMode );
 	goToStep( 1 );
 
+	// If returning to detect mode with a stored ID, show the green "active" state.
+	if ( 'detect' === initMode ) {
+		const savedDetectId = $( '#dc-swp-gtm-panel-detect' ).data( 'saved-id' );
+		if ( savedDetectId ) {
+			const safeDetectId = $( '<span>' ).text( savedDetectId ).html();
+			$( '#dc-swp-gtm-detect-result' ).html(
+				'<p style="color:#3cb034;font-weight:600">\u2714 <code>' + safeDetectId + '</code>' +
+				' \u2014 ' + ( gtmStr.active || 'Auto-detected and active' ) + '</p>'
+			);
+		}
+	}
+
 	// If returning to managed mode with a stored ID, re-validate step 2.
 	if ( 'managed' === initMode ) {
 		const storedId = $( '#dc-swp-gtm-wizard-id' ).val().trim();

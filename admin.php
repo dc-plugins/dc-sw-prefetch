@@ -112,6 +112,7 @@ function dc_swp_str( $key ) {
 			'gtm_detect_found'            => 'Fundet',
 			'gtm_detect_use'              => 'Brug dette ID',
 			'gtm_detect_will_use'         => 'bruges ved næste gem',
+			'gtm_detect_active'           => 'Auto-detekteret og aktiv',
 			'gtm_wizard_step1_title'      => 'Trin 1 — Opret GTM-konto og container',
 			'gtm_wizard_step1_body'       => 'Gå til <a href="https://tagmanager.google.com" target="_blank" rel="noopener">tagmanager.google.com ↗</a>, log ind, klik <strong>Opret konto</strong>, angiv kontonavn + land, tilføj en Container (brug websiteadressen som navn), vælg type <strong>Web</strong> og klik <strong>Opret</strong>.',
 			'gtm_wizard_step2_title'      => 'Trin 2 — Angiv dit Container-ID',
@@ -217,6 +218,7 @@ function dc_swp_str( $key ) {
 			'gtm_detect_found'            => 'Detected',
 			'gtm_detect_use'              => 'Use This ID',
 			'gtm_detect_will_use'         => 'will be used on next save',
+			'gtm_detect_active'           => 'Auto-detected and active',
 			'gtm_wizard_step1_title'      => 'Step 1 — Create GTM Account & Container',
 			'gtm_wizard_step1_body'       => 'Visit <a href="https://tagmanager.google.com" target="_blank" rel="noopener">tagmanager.google.com ↗</a>, sign in, click <strong>Create Account</strong>, enter an account name and country, add a Container (use your website URL as the name), select <strong>Web</strong> as the platform, then click <strong>Create</strong>.',
 			'gtm_wizard_step2_title'      => 'Step 2 — Enter Your Container ID',
@@ -708,7 +710,9 @@ function dc_swp_admin_page_html() {
 						</div>
 
 						<!-- Panel: detect -->
-						<div id="dc-swp-gtm-panel-detect" class="dc-swp-gtm-panel" <?php echo 'detect' !== $gtm_mode ? 'style="display:none"' : ''; ?>>
+						<div id="dc-swp-gtm-panel-detect" class="dc-swp-gtm-panel"
+							data-saved-id="<?php echo esc_attr( get_option( 'dc_swp_gtm_id', '' ) ); ?>"
+							<?php echo 'detect' !== $gtm_mode ? 'style="display:none"' : ''; ?>>
 							<button type="button" id="dc-swp-gtm-detect-btn" class="button button-secondary">
 								<?php echo esc_html( dc_swp_str( 'gtm_detect_btn' ) ); ?>
 							</button>
@@ -989,6 +993,7 @@ function dc_swp_admin_page_html() {
 				'none'         => dc_swp_str( 'gtm_detect_none' ),
 				'autoSwitched' => dc_swp_str( 'gtm_detect_auto_switched' ),
 				'willBeUsed'   => dc_swp_str( 'gtm_detect_will_use' ),
+				'active'       => dc_swp_str( 'gtm_detect_active' ),
 				'saved'        => dc_swp_str( 'gtm_wizard_saved' ),
 			),
 		)
