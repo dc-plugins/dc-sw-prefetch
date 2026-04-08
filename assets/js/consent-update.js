@@ -1,34 +1,26 @@
 /**
- * GCM v2 consent update listener.
+ * GCM v2 consent update — WP Consent API direct read.
  *
- * Translates CMP consent events into gtag('consent','update',...) calls.
- * Works with any CMP that implements the WP Consent API, and has
- * dedicated support for Complianz.
+ * Strategy: rather than listening for CMP-specific events (which have
+ * unreliable timing), we call wp_has_consent() directly on
+ * DOMContentLoaded. Because this script is loaded in the footer, its
+ * DOMContentLoaded handler is registered *after* all <head> CMP scripts
+ * (Complianz, etc.), so it fires last and our gtag('consent','update')
+ * call is the definitive, authoritative signal for GCM v2.
  *
- * The inline stub in <head> always sets everything to 'denied' as the
- * safe default. This script is responsible for upgrading those defaults
- * once the visitor's actual consent is known.
- *
- * Events handled:
- *   cmplz_fire_categories      — Complianz: fires on every page load with
- *                                the full array of consented categories, and
- *                                again on every consent change.
- *   wp_listen_for_consent_change — WP Consent API standard event; fired by
- *                                any compliant CMP (Complianz, CookieYes,
- *                                Borlabs, etc.) when a category changes.
- *                                detail: { [category]: 'allow'|'deny' }
- *   cmplz_revoke               — Complianz: visitor withdrew all consent.
+ * A secondary wp_listen_for_consent_change listener handles live consent
+ * changes when the visitor interacts with the banner after page load.
  *
  * @package DC_Service_Worker_Prefetcher
  */
 
-/* global gtag */
+/* global gtag, wp_has_consent */
 
 ( function () {
 	'use strict';
 
 	/**
-	 * Maps WP Consent API / Complianz category names to GCM v2 signal names.
+	 * Maps WP Consent API category names to GCM v2 signal names.
 	 * functional and security_storage are always 'granted' (set in the stub).
 	 */
 	const categoryMap = {
@@ -59,42 +51,42 @@
 		gtag( 'consent', 'update', update );
 	}
 
-	// ── Complianz: cmplz_fire_categories ─────────────────────────────────────
-	// Fires automatically on page load (from conditionally_show_banner) with all
-	// currently consented categories, and again whenever consent changes.
-	// detail.categories = string[] of consented category names.
-	document.addEventListener( 'cmplz_fire_categories', function ( e ) {
-		const grantedCategories = ( e.detail && Array.isArray( e.detail.categories ) )
-			? e.detail.categories
-			: [];
-
+	/**
+	 * Read current consent state via wp_has_consent() and push a single
+	 * GCM v2 update covering all mapped categories.
+	 *
+	 * wp_has_consent() is provided by the WP Consent API (used by
+	 * Complianz, CookieYes, Borlabs, etc.) and reads the consent cookies
+	 * that the CMP has already written, so no event timing issues arise.
+	 */
+	function applyCurrentConsent() {
+		if ( typeof wp_has_consent !== 'function' ) {
+			return;
+		}
 		Object.keys( categoryMap ).forEach( function ( category ) {
-			const value = ( grantedCategories.indexOf( category ) !== -1 ) ? 'allow' : 'deny';
+			const value = wp_has_consent( category ) ? 'allow' : 'deny';
 			updateGcm( category, value );
 		} );
-	} );
+	}
 
-	// ── WP Consent API ────────────────────────────────────────────────────────
-	// Standard cross-CMP event. Complianz dispatches this via wp_set_consent()
-	// on every category change. detail: { [category]: 'allow'|'deny' }
+	// ── Initial read on DOMContentLoaded ─────────────────────────────────────
+	// This script lives in the footer, so its DOMContentLoaded handler is
+	// registered after all <head> CMP scripts. That means it fires last,
+	// ensuring our update overwrites any earlier GCM consent calls.
+	if ( document.readyState === 'loading' ) {
+		document.addEventListener( 'DOMContentLoaded', applyCurrentConsent );
+	} else {
+		// DOMContentLoaded already fired (pre-rendered / bfcache restore).
+		applyCurrentConsent();
+	}
+
+	// ── WP Consent API: live consent changes ─────────────────────────────────
+	// Fired by any WP-Consent-API-compliant CMP when the visitor updates
+	// their preferences via the banner. detail: { [category]: 'allow'|'deny' }
 	document.addEventListener( 'wp_listen_for_consent_change', function ( e ) {
 		const changed = ( e.detail && typeof e.detail === 'object' ) ? e.detail : {};
 		Object.keys( changed ).forEach( function ( category ) {
 			updateGcm( category, changed[ category ] );
-		} );
-	} );
-
-	// ── Complianz: full revoke ────────────────────────────────────────────────
-	document.addEventListener( 'cmplz_revoke', function () {
-		if ( typeof window.gtag !== 'function' ) {
-			return;
-		}
-		gtag( 'consent', 'update', {
-			personalization_storage: 'denied',
-			analytics_storage:       'denied',
-			ad_storage:              'denied',
-			ad_user_data:            'denied',
-			ad_personalization:      'denied',
 		} );
 	} );
 }() );

@@ -1032,9 +1032,11 @@ function dc_swp_inject_consent_mode_default() {
 
 // ============================================================
 // GCM v2 CONSENT UPDATE LISTENER (external enqueued script)
-// consent-update.js listens to cmplz_fire_categories (Complianz),
-// wp_listen_for_consent_change (WP Consent API), and cmplz_revoke
-// and calls gtag('consent','update',{...}) accordingly.
+// consent-update.js reads consent via wp_has_consent() (WP Consent API)
+// on DOMContentLoaded, then fires gtag('consent','update',{...}).
+// Loaded in the footer so its DOMContentLoaded handler fires after any
+// <head> CMP scripts, making our update the authoritative last word.
+// Also listens to wp_listen_for_consent_change for live banner changes.
 // Enqueued by dc_swp_enqueue_consent_scripts() below.
 // ============================================================
 
@@ -1043,8 +1045,11 @@ add_action( 'wp_enqueue_scripts', 'dc_swp_enqueue_consent_scripts', 1 );
 /**
  * Enqueue the GCM v2 consent update script.
  *
- * Listens to WP Consent API and Complianz events and translates
- * them into gtag('consent','update',...) calls — no cookie reading.
+ * Reads consent state via wp_has_consent() (WP Consent API) on
+ * DOMContentLoaded and translates each category into a
+ * gtag('consent','update',...) call.  Loaded in the footer so its
+ * DOMContentLoaded handler is registered after all <head> CMP scripts
+ * and therefore fires last, making its update authoritative.
  *
  * @return void
  */
@@ -1077,7 +1082,7 @@ function dc_swp_enqueue_consent_scripts() {
 		plugins_url( 'assets/js/consent-update.js', __FILE__ ),
 		array(),
 		DC_SWP_VERSION,
-		array( 'in_footer' => false )
+		array( 'in_footer' => true )
 	);
 	wp_enqueue_script( 'dc-swp-consent-update' );
 
