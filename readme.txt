@@ -5,7 +5,7 @@ Requires at least: 6.8
 Tested up to: 6.9
 Requires PHP: 8.0
 WC tested up to: 10.4.3
-Stable tag: 1.8.2
+Stable tag: 1.9.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -24,7 +24,7 @@ Officially tested compatible services: **Google Tag Manager** (GA4), **Facebook 
 = Key features =
 
 * **Partytown Web Worker execution** — unlike `async`/`defer` (which still execute on the main thread and can block `window.onload`), Partytown lazy-loads and executes third-party scripts entirely in a Web Worker. Officially tested: Google Tag Manager, Facebook Pixel, HubSpot, Intercom, Klaviyo, TikTok Pixel, Mixpanel.
-* **Consent-aware loading** — reads marketing-consent cookies from 8 common WordPress CMPs (Complianz, Cookiebot, CookieYes, Borlabs, Cookie Notice, WebToffee, Cookie Information, Moove GDPR). Scripts get `type="text/partytown"` only after consent is granted; blocked with `type="text/plain"` until then.
+* **Consent-aware loading** — optional **Consent Gate** delegates consent decisions to the [WP Consent API](https://wordpress.org/plugins/wp-consent-api/). When enabled, scripts are blocked as `type="text/plain"` until the visitor grants consent for the script's category. When disabled (default), scripts load unconditionally. Any CMP that integrates with the WP Consent API is automatically supported.
 * **Configured via URL patterns** — enter one URL pattern per line in the admin. Any `<script src>` whose src matches is automatically managed for consent + Partytown offloading. No manual code edits.
 * **Auto-detect** — one-click scan of the homepage discovers all external scripts and lets you add them to the list.
 * **Exclusion list** — built-in exclusions for Trustpilot, Stripe, PayPal, Braintree, Facebook SDK, Google Maps, and Reamaze; add your own patterns as needed.
@@ -64,9 +64,9 @@ Officially tested compatible services: **Google Tag Manager** (GA4), **Facebook 
 = Using Partytown with third-party scripts =
 
 The easiest way is the **Partytown Script List** in the admin settings. Enter one URL pattern per line (e.g. `analytics.ahrefs.com` or the full GTM URL). The plugin then:
-1. Checks for marketing-consent cookies on every page request.
-2. Sets `type="text/partytown"` when consent is present — Partytown runs the script off the main thread.
-3. Sets `type="text/plain"` when consent is absent — the script is silently blocked.
+1. If the Consent Gate is enabled, checks consent via `wp_has_consent()` for the script's category.
+2. Sets `type="text/partytown"` when consent is present (or gate is disabled) — Partytown runs the script off the main thread.
+3. Sets `type="text/plain"` with `data-wp-consent-category` when consent is absent — the script is blocked until consent is granted.
 
 Alternatively, you can manually tag a script:
 
@@ -74,18 +74,15 @@ Alternatively, you can manually tag a script:
 
 The `window.partytown.forward` array is pre-configured for all officially tested services: `dataLayer.push` (GTM), `fbq` (Facebook Pixel), `_hsq.push` (HubSpot), `Intercom`, `_learnq.push` (Klaviyo), `ttq.track`/`ttq.page`/`ttq.load` (TikTok Pixel), `mixpanel.track` (Mixpanel). See [partytown.qwik.dev/common-services](https://partytown.qwik.dev/common-services/).
 
-= Supported consent plugins =
+= Consent Gate — WP Consent API =
 
-| Plugin | Cookie detected |
-|---|---|
-| Complianz | `cmplz_marketing = allow` |
-| Cookiebot (Cybot) | `CookieConsent` contains `marketing:true` |
-| CookieYes | `cookieyes-consent` contains `marketing:yes` |
-| Borlabs Cookie | `borlabs-cookie` JSON `.consents.marketing` |
-| Cookie Notice (dFactory) | `cookie_notice_accepted = true` |
-| WebToffee GDPR | `cookie_cat_marketing = accept` |
-| Cookie Information | `CookieInformationConsent` JSON consents array |
-| Moove GDPR | `moove_gdpr_popup` JSON `.thirdparty = 1` |
+The optional Consent Gate delegates consent decisions to the [WP Consent API](https://wordpress.org/plugins/wp-consent-api/) standard. When enabled:
+
+* Scripts are output as `type="text/plain"` with a `data-wp-consent-category` attribute until the visitor grants consent for that category.
+* A consent-change listener dynamically unblocks scripts when consent is granted, swapping `text/plain` to `text/partytown`.
+* Any CMP that integrates with the WP Consent API is automatically supported — no per-CMP cookie reading required.
+* Each inline script block has a configurable consent category: marketing (default), statistics, statistics-anonymous, functional, or preferences.
+* GCM v2-aware services and Meta LDU scripts bypass the gate (they self-restrict internally).
 
 == Installation ==
 
@@ -106,10 +103,10 @@ No. Partytown is completely disabled on cart, checkout, and account pages.
 Yes. PHP fallback cache headers are emitted for public pages when W3TC is not active.
 
 = Will scripts load before the user gives consent? =
-No. The plugin reads marketing-consent cookies server-side on every request. Scripts are output as `type="text/plain"` (browser-blocked) until a supported CMP cookie indicates consent, at which point they become `type="text/partytown"`.
+When the **Consent Gate** is enabled, no. Scripts are output as `type="text/plain"` (browser-blocked) until consent is granted via the WP Consent API. When the Consent Gate is disabled (default), scripts load unconditionally.
 
 = Which consent plugins are supported? =
-Complianz, Cookiebot, CookieYes, Borlabs Cookie, Cookie Notice (dFactory), WebToffee GDPR, Cookie Information, and Moove GDPR. See the full cookie details in the Description section.
+Any CMP (Consent Management Platform) that integrates with the [WP Consent API](https://wordpress.org/plugins/wp-consent-api/) is automatically supported. This includes Complianz, Cookiebot, CookieYes, Borlabs Cookie, and many others.
 
 = How do I verify Partytown is running? =
 Open DevTools → Application → Service Workers. You should see `partytown-sw.js` registered under `/~partytown/`. In the Console you should see no third-party scripts on the main thread.
@@ -142,7 +139,7 @@ When the administrator adds a service's URL pattern to the Partytown Script List
 
 **Scripts are only loaded and data is only transmitted when:**
 1. The administrator has added the service's URL pattern to the plugin's Partytown Script List or Inline Script Blocks.
-2. The visitor has a valid marketing-consent cookie from a supported CMP (Complianz, Cookiebot, CookieYes, Borlabs Cookie, Cookie Notice, WebToffee, Cookie Information, or Moove GDPR). Without a consent cookie, all configured scripts are blocked (output as type="text/plain").
+2. If the Consent Gate is enabled, the visitor has granted consent for the script's category via the WP Consent API. Without consent, all configured scripts are blocked (output as type="text/plain"). If the Consent Gate is disabled (default), scripts load unconditionally.
 
 The plugin ships pre-configured forwarding for these officially tested services. When enabled by the administrator, each may receive visitor data:
 
@@ -183,6 +180,13 @@ The administrator may freely add other services through the Partytown Script Lis
 3. DevTools showing Partytown service worker registered at `/~partytown/`.
 
 == Changelog ==
+
+= 1.9.0 =
+* Feature: Consent Gate (WP Consent API) — optional admin toggle that delegates consent decisions to the WP Consent API standard. Scripts output as `type="text/plain"` with `data-wp-consent-category` until consent is granted. Client-side listener dynamically unblocks scripts. When disabled (default), all scripts load unconditionally.
+* Feature: Per-script consent category — each inline script block can be assigned a WP Consent API category (marketing, statistics, statistics-anonymous, functional, preferences). Script List uses a configurable default category.
+* Feature: Hostname-to-category mapping — known services automatically assigned the correct consent category.
+* Removed: 8 CMP-specific cookie detection functions replaced by WP Consent API delegation.
+* Removed: CMP compatibility badges from admin Consent Architecture panel.
 
 = 1.8.2 =
 * Fix: PHPCS — resolved 78 auto-fixable code style violations (function brace spacing, inline comment spacing, single-line associative arrays, double-quote usage, scope indentation). Zero errors/warnings remain under the WordPress coding standard.

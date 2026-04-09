@@ -2,7 +2,7 @@
 
 > Offload third-party scripts to a Web Worker via Partytown + consent-aware loading.
 
-![Version](https://img.shields.io/badge/version-1.8.2-blue)
+![Version](https://img.shields.io/badge/version-1.9.0-blue)
 ![WordPress](https://img.shields.io/badge/WordPress-6.8%2B-21759b)
 ![PHP](https://img.shields.io/badge/PHP-8.0%2B-777bb4)
 ![WooCommerce](https://img.shields.io/badge/WooCommerce-10.4%2B-96588a)
@@ -18,7 +18,7 @@ Offload third-party scripts (GTM, Pixel, HubSpot…) to a Web Worker via Partyto
 
 > **Note:** Partytown is currently in beta. It is not guaranteed to work in every scenario. Review the [trade-offs](https://partytown.qwik.dev/trade-offs) before enabling on production.
 
-2. **Google Consent Mode v2 (GCM v2) per-service gate** — Six GCM v2-aware services (Google Tag Manager, Google Analytics, Hotjar, Microsoft Clarity, LinkedIn Insight Tag, TikTok Pixel) always run as `type="text/partytown"` when GCM v2 is enabled; each service reads the consent state internally and restricts data collection without the plugin needing to read a CMP cookie. All other services continue to gate on the marketing-consent cookie. Meta Pixel is handled separately via its own **Limited Data Use (LDU)** toggle, injecting the `fbq('dataProcessingOptions',['LDU'],0,0)` stub before any Partytown scripts load.
+2. **Google Consent Mode v2 (GCM v2) per-service gate** — Six GCM v2-aware services (Google Tag Manager, Google Analytics, Hotjar, Microsoft Clarity, LinkedIn Insight Tag, TikTok Pixel) always run as `type="text/partytown"` when GCM v2 is enabled; each service reads the consent state internally. Meta Pixel is handled separately via its own **Limited Data Use (LDU)** toggle. When the **Consent Gate** is enabled, all other services are blocked as `type="text/plain"` until the visitor grants consent via the [WP Consent API](https://wordpress.org/plugins/wp-consent-api/). Each script is assigned a consent category (marketing, statistics, functional, preferences). When the Consent Gate is disabled (default), all scripts load unconditionally.
 
 3. **Bonus performance** — PHP fallback cache headers when W3 Total Cache is absent.
 
@@ -32,8 +32,9 @@ The plugin uses a **per-service consent gate** so that each script class is hand
 |---|---|---|
 | GCM v2-aware service | GCM v2 enabled | `text/partytown` (always — service self-restricts) |
 | Meta Pixel | Meta LDU enabled | `text/partytown` (always — fbq LDU stub injected) |
-| Any other service | Marketing consent cookie present | `text/partytown` |
-| Any other service | No consent cookie | `text/plain` (browser blocked) |
+| Any other service | Consent Gate ON + `wp_has_consent($category)` true | `text/partytown` |
+| Any other service | Consent Gate ON + no consent | `text/plain` (browser blocked) |
+| Any other service | Consent Gate OFF (default) | `text/partytown` (unconditional) |
 
 ### GCM v2-aware services
 
@@ -43,20 +44,15 @@ These services implement the [Google Consent Mode v2](https://developers.google.
 
 Developers can extend this list via the `dc_swp_gcm_v2_aware_services` filter.
 
-### CMP cookie support (for all other services)
+### Consent Gate — WP Consent API
 
-| Plugin | Cookie read | GCM v2 update signal |
-|---|---|---|
-| Complianz | `cmplz_marketing = allow` | ✅ Native |
-| CookieYes | `cookieyes-consent` contains `marketing:yes` | ✅ Native |
-| Cookiebot (Cybot) | `CookieConsent` contains `marketing:true` | ✅ Native |
-| Cookie Information | `CookieInformationConsent` JSON consents array | ✅ Native |
-| Borlabs Cookie | `borlabs-cookie` JSON `.consents.marketing` | ✅ Native |
-| WebToffee GDPR | `cookie_cat_marketing = accept` | ✅ Native |
-| Moove GDPR | `moove_gdpr_popup` JSON `.thirdparty = 1` | ⚠️ Premium plan |
-| Cookie Notice (dFactory) | `cookie_notice_accepted = true` | ❌ Fallback only |
+The optional **Consent Gate** delegates consent decisions to the [WP Consent API](https://wordpress.org/plugins/wp-consent-api/) standard. When enabled:
 
-If no supported CMP cookie is found, scripts remain `type="text/plain"` — safe default.
+- Scripts are output as `type="text/plain"` with a `data-wp-consent-category` attribute until the visitor grants consent for that category.
+- A consent-change listener (`consent-gate.js`) dynamically unblocks scripts when consent is granted, swapping `text/plain` to `text/partytown`.
+- Each inline script block has its own configurable consent category (marketing, statistics, statistics-anonymous, functional, preferences).
+- The Script List default category is configurable in the admin settings.
+- Any CMP that integrates with the WP Consent API is automatically supported — no per-CMP cookie reading code is required.
 
 ---
 
@@ -97,8 +93,9 @@ HTML page caching        W3 Total Cache (or PHP fallback)
 - **No npm / no build step** — Partytown lib files are vendored in `assets/partytown/`
 - **Auto-detect** — one-click scan in admin discovers external scripts on your homepage
 - **Pattern-based** — enter one URL pattern per line; full URLs and partial patterns both work
-- **GCM v2 per-service consent gate** — GCM v2-aware services always run in the worker and self-restrict; Meta Pixel uses LDU; all other services gate on the CMP marketing cookie
-- **Consent Architecture panel** — collapsible admin panel shows GCM v2-aware services, Meta LDU, and CMP compatibility badges (shields.io SVGs + offline CSS fallback)
+- **Consent Gate (WP Consent API)** — optional toggle blocks scripts as `text/plain` until the visitor grants consent via any CMP that integrates with the WP Consent API; per-script consent category support
+- **GCM v2 per-service gate** — GCM v2-aware services always run in the worker and self-restrict; Meta Pixel uses LDU
+- **Consent Architecture panel** — collapsible admin panel shows GCM v2-aware services and Meta LDU badges (shields.io SVGs + offline CSS fallback)
 - **Bot-safe** — bots receive no Partytown JS (clean HTML for crawlers)
 - **Cart/checkout safe** — Partytown disabled on cart, checkout, and account pages
 - **Bilingual admin** — English default, Danish auto-detected from WP locale
@@ -172,7 +169,7 @@ When the administrator adds a service's URL pattern to the Partytown Script List
 
 **Scripts are only loaded when:**
 1. The administrator has added the service's URL pattern to the Partytown Script List or Inline Script Blocks.
-2. The visitor has a valid marketing-consent cookie from a supported CMP. Without consent, all configured scripts are blocked (`type="text/plain"`).
+2. If the **Consent Gate** is enabled, the visitor has granted consent for the script's category via the WP Consent API. Without consent, scripts are blocked (`type="text/plain"`). If the Consent Gate is disabled (default), scripts load unconditionally.
 
 The plugin ships pre-configured forwarding for these officially tested services:
 
@@ -192,6 +189,13 @@ The administrator may configure additional services via the Partytown Script Lis
 ---
 
 ## Changelog
+
+### 1.9.0
+- Feature: **Consent Gate (WP Consent API)** — optional admin toggle that delegates consent decisions to the WP Consent API standard. When enabled, scripts are output as `type="text/plain"` with `data-wp-consent-category` until consent is granted. A client-side listener (`consent-gate.js`) dynamically unblocks scripts by swapping `text/plain` to `text/partytown`. When disabled (default), all scripts load unconditionally — no breaking change for existing installs.
+- Feature: Per-script **consent category** — each inline script block can be assigned a WP Consent API category (marketing, statistics, statistics-anonymous, functional, preferences). The Script List uses a configurable default category.
+- Feature: Hostname-to-category mapping — known services are automatically assigned the correct consent category (e.g. Hotjar → statistics, Intercom → functional).
+- Removed: 8 CMP-specific cookie detection functions (Complianz, CookieYes, Cookiebot, Cookie Information, Borlabs Cookie, WebToffee GDPR, Moove GDPR, Cookie Notice). Consent is now handled exclusively via the WP Consent API. Any CMP that integrates with the WP Consent API is automatically supported.
+- Removed: CMP compatibility badges from the admin Consent Architecture panel.
 
 ### 1.8.2
 - Fix: PHPCS — resolved 78 auto-fixable code style violations (function brace spacing, inline comment spacing, single-line associative arrays, double-quote usage, scope indentation). Zero errors/warnings remain under the WordPress coding standard.

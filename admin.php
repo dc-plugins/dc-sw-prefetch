@@ -28,7 +28,7 @@ function dc_swp_str( $key ) {
 			'page_title'                  => 'SW Prefetch Indstillinger',
 			'saved'                       => 'Indstillinger gemt!',
 			'info_title'                  => 'Partytown Integration',
-			'info_body'                   => 'I modsætning til async/defer — som kun forsinker indlæsning, men stadig kører scripts på main-tråden — afvikler Partytown tredjeparts-scripts i en Web Worker. Browser main-tråden berøres aldrig: ingen layout-jank, ingen TBT-straf, ingen konkurrence med brugerinteraktioner. Officielt testede og kompatible tjenester: Google Tag Manager, Facebook Pixel, HubSpot, Intercom, Klaviyo, TikTok Pixel og Mixpanel. Scripts offloades kun efter marketingsamtykke — CMP-cookies fra Complianz, Cookiebot, CookieYes og andre læses automatisk.',
+			'info_body'                   => 'I modsætning til async/defer — som kun forsinker indlæsning, men stadig kører scripts på main-tråden — afvikler Partytown tredjeparts-scripts i en Web Worker. Browser main-tråden berøres aldrig: ingen layout-jank, ingen TBT-straf, ingen konkurrence med brugerinteraktioner. Officielt testede og kompatible tjenester: Google Tag Manager, Facebook Pixel, HubSpot, Intercom, Klaviyo, TikTok Pixel og Mixpanel. Aktivér Samtykkeporten for at blokere scripts indtil besøgende har givet samtykke via WP Consent API.',
 			'sw_label'                    => 'Aktiver Partytown',
 			'sw_desc'                     => 'Aktiver Partytown service worker til offloading af tredjeparts-scripts og viewport-prefetch. Deaktiveret = diagnostiktilstand: scripts afvikles direkte på main-tråden med defer (ingen Web Worker, ingen samtykke-gating).',
 			'preload_label'               => 'Viewport Preloading',
@@ -48,7 +48,7 @@ function dc_swp_str( $key ) {
 			'benefit_5'                   => 'Automatiske opdateringer via GitHub Actions workflow',
 			'benefit_6'                   => 'WP emoji-scripts fjernet — sparer et DNS-opslag og ~76 KB',
 			'benefit_7'                   => 'Tredjeparts-scripts auto-detekteres og offloades til Partytown med ét klik',
-			'benefit_8'                   => 'Samtykke-bevidst: scripts blokeres (text/plain) indtil marketingcookien er sat — understøtter Complianz, Cookiebot, CookieYes, Borlabs, Cookie Notice, WebToffee, Cookie Information og Moove GDPR',
+			'benefit_8'                   => 'Samtykke-bevidst: valgfri Samtykkeport blokerer scripts (text/plain) indtil samtykke er givet via WP Consent API',
 			'partytown_scripts_label'     => 'Partytown Script Liste',
 			'partytown_scripts_desc'      => 'Angiv én URL eller søgestreng per linje. Matcher mod script src. Kun officielt testede tjenester anbefales: <strong>HubSpot</strong>, <strong>Intercom</strong>, <strong>Klaviyo</strong>, <strong>TikTok Pixel</strong>, <strong>Mixpanel</strong>, <strong>FullStory</strong> (<code>fullstory.com</code>). <a href="https://partytown.qwik.dev/common-services/" target="_blank" rel="noopener">Fuld liste ↗</a>',
 			'partytown_autodetect_btn'    => '🔍 Auto-Detekter Tredjeparts-Scripts',
@@ -83,14 +83,17 @@ function dc_swp_str( $key ) {
 			'meta_ldu_desc'               => 'Meta/Facebook Pixel understøtter ikke Google Consent Mode v2 — det bruger sin egen Limited Data Use (LDU) samtykke-API. Injicerer et fbq-stub + <code>fbq("dataProcessingOptions",["LDU"],0,0)</code> i &lt;head&gt; inden Partytown og Facebook Pixel-scripts indlæses. Meta Pixel afvikles altid som <code>text/partytown</code> — Meta anvender LDU-begrænsninger internt (ingen data brugt til annoncemålretning). Din CMP behøver ikke blokere scriptet via <code>text/plain</code>. Kræver at Meta Pixel er tilføjet via Partytown Script Liste eller en Inline Script Blok.',
 			'debug_label'                 => 'Partytown Debug-tilstand',
 			'debug_desc'                  => 'Indlæser den uminificeret debug-version af Partytown og aktiverer alle log-flag. Log-output sendes via <code>console.debug()</code> — husk at aktivere <strong>Verbose</strong>-niveauet i DevTools-konsollen (standardfilter skjuler det). Worker-logge fra web workeren vises kun i <strong>Atomics Bridge</strong>-tilstand, som kræver at <em>COI-headers</em> er aktiveret ovenfor. <strong>Brug kun i staging eller lokalt udviklingsmiljø — åbner verbose-logging for alle besøgende.</strong>',
-			'consent_info_toggle'         => 'Samtykke-arkitektur & CMP-kompatibilitet',
+			'consent_info_toggle'         => 'Samtykke-arkitektur & GCM v2-tjenester',
 			'consent_info_services_title' => 'GCM v2-bevidste tjenester',
 			'consent_info_services_desc'  => 'Disse tjenester læser selv GCM v2-samtykketilstanden og begrænser dataindsamling internt — ingen text/plain-blokering er nødvendig, når GCM v2 er aktivt.',
 			'consent_info_meta_title'     => 'Meta Pixel — separat LDU-mekanisme',
 			'consent_info_meta_desc'      => 'Meta Pixel understøtter ikke GCM v2. Aktiver Meta Pixel LDU nedenfor — Meta anvender LDU-begrænsninger internt.',
-			'consent_info_cmp_title'      => 'CMP-kompatibilitet',
-			'consent_info_cmp_desc'       => 'Disse CMPs fyrer gtag(\'consent\',\'update\',…) nativt — ingen Google Tag Manager nødvendig. Aktivér GCM v2-tilstand i din CMPs egne indstillinger.',
-			'consent_info_cmp_note'       => '⚠️ Cookie Notice (gratis) kan ikke sende GCM v2-opdateringssignaler. Falder automatisk tilbage til detektion af marketingsamtykke-cookie.',
+			'consent_gate_label'          => 'Samtykkeport (WP Consent API)',
+			'consent_gate_desc'           => 'Når aktiveret, blokeres scripts som <code>type="text/plain"</code> indtil besøgende har givet samtykke via WP Consent API. Kræver et CMP-plugin der integrerer med <a href="https://wordpress.org/plugins/wp-consent-api/" target="_blank" rel="noopener">WP Consent API</a>. Når deaktiveret (standard), indlæses alle scripts ubetinget.',
+			'consent_gate_notice'         => '⚠️ Samtykkeport er aktiveret, men WP Consent API-pluginnet er ikke installeret. Scripts vil blive blokeret for alle besøgende.',
+			'script_list_category_label'  => 'Script Liste standardkategori',
+			'script_list_category_desc'   => 'WP Consent API-kategorien der bruges til at gatekeeper Script Liste-poster.',
+			'block_category_label'        => 'Samtykke-kategori',
 			'gcm_conflict_checking'       => 'Søger efter GCM v2-konflikter…',
 			'gcm_conflict_title'          => '⚠ Eksisterende GCM v2-stub fundet',
 			'gcm_conflict_body'           => 'Et andet plugin eller tema på dit site outputter allerede et gtag(\'consent\',\'default\',...)-kald. To GCM v2-stubs kan ikke køre samtidig — hvem der fyrer sidst vinder, og det er ikke-deterministisk. Deaktiver Google Consent Mode i det andet plugin, inden du aktiverer det her.',
@@ -137,7 +140,7 @@ function dc_swp_str( $key ) {
 			'page_title'                  => 'SW Prefetch Settings',
 			'saved'                       => 'Settings saved!',
 			'info_title'                  => 'Partytown Integration',
-			'info_body'                   => 'Unlike async/defer — which only delay loading but still execute scripts on the main thread — Partytown runs third-party scripts entirely in a Web Worker. The browser main thread is never touched: no layout jank, no TBT penalty, no competition with user interactions. Officially tested compatible services: Google Tag Manager, Facebook Pixel, HubSpot, Intercom, Klaviyo, TikTok Pixel, and Mixpanel. Scripts are offloaded only after marketing consent — CMP cookies from Complianz, Cookiebot, CookieYes, and others are read automatically.',
+			'info_body'                   => 'Unlike async/defer — which only delay loading but still execute scripts on the main thread — Partytown runs third-party scripts entirely in a Web Worker. The browser main thread is never touched: no layout jank, no TBT penalty, no competition with user interactions. Officially tested compatible services: Google Tag Manager, Facebook Pixel, HubSpot, Intercom, Klaviyo, TikTok Pixel, and Mixpanel. Enable the Consent Gate to block scripts until visitor consent is granted via the WP Consent API.',
 			'sw_label'                    => 'Enable Partytown',
 			'sw_desc'                     => 'Activate Partytown service worker for third-party script offloading and viewport prefetch. When disabled, scripts render directly on the main thread with defer — useful for diagnosing Partytown issues (no Web Worker, no consent gating).',
 			'preload_label'               => 'Viewport Preloading',
@@ -157,7 +160,7 @@ function dc_swp_str( $key ) {
 			'benefit_5'                   => 'Automatic updates via GitHub Actions workflow',
 			'benefit_6'                   => 'WP emoji scripts removed — saves a DNS lookup and ~76 KB',
 			'benefit_7'                   => 'Third-party scripts auto-detected and offloaded to Partytown in one click',
-			'benefit_8'                   => 'Consent-aware: scripts blocked (text/plain) until marketing consent cookie is set — supports Complianz, Cookiebot, CookieYes, Borlabs, Cookie Notice, WebToffee, Cookie Information & Moove GDPR',
+			'benefit_8'                   => 'Consent-aware: optional Consent Gate blocks scripts (text/plain) until consent is granted via the WP Consent API',
 			'partytown_scripts_label'     => 'Partytown Script List',
 			'partytown_scripts_desc'      => 'Enter one URL or pattern per line. Matched against the script <code>src</code> attribute. Only officially tested services are recommended: <strong>HubSpot</strong>, <strong>Intercom</strong>, <strong>Klaviyo</strong>, <strong>TikTok Pixel</strong>, <strong>Mixpanel</strong>, <strong>FullStory</strong> (<code>fullstory.com</code>). <a href="https://partytown.qwik.dev/common-services/" target="_blank" rel="noopener">Full list ↗</a>',
 			'partytown_autodetect_btn'    => '🔍 Auto-Detect Third-Party Scripts',
@@ -192,14 +195,17 @@ function dc_swp_str( $key ) {
 			'meta_ldu_desc'               => 'Meta/Facebook Pixel does not support Google Consent Mode v2 — it uses its own Limited Data Use (LDU) consent API. Injects an fbq stub + <code>fbq("dataProcessingOptions",["LDU"],0,0)</code> in &lt;head&gt; before Partytown and Facebook Pixel scripts load. The Meta Pixel always runs as <code>text/partytown</code> — Meta applies LDU restrictions internally (data not used for ad targeting). Your CMP does not need to block the script via <code>text/plain</code>. Requires Meta Pixel to be added via the Partytown Script List or an Inline Script Block.',
 			'debug_label'                 => 'Partytown Debug Mode',
 			'debug_desc'                  => 'Loads the unminified debug build of Partytown and enables all log flags. Output is emitted via <code>console.debug()</code> — you must enable the <strong>Verbose</strong> level in the DevTools Console filter (hidden by default). Worker-side logs only appear in <strong>Atomics Bridge</strong> mode, which requires the <em>COI Headers</em> option above to be enabled. <strong>Use only in staging or local development — enables verbose logging for all visitors.</strong>',
-			'consent_info_toggle'         => 'Consent Architecture & CMP Compatibility',
+			'consent_info_toggle'         => 'Consent Architecture & GCM v2 Services',
 			'consent_info_services_title' => 'GCM v2-Aware Services',
 			'consent_info_services_desc'  => 'These services natively read the GCM v2 consent state and self-restrict data collection — no text/plain blocking is needed when GCM v2 is active.',
 			'consent_info_meta_title'     => 'Meta Pixel — Separate LDU Mechanism',
 			'consent_info_meta_desc'      => 'Meta Pixel does not implement GCM v2. Enable Meta Pixel LDU below — Meta applies Limited Data Use restrictions internally.',
-			'consent_info_cmp_title'      => 'CMP Compatibility',
-			'consent_info_cmp_desc'       => 'These CMPs fire gtag(\'consent\',\'update\',…) natively — no Google Tag Manager needed. Enable GCM v2 mode in your CMP\'s own settings.',
-			'consent_info_cmp_note'       => '⚠️ Cookie Notice (free) cannot fire GCM v2 update signals. Falls back to marketing consent cookie detection automatically.',
+			'consent_gate_label'          => 'Consent Gate (WP Consent API)',
+			'consent_gate_desc'           => 'When enabled, scripts are blocked as <code>type="text/plain"</code> until the visitor grants consent via WP Consent API. Requires a CMP plugin that integrates with <a href="https://wordpress.org/plugins/wp-consent-api/" target="_blank" rel="noopener">WP Consent API</a>. When disabled (default), all scripts load unconditionally.',
+			'consent_gate_notice'         => '⚠️ Consent Gate is enabled but the WP Consent API plugin is not installed. Scripts will be blocked for all visitors.',
+			'script_list_category_label'  => 'Script List default category',
+			'script_list_category_desc'   => 'WP Consent API category used to gate Script List entries.',
+			'block_category_label'        => 'Consent category',
 			'gcm_conflict_checking'       => 'Checking for GCM v2 conflicts…',
 			'gcm_conflict_title'          => '⚠ Existing GCM v2 stub detected',
 			'gcm_conflict_body'           => 'Another plugin or theme on your site already outputs a gtag(\'consent\',\'default\',...) call. Running two GCM v2 stubs simultaneously causes unpredictable consent behaviour — whichever fires last wins, non-deterministically. Disable Google Consent Mode in the other plugin before enabling it here.',
@@ -455,6 +461,7 @@ function dc_swp_sanitize_inline_scripts_option( $value ) {
 			'code'            => dc_swp_sanitize_js_code( $blk['code'] ?? '' ),
 			'enabled'         => ! empty( $blk['enabled'] ),
 			'force_partytown' => ! empty( $blk['force_partytown'] ),
+			'category'        => in_array( $blk['category'] ?? '', array( 'marketing', 'statistics', 'statistics-anonymous', 'functional', 'preferences' ), true ) ? $blk['category'] : 'marketing',
 		);
 	}
 	return wp_json_encode( $sanitized );
@@ -477,6 +484,8 @@ function dc_swp_register_settings() {
 	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_url_passthrough', array( 'sanitize_callback' => 'sanitize_text_field' ) );
 	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_ads_data_redaction', array( 'sanitize_callback' => 'sanitize_text_field' ) );
 	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_meta_ldu', array( 'sanitize_callback' => 'sanitize_text_field' ) );
+	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_consent_gate', array( 'sanitize_callback' => 'sanitize_text_field' ) );
+	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_script_list_category', array( 'sanitize_callback' => 'sanitize_text_field' ) );
 	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_debug_mode', array( 'sanitize_callback' => 'sanitize_text_field' ) );
 	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_gtm_mode', array( 'sanitize_callback' => 'sanitize_text_field' ) );
 	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_gtm_id', array( 'sanitize_callback' => 'sanitize_text_field' ) );
@@ -513,6 +522,7 @@ function dc_swp_admin_page_html() {
 						'code'            => dc_swp_sanitize_js_code( $blk['code'] ?? '' ),
 						'enabled'         => ! empty( $blk['enabled'] ),
 						'force_partytown' => ! empty( $blk['force_partytown'] ),
+						'category'        => in_array( $blk['category'] ?? '', array( 'marketing', 'statistics', 'statistics-anonymous', 'functional', 'preferences' ), true ) ? $blk['category'] : 'marketing',
 					);
 				}
 			}
@@ -523,6 +533,10 @@ function dc_swp_admin_page_html() {
 		update_option( 'dc_swp_url_passthrough', isset( $_POST['dc_swp_url_passthrough'] ) ? 'yes' : 'no' );
 		update_option( 'dc_swp_ads_data_redaction', isset( $_POST['dc_swp_ads_data_redaction'] ) ? 'yes' : 'no' );
 		update_option( 'dc_swp_meta_ldu', isset( $_POST['dc_swp_meta_ldu'] ) ? 'yes' : 'no' );
+		update_option( 'dc_swp_consent_gate', isset( $_POST['dc_swp_consent_gate'] ) ? 'yes' : 'no' );
+		$_valid_cats = array( 'marketing', 'statistics', 'statistics-anonymous', 'functional', 'preferences' );
+		$_cat_raw    = sanitize_text_field( wp_unslash( $_POST['dc_swp_script_list_category'] ?? 'marketing' ) );
+		update_option( 'dc_swp_script_list_category', in_array( $_cat_raw, $_valid_cats, true ) ? $_cat_raw : 'marketing' );
 		update_option( 'dc_swp_debug_mode', isset( $_POST['dc_swp_debug_mode'] ) ? 'yes' : 'no' );
 		$_valid_gtm_modes = array( 'off', 'own', 'detect', 'managed' );
 		$_gtm_mode_raw    = sanitize_text_field( wp_unslash( $_POST['dc_swp_gtm_mode'] ?? 'off' ) );
@@ -539,6 +553,8 @@ function dc_swp_admin_page_html() {
 	$url_passthrough    = get_option( 'dc_swp_url_passthrough', 'no' ) === 'yes';
 	$ads_data_redaction = get_option( 'dc_swp_ads_data_redaction', 'no' ) === 'yes';
 	$meta_ldu           = get_option( 'dc_swp_meta_ldu', 'no' ) === 'yes';
+	$consent_gate       = get_option( 'dc_swp_consent_gate', 'no' ) === 'yes';
+	$script_list_cat    = get_option( 'dc_swp_script_list_category', 'marketing' );
 	$debug_mode         = get_option( 'dc_swp_debug_mode', 'no' ) === 'yes';
 	$gtm_mode           = get_option( 'dc_swp_gtm_mode', 'off' );
 	$partytown_scripts  = get_option( 'dc_swp_partytown_scripts', '' );
@@ -562,7 +578,7 @@ function dc_swp_admin_page_html() {
 			update_option( 'dc_swp_inline_scripts', wp_json_encode( $inline_script_blocks ) );
 		}
 	}
-	$footer_credit    = get_option( 'dc_swp_footer_credit', 'no' ) === 'yes';
+	$footer_credit = get_option( 'dc_swp_footer_credit', 'no' ) === 'yes';
 
 	// Read vendored Partytown version from package.json using WP_Filesystem.
 	$pkg_json   = plugin_dir_path( __FILE__ ) . 'package.json';
@@ -793,16 +809,6 @@ function dc_swp_admin_page_html() {
 						array( 'LinkedIn Insight', 'GCM v2', 'blue', $_si . 'LinkedIn%20Insight-GCM%20v2-0075ca' . $_sq ),
 						array( 'TikTok Pixel', 'GCM v2', 'blue', $_si . 'TikTok%20Pixel-GCM%20v2-0075ca' . $_sq ),
 					);
-					$_cmp   = array(
-						array( 'Complianz', 'native GCM v2', 'green', $_si . 'Complianz-native%20GCM%20v2-3cb034' . $_sq ),
-						array( 'CookieYes', 'native GCM v2', 'green', $_si . 'CookieYes-native%20GCM%20v2-3cb034' . $_sq ),
-						array( 'Cookiebot', 'native GCM v2', 'green', $_si . 'Cookiebot-native%20GCM%20v2-3cb034' . $_sq ),
-						array( 'Cookie Information', 'native GCM v2', 'green', $_si . 'Cookie%20Information-native%20GCM%20v2-3cb034' . $_sq ),
-						array( 'Borlabs Cookie', 'native GCM v2', 'green', $_si . 'Borlabs%20Cookie-native%20GCM%20v2-3cb034' . $_sq ),
-						array( 'WebToffee GDPR', 'native GCM v2', 'green', $_si . 'WebToffee%20GDPR-native%20GCM%20v2-3cb034' . $_sq ),
-						array( 'Moove GDPR', 'GCM v2 premium', 'amber', $_si . 'Moove%20GDPR-GCM%20v2%20premium-e08a00' . $_sq ),
-						array( 'Cookie Notice', 'fallback only', 'red', $_si . 'Cookie%20Notice-fallback%20only-e05d44' . $_sq ),
-					);
 					// phpcs:enable
 					?>
 					<details class="dc-swp-consent-info">
@@ -823,16 +829,6 @@ function dc_swp_admin_page_html() {
 							<div class="dc-swp-badges">
 								<?php echo $_badge( 'Meta Pixel', 'LDU API', 'meta', $_si . 'Meta%20Pixel-LDU%20API-1877f2' . $_sq ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 							</div>
-
-							<p class="dc-swp-info-section"><?php echo esc_html( dc_swp_str( 'consent_info_cmp_title' ) ); ?></p>
-							<p class="description" style="margin-bottom:6px"><?php echo esc_html( dc_swp_str( 'consent_info_cmp_desc' ) ); ?></p>
-							<div class="dc-swp-badges">
-								<?php
-								foreach ( $_cmp as $_b ) {
-									echo $_badge( $_b[0], $_b[1], $_b[2], $_b[3] ); } // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped 
-								?>
-							</div>
-							<p class="description" style="margin-top:6px;font-style:italic"><?php echo esc_html( dc_swp_str( 'consent_info_cmp_note' ) ); ?></p>
 
 						</div>
 					</details>
@@ -864,6 +860,40 @@ function dc_swp_admin_page_html() {
 							<span class="pwa-slider"></span>
 						</label>
 						<p class="description"><?php echo wp_kses_post( dc_swp_str( 'meta_ldu_desc' ) ); ?></p>
+					</td>
+				</tr>
+				<tr valign="top">
+					<th scope="row"><?php echo esc_html( dc_swp_str( 'consent_gate_label' ) ); ?></th>
+					<td>
+						<label class="pwa-toggle">
+							<input type="checkbox" id="dc_swp_consent_gate" name="dc_swp_consent_gate" value="yes" <?php checked( $consent_gate, true ); ?>>
+							<span class="pwa-slider"></span>
+						</label>
+						<p class="description"><?php echo wp_kses_post( dc_swp_str( 'consent_gate_desc' ) ); ?></p>
+						<?php if ( $consent_gate && ! function_exists( 'wp_has_consent' ) ) : ?>
+							<div class="notice notice-warning inline" style="margin-top:8px;padding:8px 12px">
+								<p><?php echo esc_html( dc_swp_str( 'consent_gate_notice' ) ); ?></p>
+							</div>
+						<?php endif; ?>
+					</td>
+				</tr>
+				<tr valign="top" id="dc-swp-script-list-cat-row"<?php echo ! $consent_gate ? ' style="display:none"' : ''; ?>>
+					<th scope="row"><?php echo esc_html( dc_swp_str( 'script_list_category_label' ) ); ?></th>
+					<td>
+						<select name="dc_swp_script_list_category">
+							<?php
+							$_cat_options = array( 'marketing', 'statistics', 'statistics-anonymous', 'functional', 'preferences' );
+							foreach ( $_cat_options as $_co ) {
+								printf(
+									'<option value="%s"%s>%s</option>',
+									esc_attr( $_co ),
+									selected( $script_list_cat, $_co, false ),
+									esc_html( ucfirst( $_co ) )
+								);
+							}
+							?>
+						</select>
+						<p class="description"><?php echo esc_html( dc_swp_str( 'script_list_category_desc' ) ); ?></p>
 					</td>
 				</tr>
 				<tr valign="top">
@@ -935,19 +965,21 @@ function dc_swp_admin_page_html() {
 		'dc-swp-admin-script',
 		'dcSwpAdminData',
 		array(
-			'nonce'            => wp_create_nonce( 'dc_swp_detect_nonce' ),
-			'noScriptsMsg'     => dc_swp_str( 'partytown_autodetect_none' ),
-			'unknownMsg'       => dc_swp_str( 'partytown_autodetect_warn' ),
-			'knownMsg'         => dc_swp_str( 'partytown_autodetect_known' ),
-			'noBlocksMsg'      => dc_swp_str( 'inline_scripts_empty' ),
-			'delMsg'           => dc_swp_str( 'inline_scripts_del_confirm' ),
-			'blocks'           => $inline_script_blocks,
-			'knownServices'    => dc_swp_get_known_services(),
-			'badgeSupported'   => dc_swp_str( 'badge_supported' ),
-			'badgeUnsupported' => dc_swp_str( 'badge_unsupported' ),
-			'forcePtLabel'     => dc_swp_str( 'force_pt_label' ),
-			'forcePtNotice'    => dc_swp_str( 'force_pt_notice' ),
-			'gtm'              => array(
+			'nonce'              => wp_create_nonce( 'dc_swp_detect_nonce' ),
+			'noScriptsMsg'       => dc_swp_str( 'partytown_autodetect_none' ),
+			'unknownMsg'         => dc_swp_str( 'partytown_autodetect_warn' ),
+			'knownMsg'           => dc_swp_str( 'partytown_autodetect_known' ),
+			'noBlocksMsg'        => dc_swp_str( 'inline_scripts_empty' ),
+			'delMsg'             => dc_swp_str( 'inline_scripts_del_confirm' ),
+			'blocks'             => $inline_script_blocks,
+			'knownServices'      => dc_swp_get_known_services(),
+			'badgeSupported'     => dc_swp_str( 'badge_supported' ),
+			'badgeUnsupported'   => dc_swp_str( 'badge_unsupported' ),
+			'forcePtLabel'       => dc_swp_str( 'force_pt_label' ),
+			'forcePtNotice'      => dc_swp_str( 'force_pt_notice' ),
+			'blockCategoryLabel' => dc_swp_str( 'block_category_label' ),
+			'consentCategories'  => array( 'marketing', 'statistics', 'statistics-anonymous', 'functional', 'preferences' ),
+			'gtm'                => array(
 				'valid'        => dc_swp_str( 'gtm_id_valid' ),
 				'invalid'      => dc_swp_str( 'gtm_id_invalid' ),
 				'detected'     => dc_swp_str( 'gtm_detect_found' ),
@@ -958,7 +990,7 @@ function dc_swp_admin_page_html() {
 				'active'       => dc_swp_str( 'gtm_detect_active' ),
 				'saved'        => dc_swp_str( 'gtm_wizard_saved' ),
 			),
-			'gcm'              => array(
+			'gcm'                => array(
 				'checking'          => dc_swp_str( 'gcm_conflict_checking' ),
 				'conflictTitle'     => dc_swp_str( 'gcm_conflict_title' ),
 				'conflictBody'      => dc_swp_str( 'gcm_conflict_body' ),

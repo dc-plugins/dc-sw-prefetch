@@ -28,7 +28,13 @@ function dc_swp_uninstall() {
 		'dc_swp_coi_headers',
 		'dc_swp_consent_mode',
 		'dc_swp_meta_ldu',
+		'dc_swp_consent_gate',
+		'dc_swp_script_list_category',
+		'dc_swp_url_passthrough',
+		'dc_swp_ads_data_redaction',
 		'dc_swp_debug_mode',
+		'dc_swp_gtm_mode',
+		'dc_swp_gtm_id',
 		// Legacy names (pre-1.6.0) — remove if migration never ran.
 		'dampcig_pwa_sw_enabled',
 		'dampcig_pwa_footer_credit',

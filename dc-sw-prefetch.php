@@ -6,7 +6,7 @@
  * Plugin Name: DC Script Worker Proxy
  * Plugin URI:  https://github.com/dc-plugins/dc-sw-prefetch
  * Description: Offloads third-party scripts (GTM, Pixel, Analytics…) to a Web Worker via Partytown with consent-aware loading. Fully vendored — no build step required.
- * Version:     1.8.2
+ * Version:     1.9.0
  * Author:      lennilg
  * Author URI:  https://github.com/lennilg
  * License:           GPL-2.0-or-later
@@ -168,313 +168,168 @@ endif; // End dc_swp_is_bot_request check.
 
 
 // ============================================================
-// CONSENT DETECTION
-// Reads the first-party cookies set by the most common WordPress
-// consent management plugins. Three granular helpers map to the
-// GCM v2 consent signals used by dc_swp_inject_consent_mode_default():
+// CONSENT GATE — WP Consent API
 //
-// dc_swp_has_marketing_consent()   → ad_storage / ad_user_data / ad_personalization
-// dc_swp_has_statistics_consent()  → analytics_storage
-// dc_swp_has_preferences_consent() → personalization_storage
+// All consent decisions are delegated to the WP Consent API plugin.
+// The admin "Consent Gate" toggle (dc_swp_consent_gate) controls
+// whether scripts are gated at all:
+// • OFF (default): scripts always load as text/partytown — no
+// consent check is performed. Suitable for sites without a
+// CMP or where the CMP handles blocking externally.
+// • ON: scripts are blocked (text/plain) until the WP Consent
+// API reports consent for the required category.
 //
-// Opt-out mode: some CMPs (Complianz when configured for opt-out regions,
-// Cookie Notice) grant consent by default unless the visitor has explicitly
-// denied it. dc_swp_is_optout_cmp_active() detects this pattern so the
-// helpers can return true when no explicit denial cookie is present.
+// Each service is mapped to a WP Consent API category via
+// dc_swp_get_service_category(). The Script List uses a global
+// default category (dc_swp_script_list_category). Inline Script
+// Blocks carry a per-block category field.
 //
-// Covers:
-// Complianz         — cmplz_marketing / cmplz_statistics / cmplz_preferences cookies
-// (opt-out: cmplz_<category> absent = granted; 'deny' = denied)
-// CookieYes         — cookieyes-consent: "marketing:yes" / "analytics:yes" / "preferences:yes"
-// Borlabs Cookie    — borlabs-cookie JSON .consents.marketing / .statistics / .preferences
-// Cookie Notice     — cookie_notice_accepted = "true" (all-or-nothing; applies to all)
-// WebToffee GDPR    — cookie_cat_marketing / cookie_cat_analytics
-// Cookiebot (Cybot) — CookieConsent: "marketing:true" / "statistics:true" / "preferences:true"
-// Cookie Info       — CookieInformationConsent consents_approved[]: "cookie_cat_marketing" / "cookie_cat_statistic" / "cookie_cat_functional"
-// Moove GDPR        — moove_gdpr_popup JSON .thirdparty / .analytics
+// Self-managing services bypass the gate entirely:
+// • GCM v2-aware services (when GCM v2 is enabled)
+// • Meta Pixel (when LDU is enabled)
 // ============================================================
-
-/**
- * Return true when the active CMP is configured in opt-out mode,
- * meaning visitors have consent by default and must actively deny.
- *
- * Detects:
- *  - Complianz opt-out: cmplz_banner_status cookie === 'dismissed' or
- *    cmplz_banner_status absent but cmplz_<category> cookies present (opt-out
- *    sites typically don't show a blocking banner).
- *  - Cookie Notice: this plugin is always opt-in-for-all or block-all;
- *    presence of cookie_notice_accepted indicates the user saw it.
- *  - WebToffee: cookie_cat_functional present without explicit cookie_cat_marketing
- *    may indicate opt-out flow — too ambiguous, not detected here.
- *
- * The most reliable opt-out signal is Complianz's cmplz_consent_type
- * cookie which contains the consenttype for the current visitor.
- *
- * @return bool
- */
-function dc_swp_is_optout_cmp_active() {
-	// Complianz sets a cmplz_consenttype cookie containing e.g. "optin" or "optout".
-	if ( isset( $_COOKIE['cmplz_consenttype'] ) ) {
-		$ct = sanitize_text_field( wp_unslash( $_COOKIE['cmplz_consenttype'] ) );
-		return str_contains( $ct, 'optout' );
-	}
-
-	// CookieYes indicates opt-out via "type:lss" or "type:no-consent" in the consent string.
-	if ( isset( $_COOKIE['cookieyes-consent'] ) ) {
-		$cy = sanitize_text_field( wp_unslash( $_COOKIE['cookieyes-consent'] ) );
-		if ( str_contains( $cy, 'type:lss' ) || str_contains( $cy, 'type:no-consent' ) ) {
-			return true;
-		}
-	}
-
-	return false;
-}
-
-/**
- * Return true if the current visitor has granted marketing consent
- * according to any of the common CMP cookie conventions.
- */
-function dc_swp_has_marketing_consent() {
-	// WP Consent API (optional integration) — delegates to the standardized API when active.
-	// CMPs that integrate with WP Consent API correctly handle opt-in/opt-out and write the
-	// wp_consent_marketing cookie; on sites without the API our direct cookie reads take over.
-	if ( function_exists( 'wp_has_consent' ) ) {
-		return wp_has_consent( 'marketing' );
-	}
-
-	// Complianz — opt-out mode: absent cookie means granted; explicit 'deny' means denied.
-	if ( dc_swp_is_optout_cmp_active() ) {
-		if ( ! isset( $_COOKIE['cmplz_marketing'] ) ) {
-			return true;
-		}
-		if ( isset( $_COOKIE['cmplz_marketing'] ) && 'deny' !== $_COOKIE['cmplz_marketing'] ) {
-			return true;
-		}
-		return false;
-	}
-
-	// Complianz — opt-in mode.
-	if ( isset( $_COOKIE['cmplz_marketing'] ) && 'allow' === $_COOKIE['cmplz_marketing'] ) {
-		return true;
-	}
-
-	// CookieYes — cookie value looks like "consent:yes,marketing:yes,analytics:yes,...".
-	if ( isset( $_COOKIE['cookieyes-consent'] ) ) {
-		$cy = sanitize_text_field( wp_unslash( $_COOKIE['cookieyes-consent'] ) );
-		if ( str_contains( $cy, 'marketing:yes' ) ) {
-			return true;
-		}
-	}
-
-	// Borlabs Cookie — JSON-encoded object; .consents.marketing === true.
-	if ( isset( $_COOKIE['borlabs-cookie'] ) ) {
-		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON decoded for boolean key check only; not used in HTML output.
-		$raw = json_decode( wp_unslash( $_COOKIE['borlabs-cookie'] ), true );
-		if ( ! empty( $raw['consents']['marketing'] ) ) {
-			return true;
-		}
-	}
-
-	// Cookie Notice & Compliance for GDPR — single all-or-nothing cookie.
-	if ( isset( $_COOKIE['cookie_notice_accepted'] ) && 'true' === $_COOKIE['cookie_notice_accepted'] ) {
-		return true;
-	}
-
-	// WebToffee GDPR Cookie Consent.
-	if ( isset( $_COOKIE['cookie_cat_marketing'] ) && 'accept' === $_COOKIE['cookie_cat_marketing'] ) {
-		return true;
-	}
-
-	// Cookiebot (Cybot) — URL-encoded value contains "marketing:true".
-	if ( isset( $_COOKIE['CookieConsent'] ) ) {
-		$cc = sanitize_text_field( wp_unslash( $_COOKIE['CookieConsent'] ) );
-		if ( str_contains( $cc, 'marketing:true' ) ) {
-			return true;
-		}
-	}
-
-	// Cookie Information (popular in Scandinavia) — JSON; consents_approved[] contains "cookie_cat_marketing".
-	if ( isset( $_COOKIE['CookieInformationConsent'] ) ) {
-		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON decoded for array key check only; not used in HTML output.
-		$ci = json_decode( wp_unslash( $_COOKIE['CookieInformationConsent'] ), true );
-		if ( ! empty( $ci['consents_approved'] ) && in_array( 'cookie_cat_marketing', $ci['consents_approved'], true ) ) {
-			return true;
-		}
-	}
-
-	// Moove GDPR Cookie Compliance — JSON; .thirdparty === 1.
-	if ( isset( $_COOKIE['moove_gdpr_popup'] ) ) {
-		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON decoded for integer key check only; not used in HTML output.
-		$mg = json_decode( wp_unslash( $_COOKIE['moove_gdpr_popup'] ), true );
-		if ( isset( $mg['thirdparty'] ) && 1 === (int) $mg['thirdparty'] ) {
-			return true;
-		}
-	}
-
-	return false;
-}
-
-/**
- * Return true if the current visitor has granted statistics/analytics consent
- * according to any of the common CMP cookie conventions.
- *
- * Maps to analytics_storage in the GCM v2 default consent object.
- *
- * @return bool
- */
-function dc_swp_has_statistics_consent() {
-	// WP Consent API (optional integration).
-	if ( function_exists( 'wp_has_consent' ) ) {
-		return wp_has_consent( 'statistics' );
-	}
-
-	// Complianz — opt-out mode.
-	if ( dc_swp_is_optout_cmp_active() ) {
-		if ( ! isset( $_COOKIE['cmplz_statistics'] ) ) {
-			return true;
-		}
-		if ( isset( $_COOKIE['cmplz_statistics'] ) && 'deny' !== $_COOKIE['cmplz_statistics'] ) {
-			return true;
-		}
-		return false;
-	}
-
-	// Complianz — opt-in mode.
-	if ( isset( $_COOKIE['cmplz_statistics'] ) && 'allow' === $_COOKIE['cmplz_statistics'] ) {
-		return true;
-	}
-
-	// CookieYes — "analytics:yes" in the consent string.
-	if ( isset( $_COOKIE['cookieyes-consent'] ) ) {
-		$cy = sanitize_text_field( wp_unslash( $_COOKIE['cookieyes-consent'] ) );
-		if ( str_contains( $cy, 'analytics:yes' ) ) {
-			return true;
-		}
-	}
-
-	// Borlabs Cookie — JSON-encoded object; .consents.statistics === true.
-	if ( isset( $_COOKIE['borlabs-cookie'] ) ) {
-		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON decoded for boolean key check only; not used in HTML output.
-		$raw = json_decode( wp_unslash( $_COOKIE['borlabs-cookie'] ), true );
-		if ( ! empty( $raw['consents']['statistics'] ) ) {
-			return true;
-		}
-	}
-
-	// Cookie Notice & Compliance for GDPR — single all-or-nothing cookie.
-	if ( isset( $_COOKIE['cookie_notice_accepted'] ) && 'true' === $_COOKIE['cookie_notice_accepted'] ) {
-		return true;
-	}
-
-	// WebToffee GDPR Cookie Consent.
-	if ( isset( $_COOKIE['cookie_cat_analytics'] ) && 'accept' === $_COOKIE['cookie_cat_analytics'] ) {
-		return true;
-	}
-
-	// Cookiebot (Cybot) — URL-encoded value contains "statistics:true".
-	if ( isset( $_COOKIE['CookieConsent'] ) ) {
-		$cc = sanitize_text_field( wp_unslash( $_COOKIE['CookieConsent'] ) );
-		if ( str_contains( $cc, 'statistics:true' ) ) {
-			return true;
-		}
-	}
-
-	// Cookie Information — consents_approved[] contains "cookie_cat_statistic".
-	if ( isset( $_COOKIE['CookieInformationConsent'] ) ) {
-		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON decoded for array key check only; not used in HTML output.
-		$ci = json_decode( wp_unslash( $_COOKIE['CookieInformationConsent'] ), true );
-		if ( ! empty( $ci['consents_approved'] ) && in_array( 'cookie_cat_statistic', $ci['consents_approved'], true ) ) {
-			return true;
-		}
-	}
-
-	// Moove GDPR Cookie Compliance — JSON; .analytics === 1.
-	if ( isset( $_COOKIE['moove_gdpr_popup'] ) ) {
-		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON decoded for integer key check only; not used in HTML output.
-		$mg = json_decode( wp_unslash( $_COOKIE['moove_gdpr_popup'] ), true );
-		if ( isset( $mg['analytics'] ) && 1 === (int) $mg['analytics'] ) {
-			return true;
-		}
-	}
-
-	return false;
-}
-
-/**
- * Return true if the current visitor has granted preferences/personalisation consent
- * according to any of the common CMP cookie conventions.
- *
- * Maps to personalization_storage in the GCM v2 default consent object.
- *
- * @return bool
- */
-function dc_swp_has_preferences_consent() {
-	// WP Consent API (optional integration).
-	if ( function_exists( 'wp_has_consent' ) ) {
-		return wp_has_consent( 'preferences' );
-	}
-
-	// Complianz — opt-out mode.
-	if ( dc_swp_is_optout_cmp_active() ) {
-		if ( ! isset( $_COOKIE['cmplz_preferences'] ) ) {
-			return true;
-		}
-		if ( isset( $_COOKIE['cmplz_preferences'] ) && 'deny' !== $_COOKIE['cmplz_preferences'] ) {
-			return true;
-		}
-		return false;
-	}
-
-	// Complianz — opt-in mode.
-	if ( isset( $_COOKIE['cmplz_preferences'] ) && 'allow' === $_COOKIE['cmplz_preferences'] ) {
-		return true;
-	}
-
-	// CookieYes — "preferences:yes" in the consent string.
-	if ( isset( $_COOKIE['cookieyes-consent'] ) ) {
-		$cy = sanitize_text_field( wp_unslash( $_COOKIE['cookieyes-consent'] ) );
-		if ( str_contains( $cy, 'preferences:yes' ) ) {
-			return true;
-		}
-	}
-
-	// Borlabs Cookie — JSON-encoded object; .consents.preferences === true.
-	if ( isset( $_COOKIE['borlabs-cookie'] ) ) {
-		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON decoded for boolean key check only; not used in HTML output.
-		$raw = json_decode( wp_unslash( $_COOKIE['borlabs-cookie'] ), true );
-		if ( ! empty( $raw['consents']['preferences'] ) ) {
-			return true;
-		}
-	}
-
-	// Cookie Notice & Compliance for GDPR — single all-or-nothing cookie.
-	if ( isset( $_COOKIE['cookie_notice_accepted'] ) && 'true' === $_COOKIE['cookie_notice_accepted'] ) {
-		return true;
-	}
-
-	// Cookiebot (Cybot) — URL-encoded value contains "preferences:true".
-	if ( isset( $_COOKIE['CookieConsent'] ) ) {
-		$cc = sanitize_text_field( wp_unslash( $_COOKIE['CookieConsent'] ) );
-		if ( str_contains( $cc, 'preferences:true' ) ) {
-			return true;
-		}
-	}
-
-	// Cookie Information — consents_approved[] contains "cookie_cat_functional".
-	if ( isset( $_COOKIE['CookieInformationConsent'] ) ) {
-		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON decoded for array key check only; not used in HTML output.
-		$ci = json_decode( wp_unslash( $_COOKIE['CookieInformationConsent'] ), true );
-		if ( ! empty( $ci['consents_approved'] ) && in_array( 'cookie_cat_functional', $ci['consents_approved'], true ) ) {
-			return true;
-		}
-	}
-
-	return false;
-}
 
 // Register dc-sw-prefetch as compliant with WP Consent API (shows in Site Health when the plugin is active).
 // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WP Consent API's own filter convention.
 add_filter( 'wp_consent_api_registered_dc-sw-prefetch/dc-sw-prefetch.php', '__return_true' );
+
+/**
+ * Return the WP Consent API category for a given script hostname.
+ *
+ * Known services are mapped to their most appropriate consent category.
+ * Unknown hosts fall back to the Script List default category setting.
+ *
+ * @param string $hostname Lowercase hostname (or substring) to look up.
+ * @return string WP Consent API category: marketing|statistics|statistics-anonymous|functional|preferences.
+ */
+function dc_swp_get_service_category( $hostname ) {
+	// Static map: hostname substring → WP Consent API category.
+	$map = array(
+		// Marketing.
+		'js.hs-scripts.com'       => 'marketing',
+		'js.hsforms.net'          => 'marketing',
+		'js.hscollectedforms.net' => 'marketing',
+		'js.hubspot.com'          => 'marketing',
+		'static.klaviyo.com'      => 'marketing',
+		'static.ads-twitter.com'  => 'marketing',
+		'snap.licdn.com'          => 'marketing',
+		// Statistics.
+		'cdn.mxpnl.com'           => 'statistics',
+		'cdn4.mxpnl.com'          => 'statistics',
+		'cdn.segment.com'         => 'statistics',
+		'static.hotjar.com'       => 'statistics',
+		'script.hotjar.com'       => 'statistics',
+		'clarity.ms'              => 'statistics',
+		// Functional.
+		'widget.intercom.io'      => 'functional',
+		'js.intercomcdn.com'      => 'functional',
+	);
+
+	$hostname = strtolower( $hostname );
+	foreach ( $map as $pattern => $category ) {
+		if ( str_contains( $hostname, $pattern ) ) {
+			return $category;
+		}
+	}
+
+	// Fall back to the admin-configured Script List default category.
+	return dc_swp_get_script_list_category();
+}
+
+/**
+ * Return the default consent category for Script List entries.
+ *
+ * @return string WP Consent API category (default: 'marketing').
+ */
+function dc_swp_get_script_list_category() {
+	$valid = array( 'marketing', 'statistics', 'statistics-anonymous', 'functional', 'preferences' );
+	$cat   = get_option( 'dc_swp_script_list_category', 'marketing' );
+	return in_array( $cat, $valid, true ) ? $cat : 'marketing';
+}
+
+/**
+ * Return true if the Consent Gate is enabled in admin settings.
+ *
+ * When disabled (default), all scripts load unconditionally as
+ * text/partytown — no consent check is performed.
+ *
+ * @return bool
+ */
+function dc_swp_is_consent_gate_enabled() {
+	return get_option( 'dc_swp_consent_gate', 'no' ) === 'yes';
+}
+
+/**
+ * Determine whether a script should load based on the Consent Gate.
+ *
+ * @param string $category WP Consent API category for the script.
+ * @return bool True = load (text/partytown), false = block (text/plain).
+ */
+function dc_swp_has_consent_for( $category ) {
+	// Gate disabled → always allow.
+	if ( ! dc_swp_is_consent_gate_enabled() ) {
+		return true;
+	}
+
+	// WP Consent API active → delegate.
+	if ( function_exists( 'wp_has_consent' ) ) {
+		return wp_has_consent( $category );
+	}
+
+	// WP Consent API not installed but gate is enabled → block by default
+	// (fail-closed: do not load scripts without a working consent mechanism).
+	return false;
+}
+
+/**
+ * Resolve the consent category for a script src URL and return whether
+ * it should load. Handles GCM v2 and Meta LDU bypass automatically.
+ *
+ * @param string $src Script src URL.
+ * @return array{ 0: bool, 1: string } [ should_load, category ].
+ */
+function dc_swp_resolve_script_consent( $src ) {
+	// GCM v2-aware services bypass the consent gate when GCM v2 is enabled.
+	if ( dc_swp_is_consent_mode_enabled() && dc_swp_script_uses_gcm_v2( $src ) ) {
+		return array( true, 'marketing' );
+	}
+
+	// Meta Pixel bypasses when LDU is enabled.
+	if ( dc_swp_is_meta_ldu_enabled() && dc_swp_is_meta_script( $src ) ) {
+		return array( true, 'marketing' );
+	}
+
+	$host    = strtolower( (string) wp_parse_url( $src, PHP_URL_HOST ) );
+	$cat     = dc_swp_get_service_category( $host );
+	$consent = dc_swp_has_consent_for( $cat );
+	return array( $consent, $cat );
+}
+
+/**
+ * Resolve consent for an inline script body and return whether it should load.
+ * Handles GCM v2 and Meta LDU bypass automatically.
+ *
+ * @param string $js      Inline JS content.
+ * @param string $category Override category (from inline block settings). Empty = auto-detect.
+ * @return array{ 0: bool, 1: string } [ should_load, category ].
+ */
+function dc_swp_resolve_inline_consent( $js, $category = '' ) {
+	// GCM v2-aware inline scripts bypass when GCM v2 is enabled.
+	if ( dc_swp_is_consent_mode_enabled() && dc_swp_inline_uses_gcm_v2( $js ) ) {
+		return array( true, 'marketing' );
+	}
+
+	// Meta Pixel inline bypass when LDU is enabled.
+	if ( dc_swp_is_meta_ldu_enabled() && dc_swp_inline_is_meta( $js ) ) {
+		return array( true, 'marketing' );
+	}
+
+	if ( '' === $category ) {
+		$category = dc_swp_get_script_list_category();
+	}
+	$consent = dc_swp_has_consent_for( $category );
+	return array( $consent, $category );
+}
 
 /**
  * Return true if Google Consent Mode v2 is enabled in settings.
@@ -1056,6 +911,63 @@ function dc_swp_enqueue_consent_scripts() {
 			'wp_script_attributes',
 			static function ( array $attrs ) use ( $nonce ) {
 				if ( ( $attrs['id'] ?? '' ) === 'dc-swp-consent-update-js' ) {
+					$attrs['nonce'] = $nonce;
+				}
+				return $attrs;
+			}
+		);
+	}
+}
+
+// ============================================================
+// CONSENT GATE — CLIENT-SIDE UNBLOCKING SCRIPT
+// When the Consent Gate is enabled, scripts blocked as text/plain
+// carry a data-wp-consent-category attribute. consent-gate.js
+// listens for WP Consent API consent changes and swaps them to
+// text/partytown once the required category is granted.
+// ============================================================
+
+add_action( 'wp_enqueue_scripts', 'dc_swp_enqueue_consent_gate_script', 2 );
+
+/**
+ * Enqueue the consent-gate.js unblocking script when the Consent Gate is enabled.
+ *
+ * @since 1.9.0
+ * @return void
+ */
+function dc_swp_enqueue_consent_gate_script() {
+	if ( dc_swp_is_bot_request() || is_admin() ) {
+		return;
+	}
+	if ( get_option( 'dc_swp_sw_enabled', 'yes' ) !== 'yes' ) {
+		return;
+	}
+	if ( ! dc_swp_is_consent_gate_enabled() ) {
+		return;
+	}
+	if (
+		( function_exists( 'is_cart' ) && is_cart() ) ||
+		( function_exists( 'is_checkout' ) && is_checkout() ) ||
+		( function_exists( 'is_account_page' ) && is_account_page() )
+	) {
+		return;
+	}
+
+	wp_register_script(
+		'dc-swp-consent-gate',
+		plugins_url( 'assets/js/consent-gate.js', __FILE__ ),
+		array(),
+		DC_SWP_VERSION,
+		array( 'in_footer' => true )
+	);
+	wp_enqueue_script( 'dc-swp-consent-gate' );
+
+	$nonce = dc_swp_get_csp_nonce();
+	if ( '' !== $nonce ) {
+		add_filter(
+			'wp_script_attributes',
+			static function ( array $attrs ) use ( $nonce ) {
+				if ( ( $attrs['id'] ?? '' ) === 'dc-swp-consent-gate-js' ) {
 					$attrs['nonce'] = $nonce;
 				}
 				return $attrs;
@@ -1945,13 +1857,12 @@ function dc_swp_partytown_script_attrs( $attributes ) {
 	$all_patterns = array_merge( dc_swp_get_partytown_patterns(), dc_swp_get_auto_detect_patterns() );
 	foreach ( $all_patterns as $pattern ) {
 		if ( '' !== $pattern && str_contains( $src, $pattern ) ) {
-			// Per-service consent gate:
-			// • GCM v2-aware scripts always run when GCM v2 is enabled — they self-manage consent.
-			// • Meta Pixel always runs when Meta LDU is enabled — Meta uses its own consent API.
-			// • All other scripts gate on the marketing consent cookie.
-			$gcm_bypass         = dc_swp_is_consent_mode_enabled() && dc_swp_script_uses_gcm_v2( $src );
-			$ldu_bypass         = dc_swp_is_meta_ldu_enabled() && dc_swp_is_meta_script( $src );
-			$attributes['type'] = ( $gcm_bypass || $ldu_bypass || dc_swp_has_marketing_consent() ) ? 'text/partytown' : 'text/plain';
+			// Per-service consent gate via WP Consent API.
+			list( $allowed, $cat ) = dc_swp_resolve_script_consent( $src );
+			$attributes['type']    = $allowed ? 'text/partytown' : 'text/plain';
+			if ( ! $allowed ) {
+				$attributes['data-wp-consent-category'] = $cat;
+			}
 			unset( $attributes['async'] ); // async is meaningless for Partytown scripts and must be removed.
 			break; // First matched pattern wins — no need to continue.
 		}
@@ -2200,14 +2111,14 @@ function dc_swp_partytown_buffer_rewrite( $html ) {
 					return $matches[0];
 				}
 
-				// Per-service consent gate:
-				// • GCM v2-aware scripts always run when GCM v2 is enabled — they self-manage consent.
-				// • Meta Pixel always runs when Meta LDU is enabled — Meta uses its own consent API.
-				// • All other scripts gate on the marketing consent cookie.
-				$gcm_bypass = dc_swp_is_consent_mode_enabled() && dc_swp_script_uses_gcm_v2( $src );
-				$ldu_bypass = dc_swp_is_meta_ldu_enabled() && dc_swp_is_meta_script( $src );
-				$new_type   = ( $gcm_bypass || $ldu_bypass || dc_swp_has_marketing_consent() ) ? 'text/partytown' : 'text/plain';
-				$tag_inner  = preg_replace( '/\s+async(?:=["\'][^"\']*["\'])?/i', '', $tag_inner );
+				// Per-service consent gate via WP Consent API.
+				list( $allowed, $cat ) = dc_swp_resolve_script_consent( $src );
+				$new_type              = $allowed ? 'text/partytown' : 'text/plain';
+				$tag_inner             = preg_replace( '/\s+async(?:=["\'][^"\']*["\'])?/i', '', $tag_inner );
+				// Stamp blocked scripts with their consent category for client-side unblocking.
+				if ( ! $allowed && ! preg_match( '/\bdata-wp-consent-category=/i', $tag_inner ) ) {
+					$tag_inner .= ' data-wp-consent-category="' . esc_attr( $cat ) . '"';
+				}
 
 				// Inject or replace the type attribute so the browser sees the correct consent state.
 				// Critical: raw-echoed scripts bypass wp_script_attributes and arrive here with no type
@@ -2375,8 +2286,8 @@ function dc_swp_resolve_companion( $src, $type, $companion_map ) {
 // When Partytown is disabled, all scripts (inline and src=) are
 // echoed with defer on the main thread.
 // <noscript> tracking pixels are only emitted when consent is
-// present (GDPR). All PT-mode output is consent-gated via
-// dc_swp_has_marketing_consent().
+// present (GDPR). All PT-mode output is consent-gated via the
+// WP Consent API Consent Gate (dc_swp_has_consent_for()).
 // ============================================================
 
 add_action( 'wp_head', 'dc_swp_output_inline_scripts', 3 );
@@ -2433,8 +2344,9 @@ function dc_swp_output_inline_scripts() {
 	/**
 	 * Inner helper: parse one raw code string into $js_blocks / $src_blocks.
 	 * $force_blk: whether the parent block has force_partytown enabled.
+	 * $cat_blk: WP Consent API category for this block.
 	 */
-	$parse_code = function ( $code, $force_blk ) use ( &$js_blocks, &$src_blocks, &$raw_noscript, $allowed_attr_re ) {
+	$parse_code = function ( $code, $force_blk, $cat_blk = '' ) use ( &$js_blocks, &$src_blocks, &$raw_noscript, $allowed_attr_re ) {
 		if ( preg_match_all( '/<script\b([^>]*)>(.*?)<\/script>/is', $code, $matches, PREG_SET_ORDER ) ) {
 			foreach ( $matches as $m ) {
 				if ( preg_match( '/\bsrc\s*=\s*(["\'])([^"\']+)\1/i', $m[1], $src_m ) ) {
@@ -2455,6 +2367,7 @@ function dc_swp_output_inline_scripts() {
 						'src'             => $src_m[2],
 						'extra'           => $extra_attrs,
 						'force_partytown' => $force_blk,
+						'category'        => $cat_blk,
 					);
 					continue;
 				}
@@ -2463,6 +2376,7 @@ function dc_swp_output_inline_scripts() {
 					$js_blocks[] = array(
 						'content'         => $content,
 						'force_partytown' => $force_blk,
+						'category'        => $cat_blk,
 					);
 				}
 			}
@@ -2483,7 +2397,7 @@ function dc_swp_output_inline_scripts() {
 			if ( empty( $blk['enabled'] ) || '' === trim( (string) ( $blk['code'] ?? '' ) ) ) {
 				continue;
 			}
-			$parse_code( $blk['code'], ! empty( $blk['force_partytown'] ) );
+			$parse_code( $blk['code'], ! empty( $blk['force_partytown'] ), $blk['category'] ?? '' );
 		}
 	} else {
 		// Legacy plain-text format: no force_partytown support.
@@ -2494,56 +2408,57 @@ function dc_swp_output_inline_scripts() {
 		return;
 	}
 
-	$pt_enabled  = get_option( 'dc_swp_sw_enabled', 'yes' ) === 'yes';
-	$consent     = dc_swp_has_marketing_consent();
-	$gcm_enabled = dc_swp_is_consent_mode_enabled();
-	$ldu_enabled = dc_swp_is_meta_ldu_enabled();
-	$nonce       = dc_swp_get_csp_nonce();
-	$nonce_attr  = '' !== $nonce ? ' nonce="' . esc_attr( $nonce ) . '"' : '';
+	$pt_enabled = get_option( 'dc_swp_sw_enabled', 'yes' ) === 'yes';
+	$nonce      = dc_swp_get_csp_nonce();
+	$nonce_attr = '' !== $nonce ? ' nonce="' . esc_attr( $nonce ) . '"' : '';
 
 	if ( $pt_enabled ) {
-		// Partytown active — per-block consent gate:
-		// • GCM v2-aware blocks bypass the cookie gate when GCM v2 is enabled (self-managed consent).
-		// • Meta Pixel blocks bypass when LDU mode is enabled (Meta's own consent API, not GCM v2).
-		// • All other blocks gate on the marketing consent cookie.
+		// Partytown active — per-block consent gate via WP Consent API.
 		foreach ( $js_blocks as $blk ) {
-			$js         = $blk['content'];
-			$blk_gcm    = $gcm_enabled && dc_swp_inline_uses_gcm_v2( $js );
-			$blk_ldu    = $ldu_enabled && dc_swp_inline_is_meta( $js );
-			$blk_bypass = $blk_gcm || $blk_ldu;
-			$blk_type   = ( $blk_bypass || $consent ) ? 'text/partytown' : 'text/plain';
+			$js              = $blk['content'];
+			$cat             = $blk['category'];
+			list( $allowed ) = dc_swp_resolve_inline_consent( $js, $cat );
+			$blk_type        = $allowed ? 'text/partytown' : 'text/plain';
+			$consent_cat     = ! $allowed ? ' data-wp-consent-category="' . esc_attr( $cat ? $cat : dc_swp_get_script_list_category() ) . '"' : '';
 			if ( dc_swp_inline_matches_known_service( $js ) || $blk['force_partytown'] ) {
 				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- admin-controlled inline JS.
-				echo '<script type="' . esc_attr( $blk_type ) . '"' . $nonce_attr . ">\n" . $js . "\n</script>\n";
-			} elseif ( $blk_bypass || $consent ) {
+				echo '<script type="' . esc_attr( $blk_type ) . '"' . $consent_cat . $nonce_attr . ">\n" . $js . "\n</script>\n";
+			} elseif ( $allowed ) {
 				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- admin-controlled inline JS.
 				echo '<script defer' . $nonce_attr . ">\n" . $js . "\n</script>\n";
 			} else {
 				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- admin-controlled inline JS.
-				echo '<script type="text/plain"' . $nonce_attr . ">\n" . $js . "\n</script>\n";
+				echo '<script type="text/plain"' . $consent_cat . $nonce_attr . ">\n" . $js . "\n</script>\n";
 			}
 		}
-		// External src= scripts from blocks:
-		// • Known service OR admin forced → run in worker, per-service consent gate.
-		// • Unknown, not forced → run on the main thread; still consent-gated.
+		// External src= scripts from blocks — per-service consent gate.
 		foreach ( $src_blocks as $blk ) {
-			$blk_gcm    = $gcm_enabled && dc_swp_script_uses_gcm_v2( $blk['src'] );
-			$blk_ldu    = $ldu_enabled && dc_swp_is_meta_script( $blk['src'] );
-			$blk_bypass = $blk_gcm || $blk_ldu;
-			$blk_type   = ( $blk_bypass || $consent ) ? 'text/partytown' : 'text/plain';
+			// If block has an explicit category, use it; otherwise resolve from hostname.
+			if ( '' !== ( $blk['category'] ?? '' ) ) {
+				$cat = $blk['category'];
+				// Still check GCM v2/LDU bypasses.
+				$gcm_by  = dc_swp_is_consent_mode_enabled() && dc_swp_script_uses_gcm_v2( $blk['src'] );
+				$ldu_by  = dc_swp_is_meta_ldu_enabled() && dc_swp_is_meta_script( $blk['src'] );
+				$allowed = $gcm_by || $ldu_by || dc_swp_has_consent_for( $cat );
+			} else {
+				list( $allowed, $cat ) = dc_swp_resolve_script_consent( $blk['src'] );
+			}
+			$blk_type    = $allowed ? 'text/partytown' : 'text/plain';
+			$consent_cat = ! $allowed ? ' data-wp-consent-category="' . esc_attr( $cat ) . '"' : '';
 			if ( dc_swp_url_matches_known_service( $blk['src'] ) || $blk['force_partytown'] ) {
 				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped,WordPress.WP.EnqueuedResources.NonEnqueuedScript -- admin-controlled script src.
-				echo '<script type="' . esc_attr( $blk_type ) . '" src="' . esc_url( $blk['src'] ) . '"' . $blk['extra'] . $nonce_attr . "></script>\n";
-			} elseif ( $blk_bypass || $consent ) {
+				echo '<script type="' . esc_attr( $blk_type ) . '" src="' . esc_url( $blk['src'] ) . '"' . $blk['extra'] . $consent_cat . $nonce_attr . "></script>\n";
+			} elseif ( $allowed ) {
 				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped,WordPress.WP.EnqueuedResources.NonEnqueuedScript -- admin-controlled script src.
 				echo '<script defer src="' . esc_url( $blk['src'] ) . '"' . $blk['extra'] . $nonce_attr . "></script>\n";
 			} else {
 				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped,WordPress.WP.EnqueuedResources.NonEnqueuedScript -- admin-controlled script src.
-				echo '<script type="text/plain" src="' . esc_url( $blk['src'] ) . '"' . $blk['extra'] . $nonce_attr . "></script>\n";
+				echo '<script type="text/plain" src="' . esc_url( $blk['src'] ) . '"' . $blk['extra'] . $consent_cat . $nonce_attr . "></script>\n";
 			}
 		}
-		// <noscript> tracking pixels are passive image loads — only emit when consent is granted.
-		if ( $consent ) {
+		// <noscript> tracking pixels — only emit when the gate allows.
+		$noscript_consent = dc_swp_has_consent_for( dc_swp_get_script_list_category() );
+		if ( $noscript_consent ) {
 			foreach ( $noscript_blocks as $ns_content ) {
 				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- admin-controlled noscript fallback.
 				echo '<noscript>' . $ns_content . "</noscript>\n";
@@ -2562,12 +2477,10 @@ function dc_swp_output_inline_scripts() {
 			// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped,WordPress.WP.EnqueuedResources.NonEnqueuedScript -- admin-controlled script src.
 			echo '<script defer src="' . esc_url( $blk['src'] ) . '"' . $blk['extra'] . $nonce_attr . "></script>\n";
 		}
-		// Always emit <noscript> pixels in diagnostic mode when consent is granted.
-		if ( $consent ) {
-			foreach ( $noscript_blocks as $ns_content ) {
-				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- admin-controlled noscript fallback.
-				echo '<noscript>' . $ns_content . "</noscript>\n";
-			}
+		// Always emit <noscript> pixels in diagnostic mode (no consent gate in diag mode).
+		foreach ( $noscript_blocks as $ns_content ) {
+			// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- admin-controlled noscript fallback.
+			echo '<noscript>' . $ns_content . "</noscript>\n";
 		}
 	}
 }

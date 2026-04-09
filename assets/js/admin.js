@@ -231,6 +231,13 @@ jQuery( function ( $ ) {
 		const disCls     = b.enabled ? '' : ' dc-swp-blk-disabled';
 		const forceLbl   = $( '<span>' ).text( dcSwpAdminData.forcePtLabel ).html();
 		const noticeHtml = $( '<span>' ).text( dcSwpAdminData.forcePtNotice ).html();
+		const catLabel   = $( '<span>' ).text( dcSwpAdminData.blockCategoryLabel || 'Consent category' ).html();
+		const cats       = dcSwpAdminData.consentCategories || [ 'marketing', 'statistics', 'statistics-anonymous', 'functional', 'preferences' ];
+		const curCat     = b.category || 'marketing';
+		let catOpts = '';
+		$.each( cats, function ( _ci, cv ) {
+			catOpts += '<option value="' + cv + '"' + ( cv === curCat ? ' selected' : '' ) + '>' + cv.charAt( 0 ).toUpperCase() + cv.slice( 1 ) + '</option>';
+		} );
 		const $el = $( [
 			'<div class="dc-swp-blk-item' + disCls + '" data-id="' + b.id + '">',
 			'<div class="dc-swp-blk-hdr">',
@@ -248,6 +255,7 @@ jQuery( function ( $ ) {
 			'</div>',
 			'<div class="dc-swp-blk-body">',
 			'<div class="dc-swp-blk-force-notice" style="display:none;margin-bottom:8px;padding:8px 10px;background:#fefce8;border-left:3px solid #ca8a04;font-size:12px;color:#92400e">' + noticeHtml + '</div>',
+			'<div style="margin-bottom:8px"><label style="font-size:12px;font-weight:600;margin-right:6px">' + catLabel + '</label><select class="dc-swp-blk-category">' + catOpts + '</select></div>',
 			'<textarea class="dc-swp-blk-code large-text code" rows="8" spellcheck="false">' + codeSafe + '</textarea>',
 			'</div></div>',
 		].join( '' ) );
@@ -295,6 +303,11 @@ jQuery( function ( $ ) {
 		const en  = $( this ).prop( 'checked' );
 		$it.toggleClass( 'dc-swp-blk-disabled', ! en );
 		patchBlock( $it.data( 'id' ), { enabled: en } );
+	} );
+
+	// Consent category change.
+	$( document ).on( 'change', '.dc-swp-blk-category', function () {
+		patchBlock( $( this ).closest( '.dc-swp-blk-item' ).data( 'id' ), { category: $( this ).val() } );
 	} );
 
 	// Force Partytown toggle for unsupported scripts.
@@ -362,6 +375,7 @@ jQuery( function ( $ ) {
 				label:           $( this ).find( '.dc-swp-blk-label' ).text().trim(),
 				enabled:         $( this ).find( '.dc-swp-blk-enable' ).prop( 'checked' ),
 				force_partytown: $( this ).find( '.dc-swp-blk-force' ).prop( 'checked' ),
+				category:        $( this ).find( '.dc-swp-blk-category' ).val() || 'marketing',
 			} );
 		} );
 		$( '#dc_swp_inline_scripts_json' ).val( JSON.stringify( blocks ) );
@@ -637,4 +651,11 @@ jQuery( function ( $ ) {
 	if ( $checkbox.is( ':checked' ) ) {
 		runCheck();
 	}
+} )( jQuery );
+
+// ── Consent Gate toggle — show/hide Script List category row ────────────────
+( function ( $ ) {
+	$( '#dc_swp_consent_gate' ).on( 'change', function () {
+		$( '#dc-swp-script-list-cat-row' ).toggle( $( this ).prop( 'checked' ) );
+	} );
 } )( jQuery );
