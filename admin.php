@@ -505,7 +505,30 @@ function dc_swp_admin_page_html() {
 	if ( isset( $_POST['dc_swp_nonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['dc_swp_nonce'] ) ), 'dc_swp_save_settings' ) ) {
 		update_option( 'dc_swp_sw_enabled', isset( $_POST['dc_swp_sw_enabled'] ) ? 'yes' : 'no' );
 		update_option( 'dc_swp_footer_credit', isset( $_POST['dc_swp_footer_credit'] ) ? 'yes' : 'no' );
-		update_option( 'dc_swp_partytown_scripts', sanitize_textarea_field( wp_unslash( $_POST['dc_swp_partytown_scripts'] ?? '' ) ) );
+		// Partytown Script List — JSON array of {pattern, category} objects managed by JS.
+		$_raw_entries   = wp_unslash( $_POST['dc_swp_partytown_entries_json'] ?? '' ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON envelope; each field sanitized individually below.
+		$_valid_cats_sl = array( 'marketing', 'statistics', 'statistics-anonymous', 'functional', 'preferences' );
+		$_clean_entries = array();
+		if ( '' !== $_raw_entries ) {
+			$_decoded_entries = json_decode( $_raw_entries, true );
+			if ( is_array( $_decoded_entries ) ) {
+				foreach ( $_decoded_entries as $_entry ) {
+					if ( ! is_array( $_entry ) ) {
+						continue;
+					}
+					$_pat = sanitize_text_field( $_entry['pattern'] ?? '' );
+					if ( '' === $_pat ) {
+						continue;
+					}
+					$_cat_e           = sanitize_text_field( $_entry['category'] ?? 'marketing' );
+					$_clean_entries[] = array(
+						'pattern'  => $_pat,
+						'category' => in_array( $_cat_e, $_valid_cats_sl, true ) ? $_cat_e : 'marketing',
+					);
+				}
+			}
+		}
+		update_option( 'dc_swp_partytown_scripts', wp_json_encode( $_clean_entries ) );
 		// Inline script blocks: decode the JS-managed JSON accordion payload.
 		$raw_json_blocks  = wp_unslash( $_POST['dc_swp_inline_scripts_json'] ?? '' ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON envelope; each field sanitized individually below.
 		$sanitized_blocks = array();
@@ -547,17 +570,16 @@ function dc_swp_admin_page_html() {
 		echo '<div class="notice notice-success"><p>' . esc_html( dc_swp_str( 'saved' ) ) . '</p></div>';
 	}
 
-	$sw_enabled         = get_option( 'dc_swp_sw_enabled', 'yes' ) === 'yes';
-	$coi_headers        = get_option( 'dc_swp_coi_headers', 'no' ) === 'yes';
-	$consent_mode       = get_option( 'dc_swp_consent_mode', 'no' ) === 'yes';
-	$url_passthrough    = get_option( 'dc_swp_url_passthrough', 'no' ) === 'yes';
-	$ads_data_redaction = get_option( 'dc_swp_ads_data_redaction', 'no' ) === 'yes';
-	$meta_ldu           = get_option( 'dc_swp_meta_ldu', 'no' ) === 'yes';
-	$consent_gate       = get_option( 'dc_swp_consent_gate', 'no' ) === 'yes';
-	$script_list_cat    = get_option( 'dc_swp_script_list_category', 'marketing' );
-	$debug_mode         = get_option( 'dc_swp_debug_mode', 'no' ) === 'yes';
-	$gtm_mode           = get_option( 'dc_swp_gtm_mode', 'off' );
-	$partytown_scripts  = get_option( 'dc_swp_partytown_scripts', '' );
+	$sw_enabled          = get_option( 'dc_swp_sw_enabled', 'yes' ) === 'yes';
+	$coi_headers         = get_option( 'dc_swp_coi_headers', 'no' ) === 'yes';
+	$consent_mode        = get_option( 'dc_swp_consent_mode', 'no' ) === 'yes';
+	$url_passthrough     = get_option( 'dc_swp_url_passthrough', 'no' ) === 'yes';
+	$ads_data_redaction  = get_option( 'dc_swp_ads_data_redaction', 'no' ) === 'yes';
+	$meta_ldu            = get_option( 'dc_swp_meta_ldu', 'no' ) === 'yes';
+	$consent_gate        = get_option( 'dc_swp_consent_gate', 'no' ) === 'yes';
+	$script_list_entries = dc_swp_get_script_list_entries();
+	$debug_mode          = get_option( 'dc_swp_debug_mode', 'no' ) === 'yes';
+	$gtm_mode            = get_option( 'dc_swp_gtm_mode', 'off' );
 	// Inline script blocks — decode JSON; auto-migrate legacy plain-text format.
 	$inline_scripts_raw   = get_option( 'dc_swp_inline_scripts', '' );
 	$inline_script_blocks = array();
@@ -635,33 +657,16 @@ function dc_swp_admin_page_html() {
 						<?php endif; ?>
 					</td>
 				</tr>
-				<tr valign="top" id="dc-swp-script-list-cat-row"<?php echo ! $consent_gate ? ' style="display:none"' : ''; ?>>
-					<th scope="row"><?php echo esc_html( dc_swp_str( 'script_list_category_label' ) ); ?></th>
-					<td>
-						<select name="dc_swp_script_list_category">
-							<?php
-							$_cat_options = array( 'marketing', 'statistics', 'statistics-anonymous', 'functional', 'preferences' );
-							foreach ( $_cat_options as $_co ) {
-								printf(
-									'<option value="%s"%s>%s</option>',
-									esc_attr( $_co ),
-									selected( $script_list_cat, $_co, false ),
-									esc_html( ucfirst( $_co ) )
-								);
-							}
-							?>
-						</select>
-						<p class="description"><?php echo esc_html( dc_swp_str( 'script_list_category_desc' ) ); ?></p>
-					</td>
-				</tr>
 				<tr valign="top">
 					<th scope="row"><?php echo esc_html( dc_swp_str( 'partytown_scripts_label' ) ); ?></th>
 					<td>
-						<textarea name="dc_swp_partytown_scripts" rows="5" class="large-text code"
-							placeholder="e.g. analytics.ahrefs.com&#10;static.klaviyo.com&#10;fullstory.com"
-						><?php echo esc_textarea( $partytown_scripts ); ?></textarea>
-						<p class="description"><?php echo wp_kses_post( dc_swp_str( 'partytown_scripts_desc' ) ); ?></p>
-						<p style="margin-top:8px;">
+						<input type="hidden" id="dc_swp_partytown_entries_json" name="dc_swp_partytown_entries_json" value="">
+						<div id="dc-swp-script-list" style="margin-bottom:8px;"></div>
+						<p style="margin-top:4px;">
+							<button type="button" id="dc-swp-add-pattern-btn" class="button button-secondary">
+								<?php esc_html_e( '+ Add Pattern', 'dc-sw-prefetch' ); ?>
+							</button>
+							&nbsp;
 							<button type="button" id="dc-swp-autodetect-btn" class="button button-secondary">
 								<?php echo esc_html( dc_swp_str( 'partytown_autodetect_btn' ) ); ?>
 							</button>
@@ -674,6 +679,7 @@ function dc_swp_admin_page_html() {
 								<?php echo esc_html( dc_swp_str( 'partytown_autodetect_add' ) ); ?>
 							</button>
 						</div>
+						<p class="description" style="margin-top:8px"><?php echo wp_kses_post( dc_swp_str( 'partytown_scripts_desc' ) ); ?></p>
 					</td>
 				</tr>
 				<tr valign="top">
@@ -970,14 +976,18 @@ function dc_swp_admin_page_html() {
 			'unknownMsg'         => dc_swp_str( 'partytown_autodetect_warn' ),
 			'knownMsg'           => dc_swp_str( 'partytown_autodetect_known' ),
 			'noBlocksMsg'        => dc_swp_str( 'inline_scripts_empty' ),
+			'noEntriesMsg'       => esc_attr__( 'No patterns added yet. Click \u201c+ Add Pattern\u201d or use Auto-Detect.', 'dc-sw-prefetch' ),
 			'delMsg'             => dc_swp_str( 'inline_scripts_del_confirm' ),
 			'blocks'             => $inline_script_blocks,
+			'scriptListEntries'  => $script_list_entries,
 			'knownServices'      => dc_swp_get_known_services(),
+			'hostCategoryMap'    => dc_swp_get_service_category_map(),
 			'badgeSupported'     => dc_swp_str( 'badge_supported' ),
 			'badgeUnsupported'   => dc_swp_str( 'badge_unsupported' ),
 			'forcePtLabel'       => dc_swp_str( 'force_pt_label' ),
 			'forcePtNotice'      => dc_swp_str( 'force_pt_notice' ),
 			'blockCategoryLabel' => dc_swp_str( 'block_category_label' ),
+			'consentGateEnabled' => $consent_gate,
 			'consentCategories'  => array( 'marketing', 'statistics', 'statistics-anonymous', 'functional', 'preferences' ),
 			'gtm'                => array(
 				'valid'        => dc_swp_str( 'gtm_id_valid' ),

@@ -299,6 +299,14 @@ function dc_swp_resolve_script_consent( $src ) {
 		return array( true, 'marketing' );
 	}
 
+	// Per-entry category from the Script List takes priority over hostname auto-detection.
+	foreach ( dc_swp_get_script_list_entries() as $entry ) {
+		if ( '' !== $entry['pattern'] && str_contains( $src, $entry['pattern'] ) ) {
+			$cat = $entry['category'];
+			return array( dc_swp_has_consent_for( $cat ), $cat );
+		}
+	}
+
 	$host    = strtolower( (string) wp_parse_url( $src, PHP_URL_HOST ) );
 	$cat     = dc_swp_get_service_category( $host );
 	$consent = dc_swp_has_consent_for( $cat );
@@ -1532,6 +1540,40 @@ function dc_swp_get_known_services() {
 }
 
 /**
+ * Return a flat hostname → WP Consent API category map for the admin JS.
+ *
+ * Exposes the same mapping used by dc_swp_get_service_category() so that
+ * the admin page can suggest the correct category when a new script list
+ * entry is added (via auto-detect or manually).
+ *
+ * @return array<string, string> hostname_substring => category
+ */
+function dc_swp_get_service_category_map() {
+	return array(
+		'js.hs-scripts.com'       => 'marketing',
+		'js.hsforms.net'          => 'marketing',
+		'js.hscollectedforms.net' => 'marketing',
+		'js.hubspot.com'          => 'marketing',
+		'static.klaviyo.com'      => 'marketing',
+		'static.ads-twitter.com'  => 'marketing',
+		'snap.licdn.com'          => 'marketing',
+		'googletagmanager.com'    => 'marketing',
+		'google-analytics.com'    => 'statistics',
+		'analytics.google.com'    => 'statistics',
+		'connect.facebook.net'    => 'marketing',
+		'analytics.tiktok.com'    => 'marketing',
+		'cdn.mxpnl.com'           => 'statistics',
+		'cdn4.mxpnl.com'          => 'statistics',
+		'cdn.segment.com'         => 'statistics',
+		'static.hotjar.com'       => 'statistics',
+		'script.hotjar.com'       => 'statistics',
+		'clarity.ms'              => 'statistics',
+		'widget.intercom.io'      => 'functional',
+		'js.intercomcdn.com'      => 'functional',
+	);
+}
+
+/**
  * Return true if $url's hostname is on Partytown's verified-compatible service list.
  *
  * Used exclusively by the Script Block output logic to decide whether an
@@ -1691,6 +1733,67 @@ function dc_swp_inline_is_meta( $code ) {
 }
 
 /**
+ * Return the Script List entries as structured objects.
+ *
+ * Each entry is an associative array with keys:
+ *   - 'pattern'  (string) URL substring to match against script src.
+ *   - 'category' (string) WP Consent API category for this pattern.
+ *
+ * Handles two storage formats transparently:
+ *   - New: JSON array of {pattern, category} objects (since 1.10.0).
+ *   - Legacy: plain newline-separated pattern strings (migrates to new format).
+ *
+ * @return array<int, array{pattern: string, category: string}>
+ */
+function dc_swp_get_script_list_entries() {
+	static $entries = null;
+	if ( null !== $entries ) {
+		return $entries;
+	}
+	$cached = wp_cache_get( 'script_list_entries', 'dc_swp' );
+	if ( false !== $cached ) {
+		$entries = $cached;
+		return $entries;
+	}
+	$valid_cats = array( 'marketing', 'statistics', 'statistics-anonymous', 'functional', 'preferences' );
+	$raw        = (string) get_option( 'dc_swp_partytown_scripts', '' );
+	$entries    = array();
+	if ( '' !== $raw ) {
+		$decoded = json_decode( $raw, true );
+		if ( is_array( $decoded ) ) {
+			// New JSON format.
+			foreach ( $decoded as $item ) {
+				if ( ! is_array( $item ) ) {
+					continue;
+				}
+				$pattern = trim( (string) ( $item['pattern'] ?? '' ) );
+				if ( '' === $pattern ) {
+					continue;
+				}
+				$cat       = $item['category'] ?? '';
+				$entries[] = array(
+					'pattern'  => $pattern,
+					'category' => in_array( $cat, $valid_cats, true ) ? $cat : 'marketing',
+				);
+			}
+		} else {
+			// Legacy plain-text format — migrate in memory; no DB write here
+			// (admin save will persist the new format once the user next saves).
+			foreach ( array_filter( array_map( 'trim', explode( "\n", $raw ) ) ) as $line ) {
+				if ( '' !== $line ) {
+					$entries[] = array(
+						'pattern'  => $line,
+						'category' => dc_swp_get_script_list_category(),
+					);
+				}
+			}
+		}
+	}
+	wp_cache_set( 'script_list_entries', $entries, 'dc_swp', HOUR_IN_SECONDS );
+	return $entries;
+}
+
+/**
  * Return the list of Partytown include patterns from the admin option.
  *
  * @return string[]
@@ -1705,13 +1808,7 @@ function dc_swp_get_partytown_patterns() {
 		$patterns = $cached;
 		return $patterns;
 	}
-	$raw      = (string) get_option( 'dc_swp_partytown_scripts', '' );
-	$patterns = array_values(
-		array_filter(
-			array_map( 'trim', explode( "\n", $raw ) ),
-			static fn( $line ) => '' !== $line
-		)
-	);
+	$patterns = array_column( dc_swp_get_script_list_entries(), 'pattern' );
 	wp_cache_set( 'patterns', $patterns, 'dc_swp', HOUR_IN_SECONDS );
 	return $patterns;
 }

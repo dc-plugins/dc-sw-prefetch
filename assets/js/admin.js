@@ -7,6 +7,126 @@
 
 /* global dcSwpAdminData */
 
+// ── Partytown Script List (per-entry rows) ───────────────────────────────────
+( function ( $ ) {
+	let scriptEntries   = ( dcSwpAdminData.scriptListEntries || [] ).map( function ( e ) {
+		return { pattern: e.pattern || '', category: e.category || 'marketing' };
+	} );
+	const cats          = dcSwpAdminData.consentCategories || [ 'marketing', 'statistics', 'statistics-anonymous', 'functional', 'preferences' ];
+	const noEntriesMsg  = dcSwpAdminData.noEntriesMsg || 'No patterns added yet.';
+	const hostCatMap    = dcSwpAdminData.hostCategoryMap || {};
+
+	/** Suggest a WP Consent API category for a hostname (substring-matched). */
+	function suggestCategory( host ) {
+		host = ( host || '' ).toLowerCase();
+		for ( var key in hostCatMap ) {
+			if ( Object.prototype.hasOwnProperty.call( hostCatMap, key ) ) {
+				if ( host.indexOf( key ) !== -1 || key.indexOf( host ) !== -1 ) {
+					return hostCatMap[ key ];
+				}
+			}
+		}
+		return 'marketing';
+	}
+
+	/** Build the category <select> HTML. */
+	function buildCatSelect( curCat, cls ) {
+		var gateOn = $( '#dc_swp_consent_gate' ).prop( 'checked' );
+		var html   = '<select class="' + cls + '"' + ( gateOn ? '' : ' style="display:none"' ) + '>';
+		$.each( cats, function ( _i, cv ) {
+			html += '<option value="' + cv + '"' + ( cv === curCat ? ' selected' : '' ) + '>' + cv.charAt( 0 ).toUpperCase() + cv.slice( 1 ) + '</option>';
+		} );
+		html += '</select>';
+		return html;
+	}
+
+	function renderScriptList() {
+		var $list = $( '#dc-swp-script-list' );
+		$list.empty();
+		if ( ! scriptEntries.length ) {
+			$list.append( '<p style="color:#888;font-style:italic;margin:0 0 4px">' + $( '<span>' ).text( noEntriesMsg ).html() + '</p>' );
+			return;
+		}
+		$.each( scriptEntries, function ( idx, entry ) {
+			$list.append( buildScriptEntryRow( idx, entry ) );
+		} );
+	}
+
+	function buildScriptEntryRow( idx, entry ) {
+		var catSel = buildCatSelect( entry.category || 'marketing', 'dc-swp-sl-cat' );
+		return $(
+			'<div class="dc-swp-sl-row" data-idx="' + idx + '" style="display:flex;align-items:center;gap:6px;margin-bottom:5px">' +
+			'<input type="text" class="dc-swp-sl-pattern regular-text code" value="' + $( '<span>' ).text( entry.pattern ).html() + '" style="flex:1;font-family:monospace;font-size:12px" placeholder="e.g. static.klaviyo.com">' +
+			catSel +
+			'<button type="button" class="dc-swp-sl-del button-link" style="color:#a00;padding:4px 8px;flex-shrink:0">&times;</button>' +
+			'</div>'
+		);
+	}
+
+	renderScriptList();
+
+	// Add blank row.
+	$( '#dc-swp-add-pattern-btn' ).on( 'click', function () {
+		scriptEntries.push( { pattern: '', category: 'marketing' } );
+		var idx = scriptEntries.length - 1;
+		var $row = buildScriptEntryRow( idx, scriptEntries[ idx ] );
+		var $list = $( '#dc-swp-script-list' );
+		$list.find( 'p' ).remove(); // Remove "no entries" message.
+		$list.append( $row );
+		$row.find( '.dc-swp-sl-pattern' ).focus();
+	} );
+
+	// Live edit — pattern.
+	$( document ).on( 'input', '.dc-swp-sl-pattern', function () {
+		var idx = $( this ).closest( '.dc-swp-sl-row' ).data( 'idx' );
+		if ( scriptEntries[ idx ] !== undefined ) {
+			scriptEntries[ idx ].pattern = $( this ).val();
+		}
+	} );
+
+	// Live edit — category.
+	$( document ).on( 'change', '.dc-swp-sl-cat', function () {
+		var idx = $( this ).closest( '.dc-swp-sl-row' ).data( 'idx' );
+		if ( scriptEntries[ idx ] !== undefined ) {
+			scriptEntries[ idx ].category = $( this ).val();
+		}
+	} );
+
+	// Delete row.
+	$( document ).on( 'click', '.dc-swp-sl-del', function () {
+		var $row = $( this ).closest( '.dc-swp-sl-row' );
+		var idx  = $row.data( 'idx' );
+		scriptEntries.splice( idx, 1 );
+		renderScriptList();
+	} );
+
+	// Sync to hidden field on submit.
+	$( 'form.pwa-cache-settings' ).on( 'submit', function () {
+		// Collect live DOM values in case user typed without triggering input event.
+		$( '.dc-swp-sl-row' ).each( function () {
+			var idx = $( this ).data( 'idx' );
+			if ( scriptEntries[ idx ] !== undefined ) {
+				scriptEntries[ idx ].pattern  = $( this ).find( '.dc-swp-sl-pattern' ).val();
+				scriptEntries[ idx ].category = $( this ).find( '.dc-swp-sl-cat' ).val() || 'marketing';
+			}
+		} );
+		// Filter out blank patterns before saving.
+		var toSave = scriptEntries.filter( function ( e ) { return ( e.pattern || '' ).trim() !== ''; } );
+		$( '#dc_swp_partytown_entries_json' ).val( JSON.stringify( toSave ) );
+	} );
+
+	// Expose helper for auto-detect section below.
+	window.dcSwpAddScriptEntry = function ( host, category ) {
+		// Avoid duplicates.
+		var already = scriptEntries.some( function ( e ) { return e.pattern === host; } );
+		if ( already ) { return; }
+		scriptEntries.push( { pattern: host, category: category || suggestCategory( host ) } );
+		renderScriptList();
+	};
+	window.dcSwpSuggestCategory = suggestCategory;
+
+} )( jQuery );
+
 // ── Autodetect scripts ───────────────────────────────────────────────────────
 jQuery( function ( $ ) {
 	const nonce        = dcSwpAdminData.nonce;
@@ -30,7 +150,6 @@ jQuery( function ( $ ) {
 
 			const scripts = ( r.success && r.data && r.data.scripts ) ? r.data.scripts : [];
 
-			// Show all third-party scripts found; warn on those not on Partytown's known-compatible list.
 			if ( ! scripts.length ) {
 				$list.html( '<em>' + $( '<span>' ).text( noScriptsMsg ).html() + '</em>' );
 				$( '#dc-swp-add-selected' ).hide();
@@ -44,8 +163,7 @@ jQuery( function ( $ ) {
 					} else {
 						badgeEl.text( '\u26a0 ' + unknownMsg ).css( { color: '#d63638', 'font-size': '11px', 'margin-left': '6px' } );
 					}
-					const badge = badgeEl[0].outerHTML;
-					// Known services pre-checked; unknown scripts unchecked — user must opt in explicitly.
+					const badge   = badgeEl[0].outerHTML;
 					const checked = item.known ? ' checked' : '';
 					html += '<label style="display:block;margin:3px 0"><input type="checkbox" value="' + safe + '"' + checked + '> <code>' + safe + '</code>' + badge + '</label>';
 				} );
@@ -57,19 +175,12 @@ jQuery( function ( $ ) {
 	} );
 
 	$( '#dc-swp-add-selected' ).on( 'click', function () {
-		const $ta      = $( 'textarea[name="dc_swp_partytown_scripts"]' );
-		const $list    = $( '#dc-swp-autodetect-list' );
-		const existing = $ta.val().split( '\n' ).map( function ( s ) { return s.trim(); } ).filter( Boolean );
-		const toAdd    = [];
-
-		$list.find( 'input[type="checkbox"]:checked' ).each( function () {
-			const url = $( this ).val();
-			if ( existing.indexOf( url ) === -1 ) { toAdd.push( url ); }
+		$( '#dc-swp-autodetect-list' ).find( 'input[type="checkbox"]:checked' ).each( function () {
+			const host = $( this ).val();
+			if ( typeof window.dcSwpAddScriptEntry === 'function' ) {
+				window.dcSwpAddScriptEntry( host );
+			}
 		} );
-
-		if ( toAdd.length ) {
-			$ta.val( existing.concat( toAdd ).join( '\n' ) );
-		}
 		$( '#dc-swp-autodetect-results' ).fadeOut();
 	} );
 } );
@@ -513,9 +624,11 @@ jQuery( function ( $ ) {
 
 					// If googletagmanager.com is already in the Partytown Script List,
 					// auto-switch to detect mode — the tag is already being offloaded.
-					const ptLines     = ( $( 'textarea[name="dc_swp_partytown_scripts"]' ).val() || '' ).split( '\n' );
-					const alreadyInPt = ptLines.some( function ( line ) {
-						return line.trim().toLowerCase().indexOf( 'googletagmanager.com' ) !== -1;
+					const ptEntries   = dcSwpAdminData.scriptListEntries || [];
+					const alreadyInPt = ptEntries.some( function ( e ) {
+						return ( e.pattern || '' ).toLowerCase().indexOf( 'googletagmanager.com' ) !== -1;
+					} ) || $( '.dc-swp-sl-pattern' ).toArray().some( function ( el ) {
+						return ( el.value || '' ).toLowerCase().indexOf( 'googletagmanager.com' ) !== -1;
 					} );
 
 					if ( alreadyInPt ) {
@@ -667,5 +780,6 @@ jQuery( function ( $ ) {
 		const on = $( this ).prop( 'checked' );
 		$( '#dc-swp-script-list-cat-row' ).toggle( on );
 		$( '.dc-swp-blk-cat-wrap' ).toggle( on );
+		$( '.dc-swp-sl-cat' ).toggle( on );
 	} );
 } )( jQuery );
