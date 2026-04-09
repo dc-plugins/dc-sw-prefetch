@@ -832,42 +832,7 @@ function dc_swp_serve_partytown_proxy() {
 
 
 // ============================================================
-// PRODUCT BASE HELPER
-// Auto-detects WooCommerce product permalink slug and allows
-// manual override via the admin setting.
-// ============================================================
-
-/**
- * Return the URL path segment used to identify product permalinks.
- * e.g. "/product/" or "/produkt/" for localised installations.
- *
- * Priority:
- *  1. Admin override (dc_swp_product_base)
- *  2. WooCommerce permalink setting (woocommerce_permalinks.product_base)
- *  3. Hard fallback: /product/
- */
-function dc_swp_get_product_base() {
-	$override = trim( get_option( 'dc_swp_product_base', '' ) );
-	if ( '' !== $override ) {
-		// Normalise: ensure leading and trailing slash.
-		return '/' . trim( $override, '/' ) . '/';
-	}
-
-	// Auto-detect from WooCommerce.
-	$wc = get_option( 'woocommerce_permalinks', array() );
-	if ( ! empty( $wc['product_base'] ) ) {
-		$base  = trim( $wc['product_base'], '/' );
-		$parts = explode( '/', $base );
-		// Use only the first path segment (ignore %product_cat% suffixes).
-		return '/' . $parts[0] . '/';
-	}
-
-	return '/product/';
-}
-
-
-// ============================================================
-// PARTYTOWN SNIPPET + VIEWPORT/PAGINATION PREFETCHER IN FOOTER
+// PARTYTOWN SNIPPET IN FOOTER
 // ============================================================
 
 /**
@@ -1600,89 +1565,6 @@ function dc_swp_partytown_config() {
 			}
 		);
 	}
-}
-
-
-add_action( 'wp_enqueue_scripts', 'dc_swp_prefetch_footer', 9999 );
-
-/**
- * Viewport/pagination prefetcher — runs in wp_footer.
- * Unchanged from original; does NOT depend on a service worker.
- */
-function dc_swp_prefetch_footer() {
-	if ( dc_swp_is_bot_request() ) {
-		return;
-	}
-
-	if (
-		( function_exists( 'is_cart' ) && is_cart() ) ||
-		( function_exists( 'is_checkout' ) && is_checkout() ) ||
-		( function_exists( 'is_account_page' ) && is_account_page() )
-	) {
-		return;
-	}
-
-	$preload_enabled = get_option( 'dc_swp_preload_products', 'yes' ) === 'yes';
-	if ( ! $preload_enabled ) {
-		return;
-	}
-
-	$product_base = dc_swp_get_product_base();
-	wp_register_script( 'dc-swp-prefetch', plugins_url( 'assets/js/prefetch.js', __FILE__ ), array(), DC_SWP_VERSION, array( 'in_footer' => true ) );
-	wp_localize_script(
-		'dc-swp-prefetch',
-		'dcSwpPrefetchData',
-		array(
-			'productBase' => $product_base,
-		)
-	);
-	wp_enqueue_script( 'dc-swp-prefetch' );
-}
-
-
-// ============================================================
-// WP EMOJI REMOVAL
-// WordPress loads SVG emoji detection JS (fetches from s.w.org)
-// on every page — an unnecessary round-trip with no benefit on
-// modern browsers. Removing it saves ~76 KB and one DNS lookup.
-// A tiny inline style ensures any emoji <img> that slips through
-// is still sized correctly.
-// ============================================================
-
-add_action( 'init', 'dc_swp_maybe_remove_emoji', 1 );
-
-/**
- * Remove WordPress emoji detection scripts and styles when the option is enabled.
- *
- * @since 1.0.0
- * @return void
- */
-function dc_swp_maybe_remove_emoji() {
-	if ( is_admin() ) {
-		return;
-	}
-	if ( get_option( 'dc_swp_disable_emoji', 'yes' ) !== 'yes' ) {
-		return;
-	}
-
-	remove_action( 'wp_head', 'print_emoji_detection_script', 7 );
-	remove_action( 'wp_print_styles', 'print_emoji_styles' );
-	remove_filter( 'the_content_feed', 'wp_staticize_emoji' );
-	remove_filter( 'comment_text_rss', 'wp_staticize_emoji' );
-	remove_filter( 'wp_mail', 'wp_staticize_emoji_for_email' );
-	add_filter( 'emoji_svg_url', '__return_false' );
-
-	// Size any emoji <img> that still renders (e.g. from cached markup).
-	add_action(
-		'wp_enqueue_scripts',
-		function () {
-			// phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion -- inline-only handle, no file to version.
-			wp_register_style( 'dc-swp-emoji', false, array(), null );
-			wp_add_inline_style( 'dc-swp-emoji', 'img.emoji{width:1em;height:1em;vertical-align:-0.1em}' );
-			wp_enqueue_style( 'dc-swp-emoji' );
-		},
-		1
-	);
 }
 
 

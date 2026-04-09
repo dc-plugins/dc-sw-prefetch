@@ -474,10 +474,7 @@ function dc_swp_sanitize_inline_scripts_option( $value ) {
  */
 function dc_swp_register_settings() {
 	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_sw_enabled', array( 'sanitize_callback' => 'sanitize_text_field' ) );
-	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_preload_products', array( 'sanitize_callback' => 'sanitize_text_field' ) );
-	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_product_base', array( 'sanitize_callback' => 'sanitize_text_field' ) );
 	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_footer_credit', array( 'sanitize_callback' => 'sanitize_text_field' ) );
-	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_disable_emoji', array( 'sanitize_callback' => 'sanitize_text_field' ) );
 	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_partytown_scripts', array( 'sanitize_callback' => 'sanitize_textarea_field' ) );
 	// Inline script blocks — admin-only JS content stored as JSON; validated via dc_swp_sanitize_inline_scripts_option.
 	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_inline_scripts', array( 'sanitize_callback' => 'dc_swp_sanitize_inline_scripts_option' ) );
@@ -504,10 +501,7 @@ function dc_swp_admin_page_html() {
 
 	if ( isset( $_POST['dc_swp_nonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['dc_swp_nonce'] ) ), 'dc_swp_save_settings' ) ) {
 		update_option( 'dc_swp_sw_enabled', isset( $_POST['dc_swp_sw_enabled'] ) ? 'yes' : 'no' );
-		update_option( 'dc_swp_preload_products', isset( $_POST['dc_swp_preload_products'] ) ? 'yes' : 'no' );
-		update_option( 'dc_swp_product_base', sanitize_text_field( wp_unslash( $_POST['dc_swp_product_base'] ?? '' ) ) );
 		update_option( 'dc_swp_footer_credit', isset( $_POST['dc_swp_footer_credit'] ) ? 'yes' : 'no' );
-		update_option( 'dc_swp_disable_emoji', isset( $_POST['dc_swp_disable_emoji'] ) ? 'yes' : 'no' );
 		update_option( 'dc_swp_partytown_scripts', sanitize_textarea_field( wp_unslash( $_POST['dc_swp_partytown_scripts'] ?? '' ) ) );
 		// Inline script blocks: decode the JS-managed JSON accordion payload.
 		$raw_json_blocks  = wp_unslash( $_POST['dc_swp_inline_scripts_json'] ?? '' ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON envelope; each field sanitized individually below.
@@ -546,8 +540,6 @@ function dc_swp_admin_page_html() {
 	}
 
 	$sw_enabled         = get_option( 'dc_swp_sw_enabled', 'yes' ) === 'yes';
-	$preload_products   = get_option( 'dc_swp_preload_products', 'yes' ) === 'yes';
-	$disable_emoji      = get_option( 'dc_swp_disable_emoji', 'yes' ) === 'yes';
 	$coi_headers        = get_option( 'dc_swp_coi_headers', 'no' ) === 'yes';
 	$consent_mode       = get_option( 'dc_swp_consent_mode', 'no' ) === 'yes';
 	$url_passthrough    = get_option( 'dc_swp_url_passthrough', 'no' ) === 'yes';
@@ -576,12 +568,7 @@ function dc_swp_admin_page_html() {
 			update_option( 'dc_swp_inline_scripts', wp_json_encode( $inline_script_blocks ) );
 		}
 	}
-	$product_base_val = get_option( 'dc_swp_product_base', '' );
 	$footer_credit    = get_option( 'dc_swp_footer_credit', 'no' ) === 'yes';
-
-	// Auto-detect for placeholder display.
-	$wc_perma = get_option( 'woocommerce_permalinks', array() );
-	$wc_base  = ! empty( $wc_perma['product_base'] ) ? '/' . explode( '/', trim( $wc_perma['product_base'], '/' ) )[0] . '/' : '/product/';
 
 	// Read vendored Partytown version from package.json using WP_Filesystem.
 	$pkg_json   = plugin_dir_path( __FILE__ ) . 'package.json';
@@ -665,26 +652,6 @@ function dc_swp_admin_page_html() {
 						</div>
 
 						<p class="description" style="margin-top:8px"><?php echo wp_kses_post( dc_swp_str( 'inline_scripts_desc' ) ); ?></p>
-					</td>
-				</tr>
-				<tr valign="top">
-					<th scope="row"><?php echo esc_html( dc_swp_str( 'preload_label' ) ); ?></th>
-					<td>
-						<label class="pwa-toggle">
-							<input type="checkbox" name="dc_swp_preload_products" value="yes" <?php checked( $preload_products, true ); ?>>
-							<span class="pwa-slider"></span>
-						</label>
-						<p class="description"><?php echo wp_kses_post( dc_swp_str( 'preload_desc' ) ); ?></p>
-					</td>
-				</tr>
-				<tr valign="top">
-					<th scope="row"><?php echo esc_html( dc_swp_str( 'emoji_label' ) ); ?></th>
-					<td>
-						<label class="pwa-toggle">
-							<input type="checkbox" name="dc_swp_disable_emoji" value="yes" <?php checked( $disable_emoji, true ); ?>>
-							<span class="pwa-slider"></span>
-						</label>
-						<p class="description"><?php echo wp_kses_post( dc_swp_str( 'emoji_desc' ) ); ?></p>
 					</td>
 				</tr>
 				<tr valign="top">
@@ -923,18 +890,6 @@ function dc_swp_admin_page_html() {
 							<span class="pwa-slider"></span>
 						</label>
 						<p class="description"><?php echo wp_kses_post( dc_swp_str( 'debug_desc' ) ); ?></p>
-					</td>
-				</tr>
-				<tr valign="top">
-					<th scope="row"><?php echo esc_html( dc_swp_str( 'product_base_label' ) ); ?></th>
-					<td>
-						<input type="text" name="dc_swp_product_base"
-								value="<?php echo esc_attr( $product_base_val ); ?>"
-								placeholder="<?php echo esc_attr( $wc_base ); ?>"
-								class="regular-text"
-								style="font-family: monospace;">
-						<p class="description"><?php echo wp_kses_post( dc_swp_str( 'product_base_desc' ) ); ?></p>
-						<p class="description"><?php echo esc_html( dc_swp_str( 'product_base_detected' ) ); ?>: <code><?php echo esc_html( $wc_base ); ?></code></p>
 					</td>
 				</tr>
 			</table>
