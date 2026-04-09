@@ -1,4 +1,4 @@
-/* Partytown 0.13.0-dev1774575388916 - MIT QwikDev */
+/* Partytown 0.13.2 - MIT QwikDev */
 (self => {
     const [getter, setter, callMethod, constructGlobal, definePrototypePropertyDescriptor, randomId, WinIdKey, InstanceIdKey, ApplyPathKey] = self.$bridgeToMedia$;
     delete self.$bridgeToMedia$;
@@ -369,7 +369,7 @@
                         callMethod(sourceBuffer, [ sbIndex, task[0] ], task[1], CallType.NonBlockingNoSideEffect, void 0, task[2]);
                     }
                 }
-                setTimeout(() => drainSourceBufferQueue(sourceBuffer), 50);
+                setTimeout((() => drainSourceBufferQueue(sourceBuffer)), 50);
             }
         };
         const HTMLMediaDescriptorMap = {
@@ -377,9 +377,9 @@
                 get() {
                     if (!this[TimeRangesKey]) {
                         this[TimeRangesKey] = new WorkerTimeRanges(this[WinIdKey], this[InstanceIdKey], [ "buffered" ]);
-                        setTimeout(() => {
+                        setTimeout((() => {
                             this[TimeRangesKey] = void 0;
-                        }, 5e3);
+                        }), 5e3);
                     }
                     return this[TimeRangesKey];
                 }
@@ -391,9 +391,9 @@
                     }
                     if ("number" != typeof this[ReadyStateKey]) {
                         this[ReadyStateKey] = getter(this, [ "readyState" ]);
-                        setTimeout(() => {
+                        setTimeout((() => {
                             this[ReadyStateKey] = void 0;
-                        }, 1e3);
+                        }), 1e3);
                     }
                     return this[ReadyStateKey];
                 }
@@ -467,9 +467,9 @@
     };
     const isStaticTypeSupported = new Map;
     self.$bridgeFromMedia$ = (WorkerBase, WorkerEventTargetProxy, env, win, windowMediaConstructors) => {
-        windowMediaConstructors.map(mediaCstrName => {
+        windowMediaConstructors.map((mediaCstrName => {
             delete win[mediaCstrName];
-        });
+        }));
         initCanvas(WorkerBase, win);
         initMedia(WorkerBase, WorkerEventTargetProxy, env, win);
     };

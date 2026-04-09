@@ -1,4 +1,4 @@
-/* Partytown 0.13.0-dev1774575388916 - MIT QwikDev */
+/* Partytown 0.13.2 - MIT QwikDev */
 const defaultPartytownForwardPropertySettings = {
     preserveBehavior: false
 };
@@ -18,9 +18,9 @@ const arrayMethods = Object.freeze((obj => {
     const properties = new Set;
     let currentObj = obj;
     do {
-        Object.getOwnPropertyNames(currentObj).forEach(item => {
+        Object.getOwnPropertyNames(currentObj).forEach((item => {
             "function" == typeof currentObj[item] && properties.add(item);
-        });
+        }));
     } while ((currentObj = Object.getPrototypeOf(currentObj)) !== Object.prototype);
     return Array.from(properties);
 })([]));
@@ -37,21 +37,21 @@ const arrayMethods = Object.freeze((obj => {
                         detail: win
                     }));
                 } else {
-                    timeout = setTimeout(fallback, (null == config ? void 0 : config.fallbackTimeout) || 999999999);
+                    timeout = setTimeout(fallback, (null == config ? void 0 : config.fallbackTimeout) || 1e4);
                     doc.addEventListener("pt0", clearFallback);
                     useAtomics ? loadSandbox(1) : nav.serviceWorker ? nav.serviceWorker.register(libPath + (config.swPath || "partytown-sw.js"), {
                         scope: libPath
-                    }).then(function(swRegistration) {
+                    }).then((function(swRegistration) {
                         if (swRegistration.active) {
                             loadSandbox();
                         } else if (swRegistration.installing) {
-                            swRegistration.installing.addEventListener("statechange", function(ev) {
+                            swRegistration.installing.addEventListener("statechange", (function(ev) {
                                 "activated" == ev.target.state && loadSandbox();
-                            });
+                            }));
                         } else {
                             console.warn(swRegistration);
                         }
-                    }, console.error) : fallback();
+                    }), console.error) : fallback();
                 }
             } else {
                 console.warn('Partytown config.lib url must start with "/"');
@@ -69,16 +69,16 @@ const arrayMethods = Object.freeze((obj => {
             sandbox.style.visibility = "hidden";
             sandbox.setAttribute("aria-hidden", !0);
         }
-        sandbox.src = libPath + "partytown-" + (isAtomics ? "atomics.js?v=0.13.0-dev1774575388916" : "sandbox-sw.html?" + win._pttab);
+        sandbox.src = libPath + "partytown-" + (isAtomics ? "atomics.js?v=0.13.2" : "sandbox-sw.html?" + win._pttab);
         doc.querySelector(config.sandboxParent || "body").appendChild(sandbox);
     }
     function fallback(i, script) {
         console.warn("Partytown script fallback");
         clearFallback();
-        top == win && (config.forward || []).map(function(forwardProps) {
+        top == win && (config.forward || []).map((function(forwardProps) {
             const [property] = resolvePartytownForwardProperty(forwardProps);
             delete win[property.split(".")[0]];
-        });
+        }));
         for (i = 0; i < scripts.length; i++) {
             script = doc.createElement("script");
             script.innerHTML = scripts[i].innerHTML;
@@ -91,10 +91,10 @@ const arrayMethods = Object.freeze((obj => {
         clearTimeout(timeout);
     }
     config = win.partytown || {};
-    top == win && (config.forward || []).map(function(forwardProps) {
+    top == win && (config.forward || []).map((function(forwardProps) {
         const [property, {preserveBehavior: preserveBehavior}] = resolvePartytownForwardProperty(forwardProps);
         mainForwardFn = win;
-        property.split(".").map(function(_, i, forwardPropsArr) {
+        property.split(".").map((function(_, i, forwardPropsArr) {
             mainForwardFn = mainForwardFn[forwardPropsArr[i]] = i + 1 < forwardPropsArr.length ? mainForwardFn[forwardPropsArr[i]] || (propertyName => arrayMethods.includes(propertyName) ? [] : {})(forwardPropsArr[i + 1]) : (() => {
                 let originalFunction = null;
                 if (preserveBehavior) {
@@ -117,8 +117,8 @@ const arrayMethods = Object.freeze((obj => {
                     return returnValue;
                 };
             })();
-        });
-    });
+        }));
+    }));
     if ("complete" == doc.readyState) {
         ready();
     } else {
