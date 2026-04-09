@@ -1,9 +1,9 @@
 <?php
 /**
- * DC Script Worker Prefetcher — Main Plugin File
+ * DC Script Worker Proxy — Main Plugin File
  *
  * @wordpress-plugin
- * Plugin Name: DC Script Worker Prefetcher
+ * Plugin Name: DC Script Worker Proxy
  * Plugin URI:  https://github.com/dc-plugins/dc-sw-prefetch
  * Description: Offloads third-party scripts (GTM, Pixel, Analytics…) to a Web Worker via Partytown with consent-aware loading. Fully vendored — no build step required.
  * Version:     1.8.2
@@ -19,7 +19,7 @@
  * WC tested up to:   10.4.3
  * Update URI:        https://github.com/dc-plugins/dc-sw-prefetch
  *
- * @package DC_Service_Worker_Prefetcher
+ * @package DC_Service_Worker_Proxy
  */
 
 if ( ! defined( 'ABSPATH' ) ) {

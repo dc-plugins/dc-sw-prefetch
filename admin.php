@@ -1,10 +1,10 @@
 <?php
 /**
- * DC Script Worker Prefetcher — Admin Interface
+ * DC Script Worker Proxy — Admin Interface
  * Partytown third-party script offloading + viewport/pagination prefetching
  * DampCig.dk
  *
- * @package DC_Service_Worker_Prefetcher
+ * @package DC_Service_Worker_Proxy
  */
 
 // If this file is called directly, abort.

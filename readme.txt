@@ -1,4 +1,4 @@
-=== DC Script Worker Prefetcher ===
+=== DC Script Worker Proxy ===
 Contributors: lennilg
 Tags: thirdparty, performance, analytics, pagespeed, vitals
 Requires at least: 6.8
@@ -13,7 +13,7 @@ Offload third-party scripts (GTM, Pixel, HubSpot…) to a web worker via Partyto
 
 == Description ==
 
-DC Script Worker Prefetcher integrates [Partytown](https://partytown.qwik.dev/) into WordPress as a vendored plugin. Partytown is a **lazy-loaded library** designed to relocate resource-intensive scripts into a web worker and off the main thread — dedicating the main thread to your code while offloading third-party analytics, ads, and tracking scripts to a web worker.
+DC Script Worker Proxy integrates [Partytown](https://partytown.qwik.dev/) into WordPress as a vendored plugin. Partytown is a **lazy-loaded library** designed to relocate resource-intensive scripts into a web worker and off the main thread — dedicating the main thread to your code while offloading third-party analytics, ads, and tracking scripts to a web worker.
 
 The key distinction from `async`/`defer`: those attributes delay *when* a script executes relative to HTML parsing, but execution still happens on the browser's main thread, competing with layout, paint, and user interactions. Third-party scripts using `async`/`defer` can also still block `window.onload`. Partytown moves script *execution* into a Web Worker entirely — the main thread is never touched — no layout jank, no Total Blocking Time (TBT) penalty, no competition with your code.
 

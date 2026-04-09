@@ -1,7 +1,7 @@
 {
   "name": "dc-sw-prefetch",
   "version": "1.5.1",
-  "description": "DC Script Worker Prefetcher \u2014 Partytown + viewport/pagination prefetch for WooCommerce",
+  "description": "DC Script Worker Proxy \u2014 Partytown Web Worker proxy for third-party scripts.",
   "private": true,
   "vendored": {
     "@qwik.dev/partytown": "0.13.2"

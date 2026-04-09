@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
-<ruleset name="DC Script Worker Prefetcher">
-    <description>PHPCS rules for DC Script Worker Prefetcher plugin.</description>
+<ruleset name="DC Script Worker Proxy">
+    <description>PHPCS rules for DC Script Worker Proxy plugin.</description>
 
     <file>.</file>
     <exclude-pattern>vendor/</exclude-pattern>

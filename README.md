@@ -1,4 +1,4 @@
-# DC Script Worker Prefetcher
+# DC Script Worker Proxy
 
 > Offload third-party scripts to a Web Worker via Partytown + consent-aware loading.
 

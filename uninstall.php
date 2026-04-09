@@ -1,11 +1,11 @@
 <?php
 /**
- * DC Script Worker Prefetcher — Uninstall
+ * DC Script Worker Proxy — Uninstall
  *
  * Fired when the plugin is deleted via the WordPress admin.
  * Removes all plugin-specific options and transients from the database.
  *
- * @package DC_Service_Worker_Prefetcher
+ * @package DC_Service_Worker_Proxy
  */
 
 if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
