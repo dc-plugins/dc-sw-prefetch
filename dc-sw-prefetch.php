@@ -2410,6 +2410,37 @@ function dc_swp_get_exclusion_patterns(): array {
 }
 
 /**
+ * Return true when the current page is a WooCommerce transactional page.
+ *
+ * Partytown and resource-hint injection are suppressed on cart, checkout, and
+ * account pages to avoid interfering with payment flows or session-sensitive
+ * content. Result is static-memoised so the check runs only once per request.
+ *
+ * @since 2.0.0
+ * @return bool
+ */
+function dc_swp_is_safe_page(): bool {
+	static $result = null;
+	if ( null !== $result ) {
+		return $result;
+	}
+	if ( function_exists( 'is_cart' ) && is_cart() ) {
+		$result = true;
+		return $result;
+	}
+	if ( function_exists( 'is_checkout' ) && is_checkout() ) {
+		$result = true;
+		return $result;
+	}
+	if ( function_exists( 'is_account_page' ) && is_account_page() ) {
+		$result = true;
+		return $result;
+	}
+	$result = false;
+	return $result;
+}
+
+/**
  * Return true when the current request URI matches any exclusion pattern.
  *
  * Each pattern may contain a * wildcard (matches any characters). Patterns
