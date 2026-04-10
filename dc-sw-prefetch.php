@@ -2112,7 +2112,7 @@ function dc_swp_inject_resource_hints(): void {
 	if ( dc_swp_is_safe_page() ) {
 		return;
 	}
-	if ( function_exists( 'dc_swp_is_excluded_url' ) && dc_swp_is_excluded_url() ) {
+	if ( dc_swp_is_excluded_url() ) {
 		return;
 	}
 
@@ -2283,8 +2283,8 @@ function dc_swp_ajax_perf_report(): void {
 	check_ajax_referer( 'dc_swp_perf_nonce', 'nonce' );
 
 	// Clamp inputs: TBT 0–30 000 ms, INP 0–10 000 ms.
-	$tbt = max( 0.0, min( 30000.0, (float) sanitize_text_field( wp_unslash( $_POST['tbt'] ?? '0' ) ) ) );
-	$inp = max( 0.0, min( 10000.0, (float) sanitize_text_field( wp_unslash( $_POST['inp'] ?? '0' ) ) ) );
+	$tbt = max( 0.0, min( 30000.0, (float) wp_unslash( $_POST['tbt'] ?? 0 ) ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- float cast is safe sanitization for numeric values.
+	$inp = max( 0.0, min( 10000.0, (float) wp_unslash( $_POST['inp'] ?? 0 ) ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- float cast is safe sanitization for numeric values.
 
 	// Read existing metrics.
 	$metrics_raw = get_option( 'dc_swp_perf_metrics', '' );
@@ -2328,7 +2328,7 @@ function dc_swp_ajax_perf_report(): void {
 	$inp_sorted = $inp_arr;
 	sort( $tbt_sorted );
 	sort( $inp_sorted );
-	$p75_idx = (int) ceil( 0.75 * count( $tbt_sorted ) ) - 1;
+	$p75_idx = max( 0, (int) ceil( 0.75 * count( $tbt_sorted ) ) - 1 );
 	$tbt_p75 = isset( $tbt_sorted[ $p75_idx ] ) ? (float) $tbt_sorted[ $p75_idx ] : 0.0;
 	$inp_p75 = isset( $inp_sorted[ $p75_idx ] ) ? (float) $inp_sorted[ $p75_idx ] : 0.0;
 
@@ -2426,8 +2426,12 @@ function dc_swp_is_excluded_url( string $request_uri = '' ): bool {
 		return $result;
 	}
 
-	if ( '' === $request_uri ) {
-		$request_uri = sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ?? '' ) );
+	// Sanitize once. esc_url_raw preserves path/query characters that
+	// sanitize_text_field would strip (slashes, ?, &, =).
+	$server_uri    = esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ?? '' ) );
+	$is_server_uri = '' === $request_uri;
+	if ( $is_server_uri ) {
+		$request_uri = $server_uri;
 	}
 
 	$patterns = dc_swp_get_exclusion_patterns();
@@ -2450,8 +2454,8 @@ function dc_swp_is_excluded_url( string $request_uri = '' ): bool {
 		}
 	}
 
-	$server_uri = sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ?? '' ) );
-	if ( '' === $server_uri || $request_uri === $server_uri ) {
+	$server_uri = esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ?? '' ) );
+	if ( $is_server_uri || $request_uri === $server_uri ) {
 		$result = $matched;
 	}
 

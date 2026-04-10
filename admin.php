@@ -1401,7 +1401,7 @@ function dc_swp_admin_health_notice(): void {
 	$hosts_html = implode( ', ', array_map( 'esc_html', $issues ) );
 	echo '<div class="notice notice-warning is-dismissible"><p>'
 		. esc_html( dc_swp_str( 'health_monitor_notice' ) )
-		. ' <strong>' . $hosts_html . '</strong>'  // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $hosts_html is escaped via esc_html above.
+		. ' <strong>' . $hosts_html . '</strong>'  // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $hosts_html built exclusively from esc_html()-escaped values; implode does not introduce new HTML.
 		. '</p></div>' . "\n";
 }
 
