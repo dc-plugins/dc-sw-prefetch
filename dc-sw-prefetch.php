@@ -3018,6 +3018,31 @@ function dc_swp_ssga4_send( string $event_name, array $params = array(), bool $b
 	return true;
 }
 
+/**
+ * Guard against duplicate page-render events within the same WC session.
+ *
+ * Page-render hooks (begin_checkout, view_cart, etc.) fire on every request
+ * to those pages. This helper marks an event as fired in the WooCommerce
+ * session and returns false on subsequent calls, preventing duplicate hits.
+ *
+ * Falls back to allowing the event when no session is available.
+ *
+ * @since 2.0.0
+ * @param string $event_name GA4 event name used as the session key.
+ * @return bool True if the event should fire, false if already fired this session.
+ */
+function dc_swp_ssga4_should_fire_once( string $event_name ): bool {
+	if ( ! function_exists( 'WC' ) || is_null( WC()->session ) ) {
+		return true;
+	}
+	$key = 'dc_swp_ssga4_fired_' . $event_name;
+	if ( WC()->session->get( $key ) ) {
+		return false;
+	}
+	WC()->session->set( $key, true );
+	return true;
+}
+
 // ============================================================
 // SSGA4 — WOOCOMMERCE EVENT HOOKS
 // ============================================================
@@ -3112,6 +3137,9 @@ function dc_swp_ssga4_begin_checkout(): void {
 		return;
 	}
 	if ( ! function_exists( 'WC' ) || is_null( WC()->cart ) ) {
+		return;
+	}
+	if ( ! dc_swp_ssga4_should_fire_once( 'begin_checkout' ) ) {
 		return;
 	}
 
@@ -3266,6 +3294,9 @@ function dc_swp_ssga4_view_cart(): void {
 	if ( ! function_exists( 'WC' ) || is_null( WC()->cart ) ) {
 		return;
 	}
+	if ( ! dc_swp_ssga4_should_fire_once( 'view_cart' ) ) {
+		return;
+	}
 
 	dc_swp_ssga4_send(
 		'view_cart',
@@ -3289,6 +3320,9 @@ function dc_swp_ssga4_add_payment_info(): void {
 		return;
 	}
 	if ( ! function_exists( 'WC' ) || is_null( WC()->cart ) ) {
+		return;
+	}
+	if ( ! dc_swp_ssga4_should_fire_once( 'add_payment_info' ) ) {
 		return;
 	}
 
@@ -3317,6 +3351,9 @@ function dc_swp_ssga4_add_shipping_info(): void {
 		return;
 	}
 	if ( ! function_exists( 'WC' ) || is_null( WC()->cart ) ) {
+		return;
+	}
+	if ( ! dc_swp_ssga4_should_fire_once( 'add_shipping_info' ) ) {
 		return;
 	}
 

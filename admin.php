@@ -1130,7 +1130,7 @@ function dc_swp_admin_page_html() {
 				<tr valign="top" class="dc-swp-ssga4-field">
 					<th scope="row"><?php echo esc_html( dc_swp_str( 'ssga4_mid_label' ) ); ?></th>
 					<td>
-						<input type="text" id="dc-swp-ssga4-mid" name="dc_swp_ssga4_measurement_id"
+						<input type="text" id="dc_swp_ssga4_measurement_id" name="dc_swp_ssga4_measurement_id"
 							class="regular-text" style="font-family:monospace"
 							value="<?php echo esc_attr( $ssga4_measurement_id ); ?>"
 							placeholder="<?php echo esc_attr( dc_swp_str( 'ssga4_mid_placeholder' ) ); ?>">
@@ -1147,7 +1147,7 @@ function dc_swp_admin_page_html() {
 				<tr valign="top" class="dc-swp-ssga4-field">
 					<th scope="row"><?php echo esc_html( dc_swp_str( 'ssga4_secret_label' ) ); ?></th>
 					<td>
-						<input type="text" id="dc-swp-ssga4-secret" name="dc_swp_ssga4_api_secret"
+						<input type="password" id="dc_swp_ssga4_api_secret" name="dc_swp_ssga4_api_secret"
 							class="regular-text" style="font-family:monospace"
 							value="<?php echo esc_attr( $ssga4_api_secret ); ?>"
 							placeholder="<?php echo esc_attr( dc_swp_str( 'ssga4_secret_placeholder' ) ); ?>"

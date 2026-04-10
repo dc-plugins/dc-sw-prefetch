@@ -879,7 +879,7 @@ jQuery( function ( $ ) {
 	$( 'form.pwa-cache-settings' ).on( 'submit', function () {
 		var events = {};
 		$( '.dc-swp-ssga4-event-cb' ).each( function () {
-			events[ $( this ).val() ] = $( this ).is( ':checked' );
+			events[ $( this ).data( 'event' ) ] = $( this ).is( ':checked' );
 		} );
 		$( '#dc_swp_ssga4_events_json' ).val( JSON.stringify( events ) );
 	} );
