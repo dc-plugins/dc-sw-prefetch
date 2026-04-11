@@ -1733,6 +1733,7 @@ function dc_swp_inline_is_meta( $code ) {
  *   - New: JSON array of {pattern, category} objects (since 1.10.0).
  *   - Legacy: plain newline-separated pattern strings (migrates to new format).
  *
+ * @param bool $reset If true, clear the static cache and re-parse the option.
  * @return array<int, array{pattern: string, category: string}>
  */
 function dc_swp_get_script_list_entries( bool $reset = false ) {
@@ -2181,7 +2182,7 @@ function dc_swp_ajax_health_report(): void {
 	check_ajax_referer( 'dc_swp_health_nonce', 'nonce' );
 
 	// Rate-limit: one write per IP per 60 seconds to prevent transient flooding.
-	$rl_key = 'dc_swp_hl_rl_' . md5( wp_unslash( $_SERVER['REMOTE_ADDR'] ?? '' ) );
+	$rl_key = 'dc_swp_hl_rl_' . md5( sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ?? '' ) ) );
 	if ( get_transient( $rl_key ) ) {
 		wp_send_json_success();
 		return;
@@ -2275,7 +2276,7 @@ function dc_swp_ajax_perf_report(): void {
 	check_ajax_referer( 'dc_swp_perf_nonce', 'nonce' );
 
 	// Rate-limit: one write per IP per 60 seconds to prevent metric pollution.
-	$rl_key = 'dc_swp_pr_rl_' . md5( wp_unslash( $_SERVER['REMOTE_ADDR'] ?? '' ) );
+	$rl_key = 'dc_swp_pr_rl_' . md5( sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ?? '' ) ) );
 	if ( get_transient( $rl_key ) ) {
 		wp_send_json_success();
 		return;
