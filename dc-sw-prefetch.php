@@ -1127,6 +1127,85 @@ function dc_swp_inject_gtm_body() {
 
 add_action( 'wp_ajax_dc_swp_detect_gtm', 'dc_swp_ajax_detect_gtm' );
 
+add_action( 'wp_head', 'dc_swp_inject_ga4_client_tag', 6 );
+
+/**
+ * Inject the GA4 gtag.js snippet for client-side tracking when enabled.
+ *
+ * Fires at priority 6 — after GTM injection at priority 5 — so if both GTM
+ * and standalone GA4 are configured simultaneously, the user sees a warning
+ * but GTM takes precedence. This function only fires when:
+ * - SSGA4 is not off (mode is own/detect/managed)
+ * - dc_swp_ga4_client_tag option is set to 'yes'
+ * - No active GTM mode (to avoid duplicate tracking)
+ *
+ * @since 2.4.0
+ * @return void
+ */
+function dc_swp_inject_ga4_client_tag() {
+	if ( dc_swp_is_bot_request() || is_admin() ) {
+		return;
+	}
+
+	$cfg = dc_swp_ssga4_get_config();
+
+	// Only inject if client-side tag is explicitly enabled.
+	if ( 'yes' !== $cfg['client_tag'] ) {
+		return;
+	}
+
+	// Skip if SSGA4 is disabled.
+	if ( 'off' === $cfg['mode'] || 'yes' !== $cfg['enabled'] ) {
+		return;
+	}
+
+	// Skip if GTM is already active — both would fire the same GA4 tag.
+	$gtm_mode = get_option( 'dc_swp_gtm_mode', 'off' );
+	if ( 'off' !== $gtm_mode && ! empty( get_option( 'dc_swp_gtm_id', '' ) ) ) {
+		return;
+	}
+
+	// Skip for logged-in users if the exclude option is enabled.
+	if ( 'yes' === $cfg['exclude_logged'] && is_user_logged_in() ) {
+		return;
+	}
+
+	// Skip safe pages (cart, checkout, account).
+	if ( dc_swp_is_safe_page() ) {
+		return;
+	}
+
+	// Skip excluded URLs.
+	if ( function_exists( 'dc_swp_is_excluded_url' ) && dc_swp_is_excluded_url() ) {
+		return;
+	}
+
+	$measurement_id = sanitize_text_field( $cfg['measurement_id'] );
+	if ( empty( $measurement_id ) || ! preg_match( '/^G-[A-Z0-9]{6,}$/i', $measurement_id ) ) {
+		return;
+	}
+
+	$nonce      = dc_swp_get_csp_nonce();
+	$nonce_attr = '' !== $nonce ? ' nonce="' . esc_attr( $nonce ) . '"' : '';
+
+	// Determine script type: text/partytown when Partytown is active, otherwise standard.
+	$sw_enabled = 'yes' === get_option( 'dc_swp_sw_enabled', 'yes' );
+	$type_attr  = $sw_enabled ? ' type="text/partytown"' : '';
+
+	// Ensure dataLayer and gtag() exist on the main thread (idempotent check).
+	// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- fully static JS; nonce is pre-escaped via esc_attr.
+	echo '<script' . $nonce_attr . ">window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}</script>\n";
+
+	// Load gtag.js.
+	// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- measurement ID regex-validated; esc_attr applied.
+	echo '<script' . $type_attr . $nonce_attr . ' src="https://www.googletagmanager.com/gtag/js?id=' . esc_attr( $measurement_id ) . '"></script>' . "\n";
+
+	// Configure GA4.
+	$safe_id = esc_js( $measurement_id );
+	// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- fully static JS; measurement ID is esc_js escaped; nonce is pre-escaped.
+	echo '<script' . $nonce_attr . ">gtag('js',new Date());gtag('config','" . $safe_id . "');</script>\n";
+}
+
 /**
  * AJAX handler: detect a live Google Tag ID by scanning the homepage HTML.
  *
@@ -2828,11 +2907,22 @@ function dc_swp_ssga4_get_config(): array {
 		return $cfg;
 	}
 	$events_raw = json_decode( get_option( 'dc_swp_ssga4_events', '{}' ), true );
-	$cfg        = array(
-		'enabled'        => get_option( 'dc_swp_ssga4_enabled', 'no' ),
+
+	// Mode-based configuration (v2.4.0+).
+	$mode = get_option( 'dc_swp_ssga4_mode', '' );
+	if ( '' === $mode ) {
+		// Legacy fallback: check old dc_swp_ssga4_enabled flag.
+		$mode = ( 'yes' === get_option( 'dc_swp_ssga4_enabled', 'no' ) ) ? 'own' : 'off';
+	}
+
+	$cfg = array(
+		'enabled'        => ( 'off' !== $mode ) ? 'yes' : 'no',
+		'mode'           => $mode,
 		'measurement_id' => get_option( 'dc_swp_ssga4_measurement_id', '' ),
 		'api_secret'     => get_option( 'dc_swp_ssga4_api_secret', '' ),
 		'events'         => is_array( $events_raw ) ? $events_raw : array(),
+		'client_tag'     => get_option( 'dc_swp_ga4_client_tag', 'no' ),
+		'exclude_logged' => get_option( 'dc_swp_ga4_exclude_logged_in', 'yes' ),
 	);
 	return $cfg;
 }
@@ -3091,338 +3181,338 @@ function dc_swp_ssga4_should_fire_once( string $event_name ): bool {
 
 if ( class_exists( 'WooCommerce' ) ) {
 
-// ============================================================
-// SSGA4 — WOOCOMMERCE EVENT HOOKS
-// ============================================================
+	// ============================================================
+	// SSGA4 — WOOCOMMERCE EVENT HOOKS
+	// ============================================================
 
-/**
- * SSGA4: purchase event — fires on thank-you page.
- *
- * Uses _dc_swp_ga4_purchase_tracked meta to prevent double-firing.
- * Also honours legacy _ga4_purchase_tracked from the theme version.
- *
- * @since 2.0.0
- * @param int $order_id WooCommerce order ID.
- * @return void
- */
-function dc_swp_ssga4_purchase( int $order_id ): void {
-	if ( ! dc_swp_ssga4_is_event_enabled( 'purchase' ) ) {
-		return;
-	}
+	/**
+	 * SSGA4: purchase event — fires on thank-you page.
+	 *
+	 * Uses _dc_swp_ga4_purchase_tracked meta to prevent double-firing.
+	 * Also honours legacy _ga4_purchase_tracked from the theme version.
+	 *
+	 * @since 2.0.0
+	 * @param int $order_id WooCommerce order ID.
+	 * @return void
+	 */
+	function dc_swp_ssga4_purchase( int $order_id ): void {
+		if ( ! dc_swp_ssga4_is_event_enabled( 'purchase' ) ) {
+			return;
+		}
 
-	$order = wc_get_order( $order_id );
-	if ( ! $order ) {
-		return;
-	}
+		$order = wc_get_order( $order_id );
+		if ( ! $order ) {
+			return;
+		}
 
-	// Prevent double-fire: check both new and legacy meta keys.
-	if ( $order->get_meta( '_dc_swp_ga4_purchase_tracked' ) || $order->get_meta( '_ga4_purchase_tracked' ) ) {
-		return;
-	}
+		// Prevent double-fire: check both new and legacy meta keys.
+		if ( $order->get_meta( '_dc_swp_ga4_purchase_tracked' ) || $order->get_meta( '_ga4_purchase_tracked' ) ) {
+			return;
+		}
 
-	$params = array(
-		'transaction_id' => $order->get_order_number(),
-		'value'          => (float) $order->get_total(),
-		'currency'       => $order->get_currency(),
-		'tax'            => (float) $order->get_total_tax(),
-		'shipping'       => (float) $order->get_shipping_total(),
-		'items'          => dc_swp_ssga4_build_items( $order ),
-	);
-
-	$coupon_codes = $order->get_coupon_codes();
-	if ( ! empty( $coupon_codes ) ) {
-		$params['coupon'] = implode( ',', $coupon_codes );
-	}
-
-	if ( dc_swp_ssga4_send( 'purchase', $params, true ) ) {
-		$order->update_meta_data( '_dc_swp_ga4_purchase_tracked', '1' );
-		$order->save();
-	}
-}
-add_action( 'woocommerce_thankyou', 'dc_swp_ssga4_purchase', 20 );
-
-/**
- * SSGA4: refund event — fires when an order is fully refunded.
- *
- * @since 2.0.0
- * @param int $order_id WooCommerce order ID.
- * @param int $refund_id WooCommerce refund ID.
- * @return void
- */
-function dc_swp_ssga4_refund( int $order_id, int $refund_id ): void {
-	if ( ! dc_swp_ssga4_is_event_enabled( 'refund' ) ) {
-		return;
-	}
-
-	$order = wc_get_order( $order_id );
-	if ( ! $order ) {
-		return;
-	}
-
-	$refund = wc_get_order( $refund_id );
-	$amount = $refund ? (float) $refund->get_amount() : (float) $order->get_total();
-
-	dc_swp_ssga4_send(
-		'refund',
-		array(
+		$params = array(
 			'transaction_id' => $order->get_order_number(),
-			'value'          => $amount,
+			'value'          => (float) $order->get_total(),
 			'currency'       => $order->get_currency(),
-		),
-		true
-	);
-}
-add_action( 'woocommerce_order_refunded', 'dc_swp_ssga4_refund', 20, 2 );
+			'tax'            => (float) $order->get_total_tax(),
+			'shipping'       => (float) $order->get_shipping_total(),
+			'items'          => dc_swp_ssga4_build_items( $order ),
+		);
 
-/**
- * SSGA4: begin_checkout event.
- *
- * @since 2.0.0
- * @return void
- */
-function dc_swp_ssga4_begin_checkout(): void {
-	if ( ! dc_swp_ssga4_is_event_enabled( 'begin_checkout' ) ) {
-		return;
+		$coupon_codes = $order->get_coupon_codes();
+		if ( ! empty( $coupon_codes ) ) {
+			$params['coupon'] = implode( ',', $coupon_codes );
+		}
+
+		if ( dc_swp_ssga4_send( 'purchase', $params, true ) ) {
+			$order->update_meta_data( '_dc_swp_ga4_purchase_tracked', '1' );
+			$order->save();
+		}
 	}
-	if ( ! function_exists( 'WC' ) || is_null( WC()->cart ) ) {
-		return;
-	}
-	if ( ! dc_swp_ssga4_should_fire_once( 'begin_checkout' ) ) {
-		return;
-	}
+	add_action( 'woocommerce_thankyou', 'dc_swp_ssga4_purchase', 20 );
 
-	dc_swp_ssga4_send(
-		'begin_checkout',
-		array(
-			'value'    => (float) WC()->cart->get_total( 'edit' ),
-			'currency' => get_woocommerce_currency(),
-			'items'    => dc_swp_ssga4_build_cart_items(),
-		)
-	);
-}
-add_action( 'woocommerce_before_checkout_form', 'dc_swp_ssga4_begin_checkout', 20 );
+	/**
+	 * SSGA4: refund event — fires when an order is fully refunded.
+	 *
+	 * @since 2.0.0
+	 * @param int $order_id WooCommerce order ID.
+	 * @param int $refund_id WooCommerce refund ID.
+	 * @return void
+	 */
+	function dc_swp_ssga4_refund( int $order_id, int $refund_id ): void {
+		if ( ! dc_swp_ssga4_is_event_enabled( 'refund' ) ) {
+			return;
+		}
 
-/**
- * SSGA4: add_to_cart event.
- *
- * @since 2.0.0
- * @param string $cart_item_key Cart item key.
- * @param int    $product_id    Product ID.
- * @param int    $quantity      Quantity added.
- * @return void
- */
-function dc_swp_ssga4_add_to_cart( string $cart_item_key, int $product_id, int $quantity ): void {
-	if ( ! dc_swp_ssga4_is_event_enabled( 'add_to_cart' ) ) {
-		return;
-	}
+		$order = wc_get_order( $order_id );
+		if ( ! $order ) {
+			return;
+		}
 
-	$product = wc_get_product( $product_id );
-	if ( ! $product ) {
-		return;
-	}
+		$refund = wc_get_order( $refund_id );
+		$amount = $refund ? (float) $refund->get_amount() : (float) $order->get_total();
 
-	$cats     = wp_get_post_terms( $product->get_id(), 'product_cat', array( 'fields' => 'names' ) );
-	$category = is_array( $cats ) && ! empty( $cats ) ? $cats[0] : '';
-
-	dc_swp_ssga4_send(
-		'add_to_cart',
-		array(
-			'value'    => (float) $product->get_price() * $quantity,
-			'currency' => get_woocommerce_currency(),
-			'items'    => array(
-				array(
-					'item_id'       => $product->get_sku() ? $product->get_sku() : (string) $product->get_id(),
-					'item_name'     => $product->get_name(),
-					'item_category' => $category,
-					'quantity'      => $quantity,
-					'price'         => (float) $product->get_price(),
-				),
+		dc_swp_ssga4_send(
+			'refund',
+			array(
+				'transaction_id' => $order->get_order_number(),
+				'value'          => $amount,
+				'currency'       => $order->get_currency(),
 			),
-		)
-	);
-}
-add_action( 'woocommerce_add_to_cart', 'dc_swp_ssga4_add_to_cart', 20, 3 );
-
-/**
- * SSGA4: remove_from_cart event.
- *
- * @since 2.0.0
- * @param string   $cart_item_key Cart item key.
- * @param \WC_Cart $cart           WooCommerce cart object.
- * @return void
- */
-function dc_swp_ssga4_remove_from_cart( string $cart_item_key, \WC_Cart $cart ): void {
-	if ( ! dc_swp_ssga4_is_event_enabled( 'remove_from_cart' ) ) {
-		return;
+			true
+		);
 	}
+	add_action( 'woocommerce_order_refunded', 'dc_swp_ssga4_refund', 20, 2 );
 
-	$item = $cart->get_cart_item( $cart_item_key );
-	if ( empty( $item ) ) {
-		return;
+	/**
+	 * SSGA4: begin_checkout event.
+	 *
+	 * @since 2.0.0
+	 * @return void
+	 */
+	function dc_swp_ssga4_begin_checkout(): void {
+		if ( ! dc_swp_ssga4_is_event_enabled( 'begin_checkout' ) ) {
+			return;
+		}
+		if ( ! function_exists( 'WC' ) || is_null( WC()->cart ) ) {
+			return;
+		}
+		if ( ! dc_swp_ssga4_should_fire_once( 'begin_checkout' ) ) {
+			return;
+		}
+
+		dc_swp_ssga4_send(
+			'begin_checkout',
+			array(
+				'value'    => (float) WC()->cart->get_total( 'edit' ),
+				'currency' => get_woocommerce_currency(),
+				'items'    => dc_swp_ssga4_build_cart_items(),
+			)
+		);
 	}
+	add_action( 'woocommerce_before_checkout_form', 'dc_swp_ssga4_begin_checkout', 20 );
 
-	$product = $item['data'];
-	if ( ! $product ) {
-		return;
-	}
+	/**
+	 * SSGA4: add_to_cart event.
+	 *
+	 * @since 2.0.0
+	 * @param string $cart_item_key Cart item key.
+	 * @param int    $product_id    Product ID.
+	 * @param int    $quantity      Quantity added.
+	 * @return void
+	 */
+	function dc_swp_ssga4_add_to_cart( string $cart_item_key, int $product_id, int $quantity ): void {
+		if ( ! dc_swp_ssga4_is_event_enabled( 'add_to_cart' ) ) {
+			return;
+		}
 
-	$cats     = wp_get_post_terms( $product->get_id(), 'product_cat', array( 'fields' => 'names' ) );
-	$category = is_array( $cats ) && ! empty( $cats ) ? $cats[0] : '';
+		$product = wc_get_product( $product_id );
+		if ( ! $product ) {
+			return;
+		}
 
-	dc_swp_ssga4_send(
-		'remove_from_cart',
-		array(
-			'value'    => (float) $product->get_price() * $item['quantity'],
-			'currency' => get_woocommerce_currency(),
-			'items'    => array(
-				array(
-					'item_id'       => $product->get_sku() ? $product->get_sku() : (string) $product->get_id(),
-					'item_name'     => $product->get_name(),
-					'item_category' => $category,
-					'quantity'      => $item['quantity'],
-					'price'         => (float) $product->get_price(),
+		$cats     = wp_get_post_terms( $product->get_id(), 'product_cat', array( 'fields' => 'names' ) );
+		$category = is_array( $cats ) && ! empty( $cats ) ? $cats[0] : '';
+
+		dc_swp_ssga4_send(
+			'add_to_cart',
+			array(
+				'value'    => (float) $product->get_price() * $quantity,
+				'currency' => get_woocommerce_currency(),
+				'items'    => array(
+					array(
+						'item_id'       => $product->get_sku() ? $product->get_sku() : (string) $product->get_id(),
+						'item_name'     => $product->get_name(),
+						'item_category' => $category,
+						'quantity'      => $quantity,
+						'price'         => (float) $product->get_price(),
+					),
 				),
-			),
-		)
-	);
-}
-add_action( 'woocommerce_remove_cart_item', 'dc_swp_ssga4_remove_from_cart', 20, 2 );
-
-/**
- * SSGA4: view_item event — single product page.
- *
- * @since 2.0.0
- * @return void
- */
-function dc_swp_ssga4_view_item(): void {
-	if ( ! dc_swp_ssga4_is_event_enabled( 'view_item' ) ) {
-		return;
+			)
+		);
 	}
-	if ( ! function_exists( 'is_product' ) || ! is_product() ) {
-		return;
-	}
+	add_action( 'woocommerce_add_to_cart', 'dc_swp_ssga4_add_to_cart', 20, 3 );
 
-	global $product;
-	if ( ! $product instanceof \WC_Product ) {
-		return;
-	}
+	/**
+	 * SSGA4: remove_from_cart event.
+	 *
+	 * @since 2.0.0
+	 * @param string   $cart_item_key Cart item key.
+	 * @param \WC_Cart $cart           WooCommerce cart object.
+	 * @return void
+	 */
+	function dc_swp_ssga4_remove_from_cart( string $cart_item_key, \WC_Cart $cart ): void {
+		if ( ! dc_swp_ssga4_is_event_enabled( 'remove_from_cart' ) ) {
+			return;
+		}
 
-	$cats     = wp_get_post_terms( $product->get_id(), 'product_cat', array( 'fields' => 'names' ) );
-	$category = is_array( $cats ) && ! empty( $cats ) ? $cats[0] : '';
+		$item = $cart->get_cart_item( $cart_item_key );
+		if ( empty( $item ) ) {
+			return;
+		}
 
-	dc_swp_ssga4_send(
-		'view_item',
-		array(
-			'value'    => (float) $product->get_price(),
-			'currency' => get_woocommerce_currency(),
-			'items'    => array(
-				array(
-					'item_id'       => $product->get_sku() ? $product->get_sku() : (string) $product->get_id(),
-					'item_name'     => $product->get_name(),
-					'item_category' => $category,
-					'quantity'      => 1,
-					'price'         => (float) $product->get_price(),
+		$product = $item['data'];
+		if ( ! $product ) {
+			return;
+		}
+
+		$cats     = wp_get_post_terms( $product->get_id(), 'product_cat', array( 'fields' => 'names' ) );
+		$category = is_array( $cats ) && ! empty( $cats ) ? $cats[0] : '';
+
+		dc_swp_ssga4_send(
+			'remove_from_cart',
+			array(
+				'value'    => (float) $product->get_price() * $item['quantity'],
+				'currency' => get_woocommerce_currency(),
+				'items'    => array(
+					array(
+						'item_id'       => $product->get_sku() ? $product->get_sku() : (string) $product->get_id(),
+						'item_name'     => $product->get_name(),
+						'item_category' => $category,
+						'quantity'      => $item['quantity'],
+						'price'         => (float) $product->get_price(),
+					),
 				),
-			),
-		)
-	);
-}
-add_action( 'woocommerce_after_single_product', 'dc_swp_ssga4_view_item', 20 );
+			)
+		);
+	}
+	add_action( 'woocommerce_remove_cart_item', 'dc_swp_ssga4_remove_from_cart', 20, 2 );
 
-/**
- * SSGA4: view_cart event.
- *
- * @since 2.0.0
- * @return void
- */
-function dc_swp_ssga4_view_cart(): void {
-	if ( ! dc_swp_ssga4_is_event_enabled( 'view_cart' ) ) {
-		return;
-	}
-	if ( ! function_exists( 'WC' ) || is_null( WC()->cart ) ) {
-		return;
-	}
-	if ( ! dc_swp_ssga4_should_fire_once( 'view_cart' ) ) {
-		return;
-	}
+	/**
+	 * SSGA4: view_item event — single product page.
+	 *
+	 * @since 2.0.0
+	 * @return void
+	 */
+	function dc_swp_ssga4_view_item(): void {
+		if ( ! dc_swp_ssga4_is_event_enabled( 'view_item' ) ) {
+			return;
+		}
+		if ( ! function_exists( 'is_product' ) || ! is_product() ) {
+			return;
+		}
 
-	dc_swp_ssga4_send(
-		'view_cart',
-		array(
-			'value'    => (float) WC()->cart->get_total( 'edit' ),
-			'currency' => get_woocommerce_currency(),
-			'items'    => dc_swp_ssga4_build_cart_items(),
-		)
-	);
-}
-add_action( 'woocommerce_before_cart', 'dc_swp_ssga4_view_cart', 20 );
+		global $product;
+		if ( ! $product instanceof \WC_Product ) {
+			return;
+		}
 
-/**
- * SSGA4: add_payment_info event.
- *
- * @since 2.0.0
- * @return void
- */
-function dc_swp_ssga4_add_payment_info(): void {
-	if ( ! dc_swp_ssga4_is_event_enabled( 'add_payment_info' ) ) {
-		return;
-	}
-	if ( ! function_exists( 'WC' ) || is_null( WC()->cart ) ) {
-		return;
-	}
-	if ( ! dc_swp_ssga4_should_fire_once( 'add_payment_info' ) ) {
-		return;
-	}
+		$cats     = wp_get_post_terms( $product->get_id(), 'product_cat', array( 'fields' => 'names' ) );
+		$category = is_array( $cats ) && ! empty( $cats ) ? $cats[0] : '';
 
-	$chosen = WC()->session ? WC()->session->get( 'chosen_payment_method' ) : '';
-
-	dc_swp_ssga4_send(
-		'add_payment_info',
-		array(
-			'value'        => (float) WC()->cart->get_total( 'edit' ),
-			'currency'     => get_woocommerce_currency(),
-			'payment_type' => $chosen ? $chosen : 'unknown',
-			'items'        => dc_swp_ssga4_build_cart_items(),
-		)
-	);
-}
-add_action( 'woocommerce_checkout_after_order_review', 'dc_swp_ssga4_add_payment_info', 20 );
-
-/**
- * SSGA4: add_shipping_info event.
- *
- * @since 2.0.0
- * @return void
- */
-function dc_swp_ssga4_add_shipping_info(): void {
-	if ( ! dc_swp_ssga4_is_event_enabled( 'add_shipping_info' ) ) {
-		return;
+		dc_swp_ssga4_send(
+			'view_item',
+			array(
+				'value'    => (float) $product->get_price(),
+				'currency' => get_woocommerce_currency(),
+				'items'    => array(
+					array(
+						'item_id'       => $product->get_sku() ? $product->get_sku() : (string) $product->get_id(),
+						'item_name'     => $product->get_name(),
+						'item_category' => $category,
+						'quantity'      => 1,
+						'price'         => (float) $product->get_price(),
+					),
+				),
+			)
+		);
 	}
-	if ( ! function_exists( 'WC' ) || is_null( WC()->cart ) ) {
-		return;
-	}
-	if ( ! dc_swp_ssga4_should_fire_once( 'add_shipping_info' ) ) {
-		return;
-	}
+	add_action( 'woocommerce_after_single_product', 'dc_swp_ssga4_view_item', 20 );
 
-	$packages = WC()->shipping()->get_packages();
-	$method   = '';
-	if ( ! empty( $packages ) ) {
-		$chosen = WC()->session ? WC()->session->get( 'chosen_shipping_methods' ) : array();
-		$method = ! empty( $chosen[0] ) ? $chosen[0] : '';
-	}
+	/**
+	 * SSGA4: view_cart event.
+	 *
+	 * @since 2.0.0
+	 * @return void
+	 */
+	function dc_swp_ssga4_view_cart(): void {
+		if ( ! dc_swp_ssga4_is_event_enabled( 'view_cart' ) ) {
+			return;
+		}
+		if ( ! function_exists( 'WC' ) || is_null( WC()->cart ) ) {
+			return;
+		}
+		if ( ! dc_swp_ssga4_should_fire_once( 'view_cart' ) ) {
+			return;
+		}
 
-	dc_swp_ssga4_send(
-		'add_shipping_info',
-		array(
-			'value'         => (float) WC()->cart->get_total( 'edit' ),
-			'currency'      => get_woocommerce_currency(),
-			'shipping_tier' => $method ? $method : 'unknown',
-			'items'         => dc_swp_ssga4_build_cart_items(),
-		)
-	);
-}
-add_action( 'woocommerce_checkout_after_customer_details', 'dc_swp_ssga4_add_shipping_info', 20 );
+		dc_swp_ssga4_send(
+			'view_cart',
+			array(
+				'value'    => (float) WC()->cart->get_total( 'edit' ),
+				'currency' => get_woocommerce_currency(),
+				'items'    => dc_swp_ssga4_build_cart_items(),
+			)
+		);
+	}
+	add_action( 'woocommerce_before_cart', 'dc_swp_ssga4_view_cart', 20 );
+
+	/**
+	 * SSGA4: add_payment_info event.
+	 *
+	 * @since 2.0.0
+	 * @return void
+	 */
+	function dc_swp_ssga4_add_payment_info(): void {
+		if ( ! dc_swp_ssga4_is_event_enabled( 'add_payment_info' ) ) {
+			return;
+		}
+		if ( ! function_exists( 'WC' ) || is_null( WC()->cart ) ) {
+			return;
+		}
+		if ( ! dc_swp_ssga4_should_fire_once( 'add_payment_info' ) ) {
+			return;
+		}
+
+		$chosen = WC()->session ? WC()->session->get( 'chosen_payment_method' ) : '';
+
+		dc_swp_ssga4_send(
+			'add_payment_info',
+			array(
+				'value'        => (float) WC()->cart->get_total( 'edit' ),
+				'currency'     => get_woocommerce_currency(),
+				'payment_type' => $chosen ? $chosen : 'unknown',
+				'items'        => dc_swp_ssga4_build_cart_items(),
+			)
+		);
+	}
+	add_action( 'woocommerce_checkout_after_order_review', 'dc_swp_ssga4_add_payment_info', 20 );
+
+	/**
+	 * SSGA4: add_shipping_info event.
+	 *
+	 * @since 2.0.0
+	 * @return void
+	 */
+	function dc_swp_ssga4_add_shipping_info(): void {
+		if ( ! dc_swp_ssga4_is_event_enabled( 'add_shipping_info' ) ) {
+			return;
+		}
+		if ( ! function_exists( 'WC' ) || is_null( WC()->cart ) ) {
+			return;
+		}
+		if ( ! dc_swp_ssga4_should_fire_once( 'add_shipping_info' ) ) {
+			return;
+		}
+
+		$packages = WC()->shipping()->get_packages();
+		$method   = '';
+		if ( ! empty( $packages ) ) {
+			$chosen = WC()->session ? WC()->session->get( 'chosen_shipping_methods' ) : array();
+			$method = ! empty( $chosen[0] ) ? $chosen[0] : '';
+		}
+
+		dc_swp_ssga4_send(
+			'add_shipping_info',
+			array(
+				'value'         => (float) WC()->cart->get_total( 'edit' ),
+				'currency'      => get_woocommerce_currency(),
+				'shipping_tier' => $method ? $method : 'unknown',
+				'items'         => dc_swp_ssga4_build_cart_items(),
+			)
+		);
+	}
+	add_action( 'woocommerce_checkout_after_customer_details', 'dc_swp_ssga4_add_shipping_info', 20 );
 
 } // end if class_exists( 'WooCommerce' )
 

@@ -253,9 +253,12 @@ function dc_swp_register_settings() {
 	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_gtm_mode', array( 'sanitize_callback' => 'sanitize_text_field' ) );
 	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_gtm_id', array( 'sanitize_callback' => 'sanitize_text_field' ) );
 	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_ssga4_enabled', array( 'sanitize_callback' => 'sanitize_text_field' ) );
+	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_ssga4_mode', array( 'sanitize_callback' => 'sanitize_text_field' ) );
 	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_ssga4_measurement_id', array( 'sanitize_callback' => 'sanitize_text_field' ) );
 	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_ssga4_api_secret', array( 'sanitize_callback' => 'sanitize_text_field' ) );
 	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_ssga4_events', array( 'sanitize_callback' => 'sanitize_text_field' ) );
+	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_ga4_client_tag', array( 'sanitize_callback' => 'sanitize_text_field' ) );
+	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_ga4_exclude_logged_in', array( 'sanitize_callback' => 'sanitize_text_field' ) );
 	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_resource_hints', array( 'sanitize_callback' => 'sanitize_text_field' ) );
 	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_health_monitor', array( 'sanitize_callback' => 'sanitize_text_field' ) );
 	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_perf_monitor', array( 'sanitize_callback' => 'sanitize_text_field' ) );
@@ -342,11 +345,20 @@ function dc_swp_admin_page_html() {
 		$_gtm_id_raw = sanitize_text_field( wp_unslash( $_POST['dc_swp_gtm_id'] ?? '' ) );
 		// Accept empty string (disables injection) or a valid tag ID format.
 		update_option( 'dc_swp_gtm_id', ( '' === $_gtm_id_raw || preg_match( '/^(GTM-[A-Z0-9]{4,10}|G-[A-Z0-9]{6,}|UA-\d{4,}-\d+)$/i', $_gtm_id_raw ) ) ? strtoupper( $_gtm_id_raw ) : '' );
-		// ── Server-Side GA4 Events ────────────────────────────────────────
-		update_option( 'dc_swp_ssga4_enabled', isset( $_POST['dc_swp_ssga4_enabled'] ) ? 'yes' : 'no' );
+		// ── Server-Side GA4 ──────────────────────────────────────────────
+		$_valid_ssga4_modes = array( 'off', 'own', 'detect', 'managed' );
+		$_ssga4_mode_raw    = sanitize_text_field( wp_unslash( $_POST['dc_swp_ssga4_mode'] ?? 'off' ) );
+		$_ssga4_mode        = in_array( $_ssga4_mode_raw, $_valid_ssga4_modes, true ) ? $_ssga4_mode_raw : 'off';
+		update_option( 'dc_swp_ssga4_mode', $_ssga4_mode );
+		// Keep legacy option in sync for backward compatibility.
+		update_option( 'dc_swp_ssga4_enabled', 'off' !== $_ssga4_mode ? 'yes' : 'no' );
 		$_ssga4_mid_raw = sanitize_text_field( wp_unslash( $_POST['dc_swp_ssga4_measurement_id'] ?? '' ) );
 		update_option( 'dc_swp_ssga4_measurement_id', ( '' === $_ssga4_mid_raw || preg_match( '/^G-[A-Z0-9]{6,}$/i', $_ssga4_mid_raw ) ) ? strtoupper( $_ssga4_mid_raw ) : '' );
 		update_option( 'dc_swp_ssga4_api_secret', sanitize_text_field( wp_unslash( $_POST['dc_swp_ssga4_api_secret'] ?? '' ) ) );
+		// GA4 client-side options.
+		update_option( 'dc_swp_ga4_client_tag', sanitize_text_field( wp_unslash( $_POST['dc_swp_ga4_client_tag'] ?? 'no' ) ) );
+		update_option( 'dc_swp_ga4_exclude_logged_in', sanitize_text_field( wp_unslash( $_POST['dc_swp_ga4_exclude_logged_in'] ?? 'yes' ) ) );
+		// Server-side events.
 		$_ssga4_valid_events = array( 'purchase', 'refund', 'begin_checkout', 'add_to_cart', 'remove_from_cart', 'view_item', 'view_cart', 'add_payment_info', 'add_shipping_info' );
 		$_ssga4_events_raw   = json_decode( wp_unslash( $_POST['dc_swp_ssga4_events_json'] ?? '{}' ), true ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON envelope; each key validated below.
 		$_ssga4_events_clean = array();
@@ -384,10 +396,19 @@ function dc_swp_admin_page_html() {
 	// Performance metrics.
 	$perf_metrics_raw = get_option( 'dc_swp_perf_metrics', '' );
 	$perf_metrics     = ( '' !== $perf_metrics_raw ) ? json_decode( $perf_metrics_raw, true ) : null;
-	// Server-Side GA4 Events.
-	$ssga4_enabled        = get_option( 'dc_swp_ssga4_enabled', 'no' ) === 'yes';
+	// ── Server-Side GA4 ──────────────────────────────────────────────
+	// Mode-based setup: migrate legacy toggle to mode system.
+	$ssga4_mode = get_option( 'dc_swp_ssga4_mode', '' );
+	if ( '' === $ssga4_mode ) {
+		// Migration: check legacy enabled flag.
+		$ssga4_mode = ( 'yes' === get_option( 'dc_swp_ssga4_enabled', 'no' ) ) ? 'own' : 'off';
+		update_option( 'dc_swp_ssga4_mode', $ssga4_mode );
+	}
+	$ssga4_enabled        = 'off' !== $ssga4_mode;
 	$ssga4_measurement_id = get_option( 'dc_swp_ssga4_measurement_id', '' );
 	$ssga4_api_secret     = get_option( 'dc_swp_ssga4_api_secret', '' );
+	$ga4_client_tag       = get_option( 'dc_swp_ga4_client_tag', 'no' ) === 'yes';
+	$ga4_exclude_logged   = get_option( 'dc_swp_ga4_exclude_logged_in', 'yes' ) === 'yes';
 	$ssga4_events_raw     = json_decode( get_option( 'dc_swp_ssga4_events', '' ), true );
 	$ssga4_events_default = array(
 		'purchase'          => true,
@@ -801,44 +822,210 @@ function dc_swp_admin_page_html() {
 			<?php endif; ?>
 			<table class="form-table">
 				<tr valign="top">
-					<th scope="row"><?php echo esc_html( __( 'Enable Server-Side GA4', 'dc-sw-prefetch' ) ); ?></th>
+					<th scope="row"><?php echo esc_html( __( 'GA4 Setup', 'dc-sw-prefetch' ) ); ?></th>
 					<td>
-						<label class="pwa-toggle">
-							<input type="checkbox" id="dc_swp_ssga4_enabled" name="dc_swp_ssga4_enabled" value="yes" <?php checked( $ssga4_enabled, true ); ?>>
-							<span class="pwa-slider"></span>
+						<!-- Hidden fields — JS syncs from active panel -->
+						<input type="hidden" name="dc_swp_ssga4_measurement_id" id="dc_swp_ssga4_mid_field"
+							value="<?php echo esc_attr( $ssga4_measurement_id ); ?>">
+						<input type="hidden" name="dc_swp_ssga4_api_secret" id="dc_swp_ssga4_secret_field"
+							value="<?php echo esc_attr( $ssga4_api_secret ); ?>">
+						<fieldset>
+						<?php
+						$_ssga4_modes = array(
+							'off'     => __( 'Disabled — no server-side GA4 events', 'dc-sw-prefetch' ),
+							'own'     => __( 'Enter Credentials — I have my Measurement ID and API Secret', 'dc-sw-prefetch' ),
+							'detect'  => __( 'Auto-Detect — find GA4 tag in page source', 'dc-sw-prefetch' ),
+							'managed' => __( 'Setup Guide — step-by-step GA4 configuration', 'dc-sw-prefetch' ),
+						);
+						foreach ( $_ssga4_modes as $_sv => $_sl ) :
+							?>
+						<label style="display:block;margin-bottom:6px">
+							<input type="radio" name="dc_swp_ssga4_mode" value="<?php echo esc_attr( $_sv ); ?>"
+								<?php checked( $ssga4_mode, $_sv ); ?>>
+							<?php echo esc_html( $_sl ); ?>
 						</label>
-						<p class="description"><?php echo esc_html( __( 'When enabled, the plugin sends WooCommerce events directly to Google Analytics 4 from the server. Events are counted even when visitors reject cookies or use ad-blockers.', 'dc-sw-prefetch' ) ); ?></p>
+						<?php endforeach; ?>
+						</fieldset>
+
+						<!-- Panel: own -->
+						<div id="dc-swp-ssga4-panel-own" class="dc-swp-ssga4-panel" <?php echo 'own' !== $ssga4_mode ? 'style="display:none"' : ''; ?>>
+							<div style="margin-bottom:12px">
+								<label style="display:block;margin-bottom:4px;font-weight:500"><?php echo esc_html( __( 'Measurement ID', 'dc-sw-prefetch' ) ); ?></label>
+								<input type="text" id="dc-swp-ssga4-mid-own"
+									class="regular-text" style="font-family:monospace"
+									value="<?php echo esc_attr( $ssga4_measurement_id ); ?>"
+									placeholder="<?php echo esc_attr( __( 'G-XXXXXXXXXX', 'dc-sw-prefetch' ) ); ?>">
+								<span id="dc-swp-ssga4-mid-own-status"></span>
+							</div>
+							<div style="margin-bottom:12px">
+								<label style="display:block;margin-bottom:4px;font-weight:500"><?php echo esc_html( __( 'API Secret', 'dc-sw-prefetch' ) ); ?></label>
+								<input type="password" id="dc-swp-ssga4-secret-own"
+									class="regular-text" style="font-family:monospace"
+									value="<?php echo esc_attr( $ssga4_api_secret ); ?>"
+									placeholder="<?php echo esc_attr( __( 'Paste your Measurement Protocol API Secret', 'dc-sw-prefetch' ) ); ?>"
+									autocomplete="off">
+								<p class="description" style="margin-top:4px"><?php echo wp_kses_post( __( 'Create in GA4 Admin → Data Streams → Measurement Protocol API Secrets → Create. <a href="https://support.google.com/analytics/answer/9900444" target="_blank" rel="noopener">Instructions ↗</a>', 'dc-sw-prefetch' ) ); ?></p>
+							</div>
+							<button type="button" class="button button-secondary dc-swp-ssga4-test-btn">
+								<?php echo esc_html( __( '🧪 Test Connection', 'dc-sw-prefetch' ) ); ?>
+							</button>
+							<span class="dc-swp-ssga4-test-spinner spinner" style="float:none;margin-left:4px;display:none;"></span>
+							<span class="dc-swp-ssga4-test-result" style="margin-left:6px"></span>
+							<p class="description" style="margin-top:8px"><?php echo wp_kses_post( __( 'Enter your GA4 Measurement ID and API Secret. The plugin sends WooCommerce events directly to GA4 from the server.', 'dc-sw-prefetch' ) ); ?></p>
+						</div>
+
+						<!-- Panel: detect -->
+						<div id="dc-swp-ssga4-panel-detect" class="dc-swp-ssga4-panel"
+							data-saved-mid="<?php echo esc_attr( $ssga4_measurement_id ); ?>"
+							<?php echo 'detect' !== $ssga4_mode ? 'style="display:none"' : ''; ?>>
+							<button type="button" id="dc-swp-ssga4-detect-btn" class="button button-secondary">
+								<?php echo esc_html( __( 'Scan Website', 'dc-sw-prefetch' ) ); ?>
+							</button>
+							<span id="dc-swp-ssga4-detect-spinner" class="spinner" style="float:none;margin-left:4px;display:none;"></span>
+							<div id="dc-swp-ssga4-detect-result" style="margin-top:8px"></div>
+							<div id="dc-swp-ssga4-detect-secret-row" style="margin-top:12px;display:none">
+								<label style="display:block;margin-bottom:4px;font-weight:500"><?php echo esc_html( __( 'API Secret', 'dc-sw-prefetch' ) ); ?></label>
+								<input type="password" id="dc-swp-ssga4-secret-detect"
+									class="regular-text" style="font-family:monospace"
+									value="<?php echo esc_attr( $ssga4_api_secret ); ?>"
+									placeholder="<?php echo esc_attr( __( 'Paste your Measurement Protocol API Secret', 'dc-sw-prefetch' ) ); ?>"
+									autocomplete="off">
+								<p class="description" style="margin-top:4px"><?php echo wp_kses_post( __( 'Create in GA4 Admin → Data Streams → Measurement Protocol API Secrets → Create. <a href="https://support.google.com/analytics/answer/9900444" target="_blank" rel="noopener">Instructions ↗</a>', 'dc-sw-prefetch' ) ); ?></p>
+								<button type="button" class="button button-secondary dc-swp-ssga4-test-btn" style="margin-top:8px">
+									<?php echo esc_html( __( '🧪 Test Connection', 'dc-sw-prefetch' ) ); ?>
+								</button>
+								<span class="dc-swp-ssga4-test-spinner spinner" style="float:none;margin-left:4px;display:none;"></span>
+								<span class="dc-swp-ssga4-test-result" style="margin-left:6px"></span>
+							</div>
+							<p class="description" style="margin-top:8px"><?php echo wp_kses_post( __( 'Scans your homepage for an existing GA4 tag and extracts the Measurement ID. You still need to provide the API Secret manually.', 'dc-sw-prefetch' ) ); ?></p>
+						</div>
+
+						<!-- Panel: managed (5-step wizard) -->
+						<div id="dc-swp-ssga4-panel-managed" class="dc-swp-ssga4-panel" <?php echo 'managed' !== $ssga4_mode ? 'style="display:none"' : ''; ?>>
+							<div class="dc-swp-step-indicator dc-swp-ssga4-steps">
+							<?php for ( $_ws = 1; $_ws <= 5; $_ws++ ) : ?>
+								<?php if ( $_ws > 1 ) : ?>
+									<span class="dc-swp-step-connector"></span>
+								<?php endif; ?>
+								<span class="dc-swp-step-dot" data-step="<?php echo (int) $_ws; ?>"><?php echo (int) $_ws; ?></span>
+							<?php endfor; ?>
+							</div>
+							<?php
+							$_ssga4_wiz_steps = array(
+								1 => array(
+									__( 'Step 1 — Access Your GA4 Property', 'dc-sw-prefetch' ),
+									__( 'Visit <a href="https://analytics.google.com" target="_blank" rel="noopener">analytics.google.com ↗</a> and sign in. If you don\'t have a GA4 property yet, click <strong>Admin</strong> (gear icon) → <strong>Create Property</strong> and follow the prompts to set up a Web data stream.', 'dc-sw-prefetch' ),
+								),
+								2 => array(
+									__( 'Step 2 — Copy Your Measurement ID', 'dc-sw-prefetch' ),
+									__( 'In GA4 Admin, go to <strong>Data Streams</strong> → click your Web stream → copy the <strong>Measurement ID</strong> (format: <code>G-XXXXXXXXXX</code>). Paste it below.', 'dc-sw-prefetch' ),
+								),
+								3 => array(
+									__( 'Step 3 — Create an API Secret', 'dc-sw-prefetch' ),
+									__( 'In the same Data Stream screen, scroll to <strong>Measurement Protocol API Secrets</strong> → click <strong>Create</strong> → give it a nickname (e.g. "WP Server") → copy the generated secret and paste it below.', 'dc-sw-prefetch' ),
+								),
+								4 => array(
+									__( 'Step 4 — Configure Options', 'dc-sw-prefetch' ),
+									__( 'Choose how GA4 tracking should work on your site.', 'dc-sw-prefetch' ),
+								),
+								5 => array(
+									__( 'Step 5 — Verify & Save', 'dc-sw-prefetch' ),
+									__( 'Test the connection to confirm your credentials work, then save your settings.', 'dc-sw-prefetch' ),
+								),
+							);
+							foreach ( $_ssga4_wiz_steps as $_sn => $_wiz_step ) :
+								$_st = $_wiz_step[0];
+								$_sb = $_wiz_step[1];
+								?>
+								<div id="dc-swp-ssga4-wizard-step-<?php echo (int) $_sn; ?>" class="dc-swp-wizard-step dc-swp-ssga4-wizard-step">
+								<h4 style="margin-top:0"><?php echo esc_html( $_st ); ?></h4>
+								<p><?php echo wp_kses_post( $_sb ); ?></p>
+								<?php if ( 2 === $_sn ) : ?>
+								<div style="margin:10px 0">
+									<input type="text" id="dc-swp-ssga4-wizard-mid"
+										class="regular-text" style="font-family:monospace"
+										value="<?php echo esc_attr( $ssga4_measurement_id ); ?>"
+										placeholder="<?php echo esc_attr( __( 'G-XXXXXXXXXX', 'dc-sw-prefetch' ) ); ?>">
+									<span id="dc-swp-ssga4-wizard-mid-status"></span>
+									<br>
+									<button type="button" id="dc-swp-ssga4-wizard-detect-btn" class="button button-secondary" style="margin-top:6px">
+										<?php echo esc_html( __( '🔍 Auto-Detect from Page', 'dc-sw-prefetch' ) ); ?>
+									</button>
+									<span id="dc-swp-ssga4-wizard-detect-spinner" class="spinner" style="float:none;margin-left:4px;display:none;"></span>
+								</div>
+								<?php endif; ?>
+								<?php if ( 3 === $_sn ) : ?>
+								<div style="margin:10px 0">
+									<input type="password" id="dc-swp-ssga4-wizard-secret"
+										class="regular-text" style="font-family:monospace"
+										value="<?php echo esc_attr( $ssga4_api_secret ); ?>"
+										placeholder="<?php echo esc_attr( __( 'Paste your API Secret', 'dc-sw-prefetch' ) ); ?>"
+										autocomplete="off">
+								</div>
+								<?php endif; ?>
+								<?php if ( 4 === $_sn ) : ?>
+								<div style="margin:10px 0;padding:12px;background:#f9f9f9;border:1px solid #ddd;border-radius:4px">
+									<label style="display:block;margin-bottom:10px">
+										<input type="checkbox" id="dc-swp-ssga4-wizard-client-tag" <?php checked( $ga4_client_tag ); ?>>
+										<strong><?php echo esc_html( __( 'Install client-side gtag.js', 'dc-sw-prefetch' ) ); ?></strong>
+										<p class="description" style="margin:4px 0 0 24px"><?php echo esc_html( __( 'Injects the gtag.js snippet on the frontend. Skip if you use GTM or another analytics plugin.', 'dc-sw-prefetch' ) ); ?></p>
+									</label>
+									<div id="dc-swp-ssga4-gtm-conflict" class="notice notice-warning inline" style="margin:0 0 10px 24px;padding:6px 10px;display:none">
+										<p style="margin:0"><?php echo esc_html( __( '⚠ GTM is already active. Enabling client-side gtag may cause duplicate tracking.', 'dc-sw-prefetch' ) ); ?></p>
+									</div>
+									<label style="display:block;margin-bottom:10px">
+										<input type="checkbox" id="dc-swp-ssga4-wizard-exclude-logged" <?php checked( $ga4_exclude_logged ); ?>>
+										<strong><?php echo esc_html( __( 'Exclude logged-in users', 'dc-sw-prefetch' ) ); ?></strong>
+										<p class="description" style="margin:4px 0 0 24px"><?php echo esc_html( __( 'Skip tracking for WordPress admins and editors. Keeps your analytics clean.', 'dc-sw-prefetch' ) ); ?></p>
+									</label>
+									<label style="display:block">
+										<input type="checkbox" id="dc-swp-ssga4-wizard-server-events" checked disabled>
+										<strong><?php echo esc_html( __( 'Server-side WooCommerce events', 'dc-sw-prefetch' ) ); ?></strong>
+										<p class="description" style="margin:4px 0 0 24px"><?php echo esc_html( __( 'Always enabled — this is the core feature of Server-Side GA4.', 'dc-sw-prefetch' ) ); ?></p>
+									</label>
+								</div>
+								<?php endif; ?>
+								<?php if ( 5 === $_sn ) : ?>
+								<div id="dc-swp-ssga4-wizard-summary" style="margin:10px 0;padding:10px;background:#f0f7f0;border:1px solid #3cb034;border-radius:3px;display:none">
+									<strong><?php echo esc_html( __( 'GA4 Active', 'dc-sw-prefetch' ) ); ?>:</strong> <code id="dc-swp-ssga4-wizard-summary-mid"></code>
+								</div>
+								<button type="button" class="button button-secondary dc-swp-ssga4-test-btn">
+									<?php echo esc_html( __( '🧪 Test Connection', 'dc-sw-prefetch' ) ); ?>
+								</button>
+								<span class="dc-swp-ssga4-test-spinner spinner" style="float:none;margin-left:4px;display:none;"></span>
+								<span class="dc-swp-ssga4-test-result" style="margin-left:6px"></span>
+								<?php endif; ?>
+								<div class="dc-swp-wizard-nav">
+									<?php if ( $_sn > 1 ) : ?>
+									<button type="button" class="button dc-swp-ssga4-wizard-btn" data-dir="prev" data-step="<?php echo (int) $_sn; ?>">
+										<?php echo esc_html( __( '← Back', 'dc-sw-prefetch' ) ); ?>
+									</button>
+									<?php endif; ?>
+									<?php if ( $_sn < 5 ) : ?>
+									<button type="button" class="button button-primary dc-swp-ssga4-wizard-btn"
+										data-dir="next" data-step="<?php echo (int) $_sn; ?>"
+										<?php echo ( 2 === $_sn || 3 === $_sn ) ? 'disabled' : ''; ?>>
+										<?php echo esc_html( __( 'Next →', 'dc-sw-prefetch' ) ); ?>
+									</button>
+									<?php else : ?>
+									<button type="button" class="button button-primary" id="dc-swp-ssga4-wizard-complete">
+										<?php echo esc_html( __( '✔ Complete Setup', 'dc-sw-prefetch' ) ); ?>
+									</button>
+									<?php endif; ?>
+								</div>
+							</div>
+							<?php endforeach; ?>
+							<p class="description" style="margin-top:10px"><?php echo wp_kses_post( __( 'Follow the step-by-step guide to configure GA4 server-side tracking.', 'dc-sw-prefetch' ) ); ?></p>
+						</div>
+
+						<!-- Hidden fields for wizard config options -->
+						<input type="hidden" name="dc_swp_ga4_client_tag" id="dc_swp_ga4_client_tag_field"
+							value="<?php echo esc_attr( $ga4_client_tag ? 'yes' : 'no' ); ?>">
+						<input type="hidden" name="dc_swp_ga4_exclude_logged_in" id="dc_swp_ga4_exclude_logged_field"
+							value="<?php echo esc_attr( $ga4_exclude_logged ? 'yes' : 'no' ); ?>">
 					</td>
 				</tr>
-				<tr valign="top" class="dc-swp-ssga4-field">
-					<th scope="row"><?php echo esc_html( __( 'Measurement ID', 'dc-sw-prefetch' ) ); ?></th>
-					<td>
-						<input type="text" id="dc_swp_ssga4_measurement_id" name="dc_swp_ssga4_measurement_id"
-							class="regular-text" style="font-family:monospace"
-							value="<?php echo esc_attr( $ssga4_measurement_id ); ?>"
-							placeholder="<?php echo esc_attr( __( 'G-XXXXXXXXXX', 'dc-sw-prefetch' ) ); ?>">
-						<span id="dc-swp-ssga4-mid-status"></span>
-						<br>
-						<button type="button" id="dc-swp-ssga4-detect-btn" class="button button-secondary" style="margin-top:6px">
-							<?php echo esc_html( __( '🔍 Auto-Detect Measurement ID', 'dc-sw-prefetch' ) ); ?>
-						</button>
-						<span id="dc-swp-ssga4-detect-spinner" class="spinner" style="float:none;margin-left:4px;display:none;"></span>
-						<span id="dc-swp-ssga4-detect-result" style="margin-left:6px"></span>
-						<p class="description" style="margin-top:6px"><?php echo wp_kses_post( __( 'Your GA4 Measurement ID (format: <code>G-XXXXXXXXXX</code>). Found in GA4 Admin → Data Streams → your Web stream.', 'dc-sw-prefetch' ) ); ?></p>
-					</td>
-				</tr>
-				<tr valign="top" class="dc-swp-ssga4-field">
-					<th scope="row"><?php echo esc_html( __( 'API Secret', 'dc-sw-prefetch' ) ); ?></th>
-					<td>
-						<input type="password" id="dc_swp_ssga4_api_secret" name="dc_swp_ssga4_api_secret"
-							class="regular-text" style="font-family:monospace"
-							value="<?php echo esc_attr( $ssga4_api_secret ); ?>"
-							placeholder="<?php echo esc_attr( __( 'Paste your Measurement Protocol API Secret', 'dc-sw-prefetch' ) ); ?>"
-							autocomplete="off">
-						<p class="description" style="margin-top:6px"><?php echo wp_kses_post( __( 'Create in GA4 Admin → Data Streams → Measurement Protocol API Secrets → Create. <a href="https://support.google.com/analytics/answer/9900444" target="_blank" rel="noopener">Instructions ↗</a>', 'dc-sw-prefetch' ) ); ?></p>
-					</td>
-				</tr>
-				<tr valign="top" class="dc-swp-ssga4-field">
+				<tr valign="top" id="dc-swp-ssga4-events-row"<?php echo 'off' === $ssga4_mode ? ' style="display:none"' : ''; ?>>
 					<th scope="row"><?php echo esc_html( __( 'Server-Side Events', 'dc-sw-prefetch' ) ); ?></th>
 					<td>
 						<input type="hidden" id="dc_swp_ssga4_events_json" name="dc_swp_ssga4_events_json" value="">
@@ -867,21 +1054,11 @@ function dc_swp_admin_page_html() {
 						<p class="description" style="margin-top:8px"><?php echo esc_html( __( 'Choose which WooCommerce events to send server-side. Revenue events (purchase, refund) are always recommended.', 'dc-sw-prefetch' ) ); ?></p>
 					</td>
 				</tr>
-				<tr valign="top" class="dc-swp-ssga4-field">
+				<tr valign="top" id="dc-swp-ssga4-endpoint-row"<?php echo 'off' === $ssga4_mode ? ' style="display:none"' : ''; ?>>
 					<th scope="row"><?php echo esc_html( __( 'Endpoint', 'dc-sw-prefetch' ) ); ?></th>
 					<td>
 						<code><?php echo esc_html( $_ssga4_endpoint ); ?></code>
 						<p class="description"><?php echo esc_html( __( 'Auto-detected from WordPress timezone. European timezones use the EU endpoint.', 'dc-sw-prefetch' ) ); ?></p>
-					</td>
-				</tr>
-				<tr valign="top" class="dc-swp-ssga4-field">
-					<th scope="row"><?php echo esc_html( __( '🧪 Test Connection', 'dc-sw-prefetch' ) ); ?></th>
-					<td>
-						<button type="button" id="dc-swp-ssga4-test-btn" class="button button-secondary">
-							<?php echo esc_html( __( '🧪 Test Connection', 'dc-sw-prefetch' ) ); ?>
-						</button>
-						<span id="dc-swp-ssga4-test-spinner" class="spinner" style="float:none;margin-left:4px;display:none;"></span>
-						<span id="dc-swp-ssga4-test-result" style="margin-left:6px"></span>
 					</td>
 				</tr>
 			</table>
@@ -1034,8 +1211,11 @@ function dc_swp_admin_page_html() {
 			),
 			'ssga4'              => array(
 				'enabled'     => $ssga4_enabled,
+				'mode'        => $ssga4_mode,
 				'detectNone'  => __( 'No GA4 Measurement ID found in page source.', 'dc-sw-prefetch' ),
-				'detectFound' => __( 'Detected', 'dc-sw-prefetch' ),
+				'detected'    => __( 'Detected', 'dc-sw-prefetch' ),
+				'active'      => __( 'Auto-detected and active', 'dc-sw-prefetch' ),
+				'saved'       => __( '✔ Saved', 'dc-sw-prefetch' ),
 				'testSuccess' => __( '✔ Connection OK — GA4 accepted the test event.', 'dc-sw-prefetch' ),
 				'testFail'    => __( '⚠ Connection failed — check Measurement ID and API Secret.', 'dc-sw-prefetch' ),
 				'events'      => $ssga4_events,

@@ -589,6 +589,132 @@ msgid "Enable Server-Side GA4"
 msgstr ""
 
 #: admin.php
+msgid "GA4 Setup"
+msgstr ""
+
+#: admin.php
+msgid "Disabled — no server-side GA4 events"
+msgstr ""
+
+#: admin.php
+msgid "Enter Credentials — I have my Measurement ID and API Secret"
+msgstr ""
+
+#: admin.php
+msgid "Auto-Detect — find GA4 tag in page source"
+msgstr ""
+
+#: admin.php
+msgid "Setup Guide — step-by-step GA4 configuration"
+msgstr ""
+
+#: admin.php
+msgid ""
+"Enter your GA4 Measurement ID and API Secret. The plugin sends WooCommerce "
+"events directly to GA4 from the server."
+msgstr ""
+
+#: admin.php
+msgid ""
+"Scans your homepage for an existing GA4 tag and extracts the Measurement "
+"ID. You still need to provide the API Secret manually."
+msgstr ""
+
+#: admin.php
+msgid "Step 1 — Access Your GA4 Property"
+msgstr ""
+
+#: admin.php
+msgid ""
+"Visit <a href=\"https://analytics.google.com\" target=\"_blank\" "
+"rel=\"noopener\">analytics.google.com ↗</a> and sign in. If you don't have "
+"a GA4 property yet, click <strong>Admin</strong> (gear icon) → "
+"<strong>Create Property</strong> and follow the prompts to set up a Web "
+"data stream."
+msgstr ""
+
+#: admin.php
+msgid "Step 2 — Copy Your Measurement ID"
+msgstr ""
+
+#: admin.php
+msgid ""
+"In GA4 Admin, go to <strong>Data Streams</strong> → click your Web stream "
+"→ copy the <strong>Measurement ID</strong> (format: "
+"<code>G-XXXXXXXXXX</code>). Paste it below."
+msgstr ""
+
+#: admin.php
+msgid "Step 3 — Create an API Secret"
+msgstr ""
+
+#: admin.php
+msgid ""
+"In the same Data Stream screen, scroll to <strong>Measurement Protocol API "
+"Secrets</strong> → click <strong>Create</strong> → give it a nickname "
+"(e.g. \"WP Server\") → copy the generated secret and paste it below."
+msgstr ""
+
+#: admin.php
+msgid "Step 4 — Configure Options"
+msgstr ""
+
+#: admin.php
+msgid "Choose how GA4 tracking should work on your site."
+msgstr ""
+
+#: admin.php
+msgid "Step 5 — Verify & Save"
+msgstr ""
+
+#: admin.php
+msgid ""
+"Test the connection to confirm your credentials work, then save your "
+"settings."
+msgstr ""
+
+#: admin.php
+msgid "🔍 Auto-Detect from Page"
+msgstr ""
+
+#: admin.php
+msgid "Install client-side gtag.js"
+msgstr ""
+
+#: admin.php
+msgid ""
+"Injects the gtag.js snippet on the frontend. Skip if you use GTM or another "
+"analytics plugin."
+msgstr ""
+
+#: admin.php
+msgid ""
+"⚠ GTM is already active. Enabling client-side gtag may cause duplicate "
+"tracking."
+msgstr ""
+
+#: admin.php
+msgid "Exclude logged-in users"
+msgstr ""
+
+#: admin.php
+msgid ""
+"Skip tracking for WordPress admins and editors. Keeps your analytics clean."
+msgstr ""
+
+#: admin.php
+msgid "Server-side WooCommerce events"
+msgstr ""
+
+#: admin.php
+msgid "Always enabled — this is the core feature of Server-Side GA4."
+msgstr ""
+
+#: admin.php
+msgid "Follow the step-by-step guide to configure GA4 server-side tracking."
+msgstr ""
+
+#: admin.php
 msgid ""
 "When enabled, the plugin sends WooCommerce events directly to Google "
 "Analytics 4 from the server. Events are counted even when visitors reject "
