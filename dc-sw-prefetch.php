@@ -439,10 +439,9 @@ function dc_swp_footer_credit_js() {
 
 
 // ============================================================
-// FALLBACK CACHE HEADERS (when W3 Total Cache is not active)
+// CROSS-ORIGIN ISOLATION HEADERS (for Atomics bridge)
 // ============================================================
 
-add_action( 'send_headers', 'dc_swp_fallback_cache_headers' );
 add_action( 'send_headers', 'dc_swp_cross_origin_isolation_headers' );
 
 /**
@@ -474,46 +473,6 @@ function dc_swp_cross_origin_isolation_headers() {
 	}
 	header( 'Cross-Origin-Opener-Policy: same-origin' );
 	header( 'Cross-Origin-Embedder-Policy: credentialless' );
-}
-
-/**
- * When W3TC is absent, emit sensible Cache-Control / Expires / Vary
- * headers directly from PHP so the browser and any CDN can still cache responses.
- *
- * Skipped entirely if W3TC is loaded (W3TC owns its own header logic).
- */
-function dc_swp_fallback_cache_headers() {
-	// W3TC is present — let it handle headers.
-	if ( defined( 'W3TC_DIR' ) || function_exists( 'w3tc_pgcache_flush' ) ) {
-		return;
-	}
-	if ( is_admin() ) {
-		return;
-	}
-
-	// Never cache personalised or transactional pages.
-	if ( is_user_logged_in() || dc_swp_is_safe_page() ) {
-		header( 'Cache-Control: no-store, no-cache, must-revalidate, max-age=0' );
-		header( 'Pragma: no-cache' );
-		return;
-	}
-
-	// Cache public pages: 1 hour browser, stale-while-revalidate 60 s.
-	$max_age      = 3600;
-	$is_cacheable = is_front_page() || is_home()
-		|| ( function_exists( 'is_shop' ) && is_shop() )
-		|| ( function_exists( 'is_product_category' ) && is_product_category() )
-		|| ( function_exists( 'is_product' ) && is_product() )
-		|| is_page()
-		|| is_singular()
-		|| is_archive();
-
-	if ( $is_cacheable ) {
-		header( 'Cache-Control: public, max-age=' . $max_age . ', stale-while-revalidate=60, stale-if-error=86400' );
-		header( 'Expires: ' . gmdate( 'D, d M Y H:i:s', time() + $max_age ) . ' GMT' );
-		header( 'Vary: Accept-Encoding, Accept' );
-		header( 'X-Cache-Fallback: dc-sw-prefetch' ); // Debugging marker.
-	}
 }
 
 

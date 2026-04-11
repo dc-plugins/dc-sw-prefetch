@@ -48,7 +48,6 @@ languages/           — .pot template + da_DK .po/.mo translations
 - **Partytown endpoint**: served by WordPress via a rewrite rule + query var; PHP streams the vendored JS files directly.
 - **Admin settings** are stored as individual named options (e.g. `dc_swp_sw_enabled`, `dc_swp_inline_scripts`) via `get_option` / `update_option`. There is no single serialised bag option.
 - **Inline script blocks** (`dc_swp_inline_scripts`): JSON-encoded array of `{ id, label, code, enabled, force_partytown }` objects. The `code` field is sanitized via `dc_swp_sanitize_js_code()` at save time and output raw inside `<script>` tags (capability-gated to `manage_options`). Do not use `wp_kses()` on this field — it mangles JS operators.
-- **Cache headers** fall back to PHP `header()` calls when W3 Total Cache is not active.
 
 ## Build & Update Workflow
 

@@ -13,9 +13,9 @@ Offload third-party scripts (GTM, Pixel, HubSpot…) to a web worker via Partyto
 
 == Description ==
 
-DC Script Worker Proxy integrates [Partytown](https://partytown.qwik.dev/) into WordPress as a vendored plugin. Partytown is a **lazy-loaded library** designed to relocate resource-intensive scripts into a web worker and off the main thread — dedicating the main thread to your code while offloading third-party analytics, ads, and tracking scripts to a web worker.
+DC Script Worker Proxy integrates [Partytown](https://partytown.qwik.dev/) into WordPress. Partytown moves third-party scripts (analytics, ads, tracking) into a Web Worker so they never touch the browser's main thread.
 
-The key distinction from `async`/`defer`: those attributes delay *when* a script executes relative to HTML parsing, but execution still happens on the browser's main thread, competing with layout, paint, and user interactions. Third-party scripts using `async`/`defer` can also still block `window.onload`. Partytown moves script *execution* into a Web Worker entirely — the main thread is never touched — no layout jank, no Total Blocking Time (TBT) penalty, no competition with your code.
+Unlike `async`/`defer`, which still execute on the main thread and can block `window.onload`, Partytown executes scripts entirely off-thread. No layout jank, no TBT penalty, no competition with your code.
 
 **Note:** Partytown is currently in beta and not guaranteed to work in every scenario. See the [Partytown FAQ](https://partytown.qwik.dev/faq) and [Trade-offs](https://partytown.qwik.dev/trade-offs) pages for more information before deploying to production.
 
@@ -31,19 +31,10 @@ Officially tested compatible services: **Google Tag Manager** (GA4), **Facebook 
 * **Vendored lib** — Partytown's `lib/` files are bundled in `assets/partytown/`; no npm or build step needed on the server.
 * **Automatic Partytown updates** — a weekly GitHub Actions workflow detects new Partytown releases and opens a PR with the updated vendor files.
 * **Bot detection** — bots never receive Partytown JS, keeping crawl budget clean.
-* **W3TC compatible** — HTML pages are cached by W3TC; Partytown handles only script execution.
-* **Standalone mode** — when W3TC is absent, PHP fallback cache headers keep browsers and CDNs caching correctly.
 * **Cart/checkout safe** — Partytown is skipped on cart, checkout, and account pages.
 * **Admin UI** — toggle Partytown, see the vendored Partytown version at a glance.
 * **Bilingual** — EN/DA auto-detection.
 * **Optional footer credit** — easily disabled.
-
-= Architecture =
-
-| Layer | Handled by |
-|---|---|
-| Third-party scripts (GA, Pixel…) | Partytown service worker |
-| HTML page caching | W3 Total Cache (or PHP fallback headers) |
 
 = How Partytown works =
 
@@ -104,10 +95,7 @@ The optional Consent Gate delegates consent decisions to the [WP Consent API](ht
 Yes. Partytown is in beta. While it works well for the [officially tested services](https://partytown.qwik.dev/common-services/), some scripts may not be compatible — particularly those that rely on APIs not yet proxied by Partytown, use synchronous `document.write()`, or require persistent event listeners on the main thread. Test in staging before enabling on production. See the [Partytown trade-offs page](https://partytown.qwik.dev/trade-offs) for a full list of known limitations.
 
 = Will this interfere with WooCommerce cart/checkout? =
-No. Partytown is completely disabled on cart, checkout, and account pages.
-
-= Does it work without W3 Total Cache? =
-Yes. PHP fallback cache headers are emitted for public pages when W3TC is not active.
+No. Partytown is disabled on cart, checkout, and account pages.
 
 = Will scripts load before the user gives consent? =
 When the **Consent Gate** is enabled, no. Scripts are output as `type="text/plain"` (browser-blocked) until consent is granted via the WP Consent API. When the Consent Gate is disabled (default), scripts load unconditionally.
@@ -126,7 +114,7 @@ All officially tested services from [partytown.qwik.dev/common-services](https:/
 
 == External Services ==
 
-This plugin is a **framework** for running administrator-configured third-party scripts off the browser's main thread using the vendored [Partytown](https://partytown.qwik.dev/) library. The plugin itself does not connect to any external service autonomously; external connections occur only for services the site administrator explicitly enables through the plugin settings.
+This plugin runs third-party scripts off the main thread using the vendored [Partytown](https://partytown.qwik.dev/) library. It only connects to services you explicitly configure.
 
 = Partytown library =
 
@@ -331,8 +319,7 @@ The administrator may freely add other services through the Partytown Script Lis
 * Viewport/pagination prefetcher unchanged and fully retained.
 
 = 1.0.0 =
-* Initial release. Service worker renamed to `dc-sw.js`.
-* Standalone fallback cache headers added (fires when W3TC is not active).
+* Initial release.
 * Bot detection wrapped in `function_exists` for safe coexistence with child themes.
 * Footer credit with object-cache → transient strategy caching.
 * Bilingual admin UI (English default, Danish auto-detected).

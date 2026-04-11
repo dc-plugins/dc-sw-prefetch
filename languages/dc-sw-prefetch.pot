@@ -74,50 +74,6 @@ msgid ""
 msgstr ""
 
 #: admin.php
-msgid "Viewport Preloading"
-msgstr ""
-
-#: admin.php
-msgid ""
-"<strong>Recommended!</strong> Automatically prefetches products visible in "
-"the viewport via browser prefetch, leveraging W3TC cache for instant loading"
-" when the user clicks."
-msgstr ""
-
-#: admin.php
-msgid "Architecture"
-msgstr ""
-
-#: admin.php
-msgid "Third-party Scripts"
-msgstr ""
-
-#: admin.php
-msgid "Executed in a Web Worker via Partytown (never on the main thread)"
-msgstr ""
-
-#: admin.php
-msgid ""
-"Unlike async/defer (which only delay loading), Partytown executes scripts in"
-" a Web Worker. The browser main thread is never blocked — user interactions "
-"and rendering are unaffected even while analytics fire."
-msgstr ""
-
-#: admin.php
-msgid "HTML Pages"
-msgstr ""
-
-#: admin.php
-msgid "Handled by W3 Total Cache"
-msgstr ""
-
-#: admin.php
-msgid ""
-"Product pages and categories are cached by W3TC — Partytown does not "
-"interfere with HTML caching."
-msgstr ""
-
-#: admin.php
 msgid "Benefits"
 msgstr ""
 

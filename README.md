@@ -2,7 +2,7 @@
 
 > Offload third-party scripts to a Web Worker via Partytown + consent-aware loading.
 
-![Version](https://img.shields.io/badge/version-1.9.0-blue)
+![Version](https://img.shields.io/badge/version-2.3.0-blue)
 ![WordPress](https://img.shields.io/badge/WordPress-6.8%2B-21759b)
 ![PHP](https://img.shields.io/badge/PHP-8.0%2B-777bb4)
 ![WooCommerce](https://img.shields.io/badge/WooCommerce-10.4%2B-96588a)
@@ -14,13 +14,11 @@ Offload third-party scripts (GTM, Pixel, HubSpot…) to a Web Worker via Partyto
 
 ## What it does
 
-1. **Partytown Web Worker execution** — [Partytown](https://partytown.qwik.dev/) is a lazy-loaded library that relocates resource-intensive scripts into a web worker and off the main thread, dedicating the main thread to your code. Unlike `async`/`defer` (which still execute on the main thread and can block `window.onload`), Partytown executes third-party scripts entirely in a Web Worker. The browser main thread is freed from analytics and ad code — no layout jank, no TBT impact, no competition with user interactions. Officially tested compatible services: **Google Tag Manager**, **Facebook Pixel**, **HubSpot**, **Intercom**, **Klaviyo**, **TikTok Pixel**, **Mixpanel** ([full list](https://partytown.qwik.dev/common-services/)). Scripts are consent-gated: output as `type="text/partytown"` when consent is present, `type="text/plain"` (browser-blocked) when it is not.
+1. **Partytown Web Worker execution** — [Partytown](https://partytown.qwik.dev/) moves third-party scripts into a Web Worker, off the main thread. Unlike `async`/`defer` (which still block the main thread), Partytown executes scripts entirely off-thread. No layout jank, no TBT impact. Tested with: **Google Tag Manager**, **Facebook Pixel**, **HubSpot**, **Intercom**, **Klaviyo**, **TikTok Pixel**, **Mixpanel** ([full list](https://partytown.qwik.dev/common-services/)).
 
-> **Note:** Partytown is currently in beta. It is not guaranteed to work in every scenario. Review the [trade-offs](https://partytown.qwik.dev/trade-offs) before enabling on production.
+> **Note:** Partytown is in beta. Review the [trade-offs](https://partytown.qwik.dev/trade-offs) before using in production.
 
-2. **Google Consent Mode v2 (GCM v2) per-service gate** — Six GCM v2-aware services (Google Tag Manager, Google Analytics, Hotjar, Microsoft Clarity, LinkedIn Insight Tag, TikTok Pixel) always run as `type="text/partytown"` when GCM v2 is enabled; each service reads the consent state internally. Meta Pixel is handled separately via its own **Limited Data Use (LDU)** toggle. When the **Consent Gate** is enabled, all other services are blocked as `type="text/plain"` until the visitor grants consent via the [WP Consent API](https://wordpress.org/plugins/wp-consent-api/). Each script is assigned a consent category (marketing, statistics, functional, preferences). When the Consent Gate is disabled (default), all scripts load unconditionally.
-
-3. **Bonus performance** — PHP fallback cache headers when W3 Total Cache is absent.
+2. **Google Consent Mode v2 (GCM v2)** — GCM v2-aware services (GTM, GA, Hotjar, Clarity, LinkedIn, TikTok) always run in the worker and self-restrict based on consent state. Meta Pixel uses its own **Limited Data Use (LDU)** toggle. Other services are blocked until consent is granted via the [WP Consent API](https://wordpress.org/plugins/wp-consent-api/).
 
 ---
 
@@ -76,14 +74,6 @@ Page request (PHP)
        ├─ Meta Pixel + Meta LDU enabled           → type="text/partytown" (fbq LDU stub active)
        ├─ Other service + marketing consent       → type="text/partytown"
        └─ Other service + no consent              → type="text/plain"  (browser blocked)
-```
-
-```
-Layer                    Handled by
-───────────────────────  ──────────────────────────────────
-Third-party scripts      Partytown Web Worker
-Main-thread sync bridge  Atomics (COI) or SW relay (fallback)
-HTML page caching        W3 Total Cache (or PHP fallback)
 ```
 
 ---
@@ -149,7 +139,7 @@ languages/           — .pot translation template
 
 ## External Services
 
-This plugin is a **framework** for running administrator-configured third-party scripts off the browser's main thread using the vendored [Partytown](https://partytown.qwik.dev/) library. The plugin itself does not connect to any external service autonomously.
+This plugin runs third-party scripts off the main thread using the vendored [Partytown](https://partytown.qwik.dev/) library. It only connects to services you explicitly configure.
 
 ### Partytown library
 

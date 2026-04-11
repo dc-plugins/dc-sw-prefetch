@@ -960,23 +960,6 @@ function dc_swp_admin_page_html() {
 			</tr>
 		</table>
 
-		<h2><?php echo esc_html( __( 'Architecture', 'dc-sw-prefetch' ) ); ?></h2>			<table class="form-table">
-				<tr>
-					<th scope="row"><?php echo esc_html( __( 'Third-party Scripts', 'dc-sw-prefetch' ) ); ?></th>
-					<td>
-						<p><strong><?php echo esc_html( __( 'Executed in a Web Worker via Partytown (never on the main thread)', 'dc-sw-prefetch' ) ); ?></strong></p>
-						<p class="description"><?php echo esc_html( __( 'Unlike async/defer (which only delay loading), Partytown executes scripts in a Web Worker. The browser main thread is never blocked — user interactions and rendering are unaffected even while analytics fire.', 'dc-sw-prefetch' ) ); ?></p>
-					</td>
-				</tr>
-				<tr>
-					<th scope="row"><?php echo esc_html( __( 'HTML Pages', 'dc-sw-prefetch' ) ); ?></th>
-					<td>
-						<p><strong><?php echo esc_html( __( 'Handled by W3 Total Cache', 'dc-sw-prefetch' ) ); ?></strong></p>
-						<p class="description"><?php echo esc_html( __( 'Product pages and categories are cached by W3TC — Partytown does not interfere with HTML caching.', 'dc-sw-prefetch' ) ); ?></p>
-					</td>
-				</tr>
-			</table>
-
 			<h2><?php echo esc_html( __( 'Benefits', 'dc-sw-prefetch' ) ); ?></h2>
 			<ul style="list-style: disc; margin-left: 20px;">
 				<li>✅ <?php echo esc_html( __( 'Analytics scripts run in a Web Worker — unlike async, they never execute on the browser main thread', 'dc-sw-prefetch' ) ); ?></li>

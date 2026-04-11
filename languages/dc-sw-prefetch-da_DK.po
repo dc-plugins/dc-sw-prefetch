@@ -87,58 +87,6 @@ msgstr ""
 "direkte på main-tråden med defer (ingen Web Worker, ingen samtykke-gating)."
 
 #: admin.php
-msgid "Viewport Preloading"
-msgstr "Viewport Preloading"
-
-#: admin.php
-msgid ""
-"<strong>Recommended!</strong> Automatically prefetches products visible in "
-"the viewport via browser prefetch, leveraging W3TC cache for instant loading"
-" when the user clicks."
-msgstr ""
-"<strong>Anbefalet!</strong> Preloader automatisk produkter synlige i "
-"viewporten via browser prefetch. Benytter W3TC cache for øjeblikkelig "
-"indlæsning når brugeren klikker."
-
-#: admin.php
-msgid "Architecture"
-msgstr "Arkitektur"
-
-#: admin.php
-msgid "Third-party Scripts"
-msgstr "Tredjeparts-scripts"
-
-#: admin.php
-msgid "Executed in a Web Worker via Partytown (never on the main thread)"
-msgstr "Afvikles i en Web Worker via Partytown (ikke på main-tråden)"
-
-#: admin.php
-msgid ""
-"Unlike async/defer (which only delay loading), Partytown executes scripts in"
-" a Web Worker. The browser main thread is never blocked — user interactions "
-"and rendering are unaffected even while analytics fire."
-msgstr ""
-"I modsætning til async/defer (der kun forsinker indlæsning) afvikler "
-"Partytown scripts i en Web Worker. Browser main-tråden blokeres aldrig — "
-"brugerinteraktion og rendering påvirkes ikke, selv mens analytics fyres."
-
-#: admin.php
-msgid "HTML Pages"
-msgstr "HTML-sider"
-
-#: admin.php
-msgid "Handled by W3 Total Cache"
-msgstr "Håndteres af W3 Total Cache"
-
-#: admin.php
-msgid ""
-"Product pages and categories are cached by W3TC — Partytown does not "
-"interfere with HTML caching."
-msgstr ""
-"Produktsider og kategorier caches af W3TC — Partytown interfererer ikke med "
-"HTML-cachen."
-
-#: admin.php
 msgid "Benefits"
 msgstr "Fordele"
 
