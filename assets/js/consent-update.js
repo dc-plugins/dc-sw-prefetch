@@ -2,9 +2,10 @@
  * GCM v2 consent update — WP Consent API integration.
  *
  * Strategy:
- * 1. On DOMContentLoaded, poll for wp_has_consent() availability (WP Consent API)
- * 2. Once available, read current consent state and call gtag('consent','update')
+ * 1. On DOMContentLoaded, read initial consent state via wp_has_consent()
+ * 2. Poll for consent STATE changes (not just API availability)
  * 3. Listen for wp_listen_for_consent_change events for live banner changes
+ * 4. Fallback: watch for consent cookie changes
  *
  * The default consent stub (all-denied) is injected in <head>. This script
  * updates the consent state once actual consent is known from the CMP.
@@ -12,7 +13,7 @@
  * @package DC_Service_Worker_Prefetcher
  */
 
-/* global gtag, wp_has_consent, wp_consent_type */
+/* global gtag, wp_has_consent */
 
 ( function () {
 	'use strict';
@@ -27,8 +28,15 @@
 		preferences: [ 'personalization_storage' ],
 	};
 
-	/** Track whether we've successfully applied consent at least once. */
-	let consentApplied = false;
+	/** Track last known consent state per category to detect changes. */
+	const lastConsentState = {
+		marketing:   null,
+		statistics:  null,
+		preferences: null,
+	};
+
+	/** Track whether any consent has been granted (user accepted something). */
+	let anyConsentGranted = false;
 
 	/**
 	 * Call gtag('consent','update') for one consent category.
@@ -53,10 +61,10 @@
 	}
 
 	/**
-	 * Read current consent state via wp_has_consent() and push a single
-	 * GCM v2 update covering all mapped categories.
+	 * Read current consent state via wp_has_consent() and push GCM v2 updates
+	 * only for categories that have changed since last check.
 	 *
-	 * @return {boolean} True if consent was successfully read and applied.
+	 * @return {boolean} True if WP Consent API is available.
 	 */
 	function applyCurrentConsent() {
 		if ( typeof wp_has_consent !== 'function' ) {
@@ -66,48 +74,74 @@
 		Object.keys( categoryMap ).forEach( function ( category ) {
 			const hasConsent = wp_has_consent( category );
 			const value = hasConsent ? 'allow' : 'deny';
-			updateGcm( category, value );
+
+			// Only update GCM if state has changed.
+			if ( lastConsentState[ category ] !== value ) {
+				lastConsentState[ category ] = value;
+				updateGcm( category, value );
+
+				if ( hasConsent ) {
+					anyConsentGranted = true;
+				}
+			}
 		} );
 
-		consentApplied = true;
 		return true;
 	}
 
 	/**
-	 * Poll for WP Consent API availability with exponential backoff.
-	 * Tries immediately, then at 100ms, 200ms, 400ms, 800ms intervals.
+	 * Poll for consent state changes. Unlike the previous implementation,
+	 * this continues polling until the user actually grants consent,
+	 * not just until the WP Consent API function is available.
 	 *
-	 * @param {number} attempt Current attempt number (0-based).
+	 * Uses exponential backoff up to 2 seconds, then continues at 2s intervals
+	 * for up to 30 seconds total, or until consent is granted.
 	 */
-	function pollForConsentApi( attempt ) {
-		const maxAttempts = 5;
+	function pollForConsentChanges() {
+		const maxDuration = 30000; // 30 seconds max polling
+		const maxInterval = 2000;  // Cap at 2 second intervals
 		const baseDelay   = 100;
+		const startTime   = Date.now();
+		let attempt       = 0;
 
-		// Try to apply consent.
-		if ( applyCurrentConsent() ) {
-			return; // Success.
+		function poll() {
+			// Try to apply consent.
+			const apiAvailable = applyCurrentConsent();
+
+			// Stop conditions:
+			// 1. User has granted consent (mission accomplished)
+			// 2. We've been polling for 30 seconds (give up gracefully)
+			// 3. API not available after 5 attempts (WP Consent API not installed)
+			if ( anyConsentGranted ) {
+				return; // Success - user granted consent.
+			}
+
+			const elapsed = Date.now() - startTime;
+			if ( elapsed >= maxDuration ) {
+				return; // Timeout - stop polling.
+			}
+
+			if ( ! apiAvailable && attempt >= 5 ) {
+				// WP Consent API not installed after 5 attempts.
+				return;
+			}
+
+			// Schedule next poll with exponential backoff, capped at maxInterval.
+			attempt++;
+			const delay = Math.min( baseDelay * Math.pow( 2, attempt ), maxInterval );
+			setTimeout( poll, delay );
 		}
 
-		// If we've exceeded max attempts, stop polling.
-		if ( attempt >= maxAttempts ) {
-			// WP Consent API is not available — consent stays at default (denied).
-			// This is expected if WP Consent API plugin is not installed.
-			return;
-		}
-
-		// Schedule next attempt with exponential backoff.
-		const delay = baseDelay * Math.pow( 2, attempt );
-		setTimeout( function () {
-			pollForConsentApi( attempt + 1 );
-		}, delay );
+		// Start polling immediately.
+		poll();
 	}
 
 	// ── Initial read on DOMContentLoaded ─────────────────────────────────────
 	// This script lives in the footer, so its DOMContentLoaded handler is
 	// registered after all <head> CMP scripts.
 	function onReady() {
-		// Start polling for WP Consent API.
-		pollForConsentApi( 0 );
+		// Start polling for consent state changes.
+		pollForConsentChanges();
 	}
 
 	if ( document.readyState === 'loading' ) {
@@ -123,33 +157,34 @@
 	document.addEventListener( 'wp_listen_for_consent_change', function ( e ) {
 		const changed = ( e.detail && typeof e.detail === 'object' ) ? e.detail : {};
 		Object.keys( changed ).forEach( function ( category ) {
-			updateGcm( category, changed[ category ] );
+			const value = changed[ category ];
+			if ( lastConsentState[ category ] !== value ) {
+				lastConsentState[ category ] = value;
+				updateGcm( category, value );
+				if ( value === 'allow' ) {
+					anyConsentGranted = true;
+				}
+			}
 		} );
-		consentApplied = true;
 	} );
 
-	// ── Fallback: watch for consent cookie changes ───────────────────────────
+	// ── Fallback: watch for WP Consent API cookie changes ────────────────────
 	// Some CMPs might not fire wp_listen_for_consent_change reliably.
-	// Re-apply consent whenever the WP Consent API's consent_type changes.
-	let lastConsentType = null;
-	function checkConsentTypeChange() {
-		if ( typeof wp_consent_type === 'undefined' ) {
-			return;
-		}
-		if ( wp_consent_type !== lastConsentType ) {
-			lastConsentType = wp_consent_type;
-			applyCurrentConsent();
-		}
-	}
-
-	// Check periodically for consent type changes (every 500ms for 10s after load).
-	let checkCount = 0;
-	const maxChecks = 20;
-	const checkInterval = setInterval( function () {
-		checkConsentTypeChange();
-		checkCount++;
-		if ( checkCount >= maxChecks || consentApplied ) {
-			clearInterval( checkInterval );
+	// Poll consent state periodically to catch cookie-based changes.
+	// This runs independently of the initial polling for 60 seconds.
+	let fallbackChecks = 0;
+	const maxFallbackChecks = 120; // 60 seconds at 500ms intervals
+	const fallbackInterval = setInterval( function () {
+		applyCurrentConsent();
+		fallbackChecks++;
+		if ( fallbackChecks >= maxFallbackChecks ) {
+			clearInterval( fallbackInterval );
 		}
 	}, 500 );
+
+	// ── Storage event listener for cross-tab consent sync ────────────────────
+	// If user accepts consent in another tab, pick it up here.
+	window.addEventListener( 'storage', function () {
+		applyCurrentConsent();
+	} );
 }() );
