@@ -6,7 +6,7 @@
 
 1. Integrates [Partytown](https://github.com/QwikDev/partytown) to offload third-party scripts (Google Analytics, Meta Pixel, LinkedIn Insight, Twitter/X) into a dedicated service worker, keeping them off the browser main thread.
 2. Provides viewport/pagination prefetching via `IntersectionObserver` so WooCommerce product pages load instantly from cache.
-3. Includes WP emoji removal, WooCommerce LCP image preloading, bot detection, and a bilingual (EN/DA) admin UI.
+3. Includes WP emoji removal, WooCommerce LCP image preloading, bot detection, and a fully localised admin UI (English default, Danish translation included via standard WordPress i18n).
 
 The Partytown library is **vendored** in `assets/partytown/` — no npm build step is needed at runtime.
 
@@ -15,14 +15,14 @@ The Partytown library is **vendored** in `assets/partytown/` — no npm build st
 ```
 dc-sw-prefetch.php   — Main plugin file: bot detection, hooks, Partytown injection,
                        prefetch JS, SW endpoint, LCP preload, cache headers
-admin.php            — Admin settings page (EN/DA bilingual)
+admin.php            — Admin settings page (i18n via __() with 'dc-sw-prefetch' text domain)
 uninstall.php        — Cleanup on plugin deletion
 assets/partytown/    — Vendored Partytown lib files (do NOT hand-edit)
 scripts/             — update-partytown.sh: vendor a new Partytown release
 .github/workflows/   — deploy.yml (rsync + GitHub Release), update-partytown.yml (weekly bot)
 phpcs.xml            — PHP_CodeSniffer config (WordPress ruleset)
 package.json         — Tracks vendored Partytown version under "vendored"
-languages/           — .pot translation template
+languages/           — .pot template + da_DK .po/.mo translations
 ```
 
 ## Coding Conventions
@@ -46,7 +46,7 @@ languages/           — .pot translation template
 - **Bot detection** (`dc_swp_is_bot_request()`): runs before any JS is emitted; bots receive no service worker or prefetch code.
 - **Safe pages**: Partytown and prefetch JS are skipped on cart, checkout, and account pages (`dc_swp_is_safe_page()`).
 - **Partytown endpoint**: served by WordPress via a rewrite rule + query var; PHP streams the vendored JS files directly.
-- **Admin settings** are stored as individual named options (e.g. `dampcig_pwa_sw_enabled`, `dc_swp_inline_scripts`) via `get_option` / `update_option`. There is no single serialised bag option.
+- **Admin settings** are stored as individual named options (e.g. `dc_swp_sw_enabled`, `dc_swp_inline_scripts`) via `get_option` / `update_option`. There is no single serialised bag option.
 - **Inline script blocks** (`dc_swp_inline_scripts`): JSON-encoded array of `{ id, label, code, enabled, force_partytown }` objects. The `code` field is sanitized via `dc_swp_sanitize_js_code()` at save time and output raw inside `<script>` tags (capability-gated to `manage_options`). Do not use `wp_kses()` on this field — it mangles JS operators.
 - **Cache headers** fall back to PHP `header()` calls when W3 Total Cache is not active.
 
@@ -91,7 +91,7 @@ Pushing to `main` or creating a version tag triggers `deploy.yml`, which:
 - Do **not** hand-edit files inside `assets/partytown/` — always use the update script.
 - Do **not** introduce npm/build dependencies into the plugin runtime; keep it vendor-only.
 - **All option names must use the `dc_swp_` prefix** (`dc_swp_sw_enabled`, `dc_swp_preload_products`, `dc_swp_product_base`, `dc_swp_footer_credit`). The old `dampcig_pwa_*` names are migrated via `dc_swp_migrate_options()` on activation and must not be reintroduced.
-- Do not remove or break bilingual support (EN/DA); use `get_locale()` checks as the existing code does.
+- All user-facing strings use `__()` / `esc_html__()` with the `dc-sw-prefetch` text domain. Danish translations are in `languages/dc-sw-prefetch-da_DK.po`. Do **not** reintroduce the old `dc_swp_str()` key-based bilingual array.
 - **`phpcs.xml` must NOT globally suppress `WordPress.Security.EscapeOutput.OutputNotEscaped`** — use per-line `// phpcs:ignore` comments with justification comments only at the specific lines that require it. A global suppression hides real violations from your own linter AND triggers WP.org rejection.
 - **Do not add redundant `phpcs:ignore NonPrefixedFunctionFound`** on functions that already use the `dc_swp_` prefix — these are covered by the `<property name="prefixes">` declaration in `phpcs.xml`.
 - **Never use `file_get_contents()`** for local files — use `WP_Filesystem` (`global $wp_filesystem; WP_Filesystem(); $wp_filesystem->get_contents( $path )`).
