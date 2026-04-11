@@ -1,5 +1,5 @@
 /**
- * Partytown configuration — sets window.partytown before Partytown initialises.
+ * Partytown configuration -- sets window.partytown before Partytown initialises.
  * Data injected by PHP via wp_localize_script as dcSwpPartytownData.
  *
  * Includes the SharedArrayBuffer probe on every page load. The probe is harmless
@@ -35,7 +35,7 @@ window.partytown.pathRewrites      = dcSwpPartytownData.pathRewrites;
 window.partytown.proxyAllowedHosts = dcSwpPartytownData.proxyAllowedHosts;
 window.partytown.proxyUrl          = dcSwpPartytownData.proxyUrl;
 
-// resolveUrl — same-origin path rewrites + CORS proxy for Partytown workers.
+// resolveUrl -- same-origin path rewrites + CORS proxy for Partytown workers.
 // NOTE: this function is serialised to a string by Partytown and eval'd inside
 // the web worker via new Function(), so it MUST be self-contained. Use `this`
 // (the config object) instead of any outer-scope variable references.

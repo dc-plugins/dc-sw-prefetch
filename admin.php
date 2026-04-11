@@ -1,6 +1,6 @@
 <?php
 /**
- * DC Script Worker Proxy — Admin Interface
+ * DC Script Worker Proxy -- Admin Interface
  * Partytown third-party script offloading + viewport/pagination prefetching
  * DampCig.dk
  *
@@ -12,7 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	die(); }
 
 
-// Admin footer — only on this plugin's own page.
+// Admin footer -- only on this plugin's own page.
 add_filter(
 	'admin_footer_text',
 	function ( $text ) {
@@ -106,7 +106,7 @@ function dc_swp_enqueue_admin_assets( $hook ) {
     input:checked + .pwa-slider:before {
         transform: translateX(26px);
     }
-    /* ── Inline script blocks accordion ───────────────────────────────── */
+    /* -- Inline script blocks accordion --------------------------------- */
     .dc-swp-blk-item { border:1px solid #dcdcde; border-radius:3px; margin-bottom:5px; background:#fff; }
     .dc-swp-blk-item.dc-swp-blk-disabled { opacity:.5; }
     .dc-swp-blk-hdr { display:flex; align-items:center; gap:8px; padding:8px 10px; cursor:pointer; user-select:none; background:#f6f7f7; border-radius:3px; }
@@ -123,7 +123,7 @@ function dc_swp_enqueue_admin_assets( $hook ) {
     .dc-swp-add-area { border:1px dashed #c3c4c7; padding:14px 14px 10px; border-radius:3px; background:#f6f7f7; margin-top:4px; }
     .dc-swp-add-area h4 { margin:0 0 9px; font-size:13px; font-weight:600; color:#1d2327; }
     .dc-swp-add-area textarea { font-family:Consolas,'Courier New',monospace; font-size:12px; }
-    /* ── Consent Architecture info panel ─────────────────────────────────── */
+    /* -- Consent Architecture info panel ----------------------------------- */
     .dc-swp-consent-info { border:1px solid #dcdcde; border-radius:3px; margin-top:10px; background:#fff; }
     .dc-swp-consent-info summary { padding:7px 11px; font-weight:600; cursor:pointer; color:#2271b1; font-size:12px; user-select:none; list-style:none; }
     .dc-swp-consent-info summary::-webkit-details-marker { display:none; }
@@ -134,7 +134,7 @@ function dc_swp_enqueue_admin_assets( $hook ) {
     .dc-swp-info-section { font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:.4px; color:#50575e; margin:12px 0 5px 0; }
     .dc-swp-info-section:first-child { margin-top:0; }
     .dc-swp-badges { display:flex; flex-wrap:wrap; gap:4px; margin:0 0 2px; }
-    /* CSS badge — always the visible default; shields.io img overlays it once loaded */
+    /* CSS badge -- always the visible default; shields.io img overlays it once loaded */
     .dc-swp-badge { display:inline-flex; font-size:11px; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; border-radius:3px; overflow:hidden; line-height:18px; height:18px; vertical-align:middle; white-space:nowrap; }
     .dc-swp-badge::before { content:attr(data-label); background:#555; color:#fff; padding:0 6px; display:flex; align-items:center; }
     .dc-swp-badge::after  { content:attr(data-msg);   color:#fff; padding:0 6px; display:flex; align-items:center; }
@@ -149,11 +149,11 @@ function dc_swp_enqueue_admin_assets( $hook ) {
     .dc-swp-badge.dc-swp-loaded::before,
     .dc-swp-badge.dc-swp-loaded::after { display:none; }
     .dc-swp-badge.dc-swp-loaded img { display:block; }
-    /* ── GTM mode panels ─────────────────────────────────────────────────── */
+    /* -- GTM mode panels --------------------------------------------------- */
     .dc-swp-gtm-panel { margin-top:10px; padding:12px 14px; border:1px solid #dcdcde; border-radius:3px; background:#f9f9f9; }
     .dc-swp-gtm-valid   { color:#3cb034; font-weight:600; font-size:12px; margin-left:6px; }
     .dc-swp-gtm-invalid { color:#d63638; font-weight:600; font-size:12px; margin-left:6px; }
-    /* ── GTM Onboarding Wizard ──────────────────────────────────────────── */
+    /* -- GTM Onboarding Wizard -------------------------------------------- */
     .dc-swp-step-indicator { display:flex; gap:0; align-items:center; margin-bottom:16px; }
     .dc-swp-step-dot { width:28px; height:28px; border-radius:50%; background:#dcdcde; color:#50575e; font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
     .dc-swp-step-dot.active { background:#2271b1; color:#fff; }
@@ -162,12 +162,12 @@ function dc_swp_enqueue_admin_assets( $hook ) {
     .dc-swp-wizard-step { display:none; }
     .dc-swp-wizard-step.dc-swp-active { display:block; }
     .dc-swp-wizard-nav { display:flex; gap:8px; align-items:center; margin-top:14px; }
-    /* ── SSGA4 conditional visibility ─────────────────────────────────────── */
+    /* -- SSGA4 conditional visibility --------------------------------------- */
     .dc-swp-ssga4-field { display:none; }
     .dc-swp-ssga4-active .dc-swp-ssga4-field { display:table-row; }
     .dc-swp-ssga4-valid   { color:#3cb034; font-weight:600; font-size:12px; margin-left:6px; }
     .dc-swp-ssga4-invalid { color:#d63638; font-weight:600; font-size:12px; margin-left:6px; }
-    /* ── Fieldset sections ─────────────────────────────────────────────────── */
+    /* -- Fieldset sections --------------------------------------------------- */
     .dc-swp-fieldset { border:0; padding:0; margin:0 0 20px 0; }
     .dc-swp-fieldset > legend { font-size:1.3em; font-weight:600; padding:10px 0 5px 0; margin:0; }
     .dc-swp-ssga4-panel { margin-top:10px; padding:12px 14px; border:1px solid #dcdcde; border-radius:3px; background:#f9f9f9; }
@@ -193,7 +193,7 @@ add_action( 'admin_init', 'dc_swp_register_settings' );
  * @return string Sanitized code string.
  */
 function dc_swp_sanitize_js_code( $code ) {
-	// Strip PHP opening tags — prevents server-side execution if the stored value
+	// Strip PHP opening tags -- prevents server-side execution if the stored value
 	// is ever used in a PHP-parsed context outside this plugin's own output path.
 	return preg_replace( '/<\?(?:php|=)?/i', '', (string) $code );
 }
@@ -244,7 +244,7 @@ function dc_swp_register_settings() {
 	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_sw_enabled', array( 'sanitize_callback' => 'sanitize_text_field' ) );
 	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_footer_credit', array( 'sanitize_callback' => 'sanitize_text_field' ) );
 	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_partytown_scripts', array( 'sanitize_callback' => 'sanitize_textarea_field' ) );
-	// Inline script blocks — admin-only JS content stored as JSON; validated via dc_swp_sanitize_inline_scripts_option.
+	// Inline script blocks -- admin-only JS content stored as JSON; validated via dc_swp_sanitize_inline_scripts_option.
 	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_inline_scripts', array( 'sanitize_callback' => 'dc_swp_sanitize_inline_scripts_option' ) );
 	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_coi_headers', array( 'sanitize_callback' => 'sanitize_text_field' ) );
 	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_consent_mode', array( 'sanitize_callback' => 'sanitize_text_field' ) );
@@ -283,7 +283,7 @@ function dc_swp_admin_page_html() {
 	if ( isset( $_POST['dc_swp_nonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['dc_swp_nonce'] ) ), 'dc_swp_save_settings' ) ) {
 		update_option( 'dc_swp_sw_enabled', isset( $_POST['dc_swp_sw_enabled'] ) ? 'yes' : 'no' );
 		update_option( 'dc_swp_footer_credit', isset( $_POST['dc_swp_footer_credit'] ) ? 'yes' : 'no' );
-		// Partytown Script List — JSON array of {pattern, category} objects managed by JS.
+		// Partytown Script List -- JSON array of {pattern, category} objects managed by JS.
 		$_raw_entries   = wp_unslash( $_POST['dc_swp_partytown_entries_json'] ?? '' ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON envelope; each field sanitized individually below.
 		$_valid_cats_sl = array( 'marketing', 'statistics', 'statistics-anonymous', 'functional', 'preferences' );
 		$_clean_entries = array();
@@ -349,7 +349,7 @@ function dc_swp_admin_page_html() {
 		$_gtm_id_raw = sanitize_text_field( wp_unslash( $_POST['dc_swp_gtm_id'] ?? '' ) );
 		// Accept empty string (disables injection) or a valid tag ID format.
 		update_option( 'dc_swp_gtm_id', ( '' === $_gtm_id_raw || preg_match( '/^(GTM-[A-Z0-9]{4,10}|G-[A-Z0-9]{6,}|UA-\d{4,}-\d+)$/i', $_gtm_id_raw ) ) ? strtoupper( $_gtm_id_raw ) : '' );
-		// ── Server-Side GA4 ──────────────────────────────────────────────
+		// -- Server-Side GA4 ----------------------------------------------
 		$_valid_ssga4_modes = array( 'off', 'own', 'detect', 'managed' );
 		$_ssga4_mode_raw    = sanitize_text_field( wp_unslash( $_POST['dc_swp_ssga4_mode'] ?? 'off' ) );
 		$_ssga4_mode        = in_array( $_ssga4_mode_raw, $_valid_ssga4_modes, true ) ? $_ssga4_mode_raw : 'off';
@@ -375,7 +375,7 @@ function dc_swp_admin_page_html() {
 		update_option( 'dc_swp_resource_hints', isset( $_POST['dc_swp_resource_hints'] ) ? 'yes' : 'no' );
 		update_option( 'dc_swp_health_monitor', isset( $_POST['dc_swp_health_monitor'] ) ? 'yes' : 'no' );
 		update_option( 'dc_swp_perf_monitor', isset( $_POST['dc_swp_perf_monitor'] ) ? 'yes' : 'no' );
-		// Exclusion patterns — sanitize each line individually.
+		// Exclusion patterns -- sanitize each line individually.
 		$_raw_excl   = wp_unslash( $_POST['dc_swp_exclusion_patterns'] ?? '' ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized line-by-line below.
 		$_excl_lines = array_map( 'sanitize_text_field', explode( "\n", $_raw_excl ) );
 		update_option( 'dc_swp_exclusion_patterns', implode( "\n", array_filter( $_excl_lines ) ) );
@@ -400,7 +400,7 @@ function dc_swp_admin_page_html() {
 	// Performance metrics.
 	$perf_metrics_raw = get_option( 'dc_swp_perf_metrics', '' );
 	$perf_metrics     = ( '' !== $perf_metrics_raw ) ? json_decode( $perf_metrics_raw, true ) : null;
-	// ── Server-Side GA4 ──────────────────────────────────────────────
+	// -- Server-Side GA4 ----------------------------------------------
 	// Mode-based setup: migrate legacy toggle to mode system.
 	$ssga4_mode = get_option( 'dc_swp_ssga4_mode', '' );
 	if ( '' === $ssga4_mode ) {
@@ -437,7 +437,7 @@ function dc_swp_admin_page_html() {
 	$_ssga4_tz       = wp_timezone_string();
 	$_ssga4_is_eu    = str_starts_with( $_ssga4_tz, 'Europe/' ) || str_starts_with( $_ssga4_tz, 'Atlantic/' );
 	$_ssga4_endpoint = $_ssga4_is_eu ? __( '🇪🇺 EU Endpoint (region1.google-analytics.com)', 'dc-sw-prefetch' ) : __( '🌐 Global Endpoint (google-analytics.com)', 'dc-sw-prefetch' );
-	// Inline script blocks — decode JSON; auto-migrate legacy plain-text format.
+	// Inline script blocks -- decode JSON; auto-migrate legacy plain-text format.
 	$inline_scripts_raw   = get_option( 'dc_swp_inline_scripts', '' );
 	$inline_script_blocks = array();
 	if ( '' !== $inline_scripts_raw ) {
@@ -445,7 +445,7 @@ function dc_swp_admin_page_html() {
 		if ( is_array( $decoded_blocks_raw ) ) {
 			$inline_script_blocks = $decoded_blocks_raw;
 		} elseif ( preg_match( '/<script\b/i', $inline_scripts_raw ) ) {
-			// Legacy plain-text format — auto-migrate to the new JSON structure.
+			// Legacy plain-text format -- auto-migrate to the new JSON structure.
 			$inline_script_blocks = array(
 				array(
 					'id'      => 'block_' . substr( md5( $inline_scripts_raw ), 0, 8 ),
@@ -480,9 +480,9 @@ function dc_swp_admin_page_html() {
 
 		<div class="notice notice-info">
 			<p><strong>ℹ️ <?php echo esc_html( __( 'Partytown Integration', 'dc-sw-prefetch' ) ); ?></strong></p>
-			<p><?php echo esc_html( __( 'Unlike async/defer — which only delay loading but still execute scripts on the main thread — Partytown runs third-party scripts entirely in a Web Worker. The browser main thread is never touched: no layout jank, no TBT penalty, no competition with user interactions. Officially tested compatible services: Google Tag Manager, Facebook Pixel, HubSpot, Intercom, Klaviyo, TikTok Pixel, and Mixpanel. Enable the Consent Gate to block scripts until visitor consent is granted via the WP Consent API.', 'dc-sw-prefetch' ) ); ?></p>
+			<p><?php echo esc_html( __( 'Unlike async/defer -- which only delay loading but still execute scripts on the main thread -- Partytown runs third-party scripts entirely in a Web Worker. The browser main thread is never touched: no layout jank, no TBT penalty, no competition with user interactions. Officially tested compatible services: Google Tag Manager, Facebook Pixel, HubSpot, Intercom, Klaviyo, TikTok Pixel, and Mixpanel. Enable the Consent Gate to block scripts until visitor consent is granted via the WP Consent API.', 'dc-sw-prefetch' ) ); ?></p>
 			<p><?php echo esc_html( __( 'Partytown Version', 'dc-sw-prefetch' ) ); ?>: <code><?php echo esc_html( $pt_version ); ?></code>
-				&nbsp;—&nbsp;
+				&nbsp;--&nbsp;
 				<a href="https://github.com/QwikDev/partytown/releases" target="_blank" rel="noopener">Changelog ↗</a></p>
 		</div>
 
@@ -499,7 +499,7 @@ function dc_swp_admin_page_html() {
 							<input type="checkbox" name="dc_swp_sw_enabled" value="yes" <?php checked( $sw_enabled, true ); ?>>
 							<span class="pwa-slider"></span>
 						</label>
-						<p class="description"><?php echo esc_html( __( 'Activate Partytown service worker for third-party script offloading and viewport prefetch. When disabled, scripts render directly on the main thread with defer — useful for diagnosing Partytown issues (no Web Worker, no consent gating).', 'dc-sw-prefetch' ) ); ?></p>
+						<p class="description"><?php echo esc_html( __( 'Activate Partytown service worker for third-party script offloading and viewport prefetch. When disabled, scripts render directly on the main thread with defer -- useful for diagnosing Partytown issues (no Web Worker, no consent gating).', 'dc-sw-prefetch' ) ); ?></p>
 					</td>
 				</tr>
 				<tr valign="top">
@@ -566,22 +566,22 @@ function dc_swp_admin_page_html() {
 							</button>
 						</div>
 
-						<p class="description" style="margin-top:8px"><?php echo wp_kses_post( __( 'Paste complete third-party script blocks here — including &lt;script&gt; tags and &lt;noscript&gt; fallbacks (Meta Pixel, TikTok Pixel, etc.). The plugin automatically converts them to <code>type="text/partytown"</code> so they run in a Web Worker and respect marketing consent. <a href="https://partytown.qwik.dev/common-services/" target="_blank" rel="noopener">Compatible services ↗</a>', 'dc-sw-prefetch' ) ); ?></p>
+						<p class="description" style="margin-top:8px"><?php echo wp_kses_post( __( 'Paste complete third-party script blocks here -- including &lt;script&gt; tags and &lt;noscript&gt; fallbacks (Meta Pixel, TikTok Pixel, etc.). The plugin automatically converts them to <code>type="text/partytown"</code> so they run in a Web Worker and respect marketing consent. <a href="https://partytown.qwik.dev/common-services/" target="_blank" rel="noopener">Compatible services ↗</a>', 'dc-sw-prefetch' ) ); ?></p>
 					</td>
 				</tr>
 				<tr valign="top">
 					<th scope="row"><?php echo esc_html( __( 'Google Tag Management', 'dc-sw-prefetch' ) ); ?></th>
 					<td>
-						<!-- Hidden field — always submitted; JS syncs it from whichever panel is active -->
+						<!-- Hidden field -- always submitted; JS syncs it from whichever panel is active -->
 						<input type="hidden" name="dc_swp_gtm_id" id="dc_swp_gtm_id_field"
 							value="<?php echo esc_attr( get_option( 'dc_swp_gtm_id', '' ) ); ?>">
 						<fieldset>
 						<?php
 						$_gtm_modes = array(
-							'off'     => __( 'Disabled — no tag management', 'dc-sw-prefetch' ),
-							'own'     => __( 'Enter Tag ID — I have my own GTM or GA4 ID', 'dc-sw-prefetch' ),
-							'detect'  => __( 'Auto-Detect — find active tag in page source code', 'dc-sw-prefetch' ),
-							'managed' => __( 'Setup Guide — step-by-step GTM onboarding', 'dc-sw-prefetch' ),
+							'off'     => __( 'Disabled -- no tag management', 'dc-sw-prefetch' ),
+							'own'     => __( 'Enter Tag ID -- I have my own GTM or GA4 ID', 'dc-sw-prefetch' ),
+							'detect'  => __( 'Auto-Detect -- find active tag in page source code', 'dc-sw-prefetch' ),
+							'managed' => __( 'Setup Guide -- step-by-step GTM onboarding', 'dc-sw-prefetch' ),
 						);
 						foreach ( $_gtm_modes as $_gv => $_gl ) :
 							?>
@@ -600,7 +600,7 @@ function dc_swp_admin_page_html() {
 								value="<?php echo esc_attr( get_option( 'dc_swp_gtm_id', '' ) ); ?>"
 								placeholder="<?php echo esc_attr( __( 'GTM-XXXXXXX or G-XXXXXXXXXX', 'dc-sw-prefetch' ) ); ?>">
 							<span id="dc-swp-gtm-id-status"></span>
-							<p class="description" style="margin-top:6px"><?php echo wp_kses_post( __( 'Enter your GTM Container ID or GA4 Measurement ID. The plugin injects the snippet in <code>&lt;head&gt;</code> at the correct position — after the GCM v2 consent default but before any other scripts.', 'dc-sw-prefetch' ) ); ?></p>
+							<p class="description" style="margin-top:6px"><?php echo wp_kses_post( __( 'Enter your GTM Container ID or GA4 Measurement ID. The plugin injects the snippet in <code>&lt;head&gt;</code> at the correct position -- after the GCM v2 consent default but before any other scripts.', 'dc-sw-prefetch' ) ); ?></p>
 						</div>
 
 						<!-- Panel: detect -->
@@ -612,7 +612,7 @@ function dc_swp_admin_page_html() {
 							</button>
 							<span id="dc-swp-gtm-detect-spinner" class="spinner" style="float:none;margin-left:4px;display:none;"></span>
 							<div id="dc-swp-gtm-detect-result" style="margin-top:8px"></div>
-							<p class="description" style="margin-top:6px"><?php echo wp_kses_post( __( 'Fetches the page HTML source and scans for active Google Tags (GTM, GA4, UA). Only detects tags actually present in the rendered source — not plugin settings. GCM v2 consent mode fires automatically before the detected tag.', 'dc-sw-prefetch' ) ); ?></p>
+							<p class="description" style="margin-top:6px"><?php echo wp_kses_post( __( 'Fetches the page HTML source and scans for active Google Tags (GTM, GA4, UA). Only detects tags actually present in the rendered source -- not plugin settings. GCM v2 consent mode fires automatically before the detected tag.', 'dc-sw-prefetch' ) ); ?></p>
 						</div>
 
 						<!-- Panel: managed (wizard) -->
@@ -628,10 +628,10 @@ function dc_swp_admin_page_html() {
 							</div>
 							<?php
 							$_wiz_steps = array(
-								1 => array( __( 'Step 1 — Create GTM Account & Container', 'dc-sw-prefetch' ), __( 'Visit <a href="https://tagmanager.google.com" target="_blank" rel="noopener">tagmanager.google.com ↗</a>, sign in, click <strong>Create Account</strong>, enter an account name and country, add a Container (use your website URL as the name), select <strong>Web</strong> as the platform, then click <strong>Create</strong>.', 'dc-sw-prefetch' ) ),
-								2 => array( __( 'Step 2 — Enter Your Container ID', 'dc-sw-prefetch' ), __( 'Your <strong>Container ID</strong> appears in the top-right of the GTM interface (format: <code>GTM-XXXXXXX</code>). Copy it and paste it below.', 'dc-sw-prefetch' ) ),
-								3 => array( __( 'Step 3 — Add Tags in GTM', 'dc-sw-prefetch' ), __( 'Inside GTM, add tags such as <strong>Google Analytics 4</strong> (use the &ldquo;Google Tag&rdquo; configuration tag with your GA4 Measurement ID <code>G-XXXXXXXXXX</code>), <strong>LinkedIn Insight Tag</strong>, <strong>TikTok Pixel</strong>, etc. Set each tag to fire on trigger <em>All Pages</em>. GCM v2 consent mode automatically controls data collection per visitor consent.', 'dc-sw-prefetch' ) ),
-								4 => array( __( 'Step 4 — Publish & Confirm', 'dc-sw-prefetch' ), __( 'Click <strong>Submit</strong> → <strong>Publish</strong> in GTM to deploy your container. This plugin injects the GTM snippet in <code>&lt;head&gt;</code> with GCM v2 consent pre-configured. Click <strong>Complete Setup</strong> below to save your Container ID.', 'dc-sw-prefetch' ) ),
+								1 => array( __( 'Step 1 -- Create GTM Account & Container', 'dc-sw-prefetch' ), __( 'Visit <a href="https://tagmanager.google.com" target="_blank" rel="noopener">tagmanager.google.com ↗</a>, sign in, click <strong>Create Account</strong>, enter an account name and country, add a Container (use your website URL as the name), select <strong>Web</strong> as the platform, then click <strong>Create</strong>.', 'dc-sw-prefetch' ) ),
+								2 => array( __( 'Step 2 -- Enter Your Container ID', 'dc-sw-prefetch' ), __( 'Your <strong>Container ID</strong> appears in the top-right of the GTM interface (format: <code>GTM-XXXXXXX</code>). Copy it and paste it below.', 'dc-sw-prefetch' ) ),
+								3 => array( __( 'Step 3 -- Add Tags in GTM', 'dc-sw-prefetch' ), __( 'Inside GTM, add tags such as <strong>Google Analytics 4</strong> (use the &ldquo;Google Tag&rdquo; configuration tag with your GA4 Measurement ID <code>G-XXXXXXXXXX</code>), <strong>LinkedIn Insight Tag</strong>, <strong>TikTok Pixel</strong>, etc. Set each tag to fire on trigger <em>All Pages</em>. GCM v2 consent mode automatically controls data collection per visitor consent.', 'dc-sw-prefetch' ) ),
+								4 => array( __( 'Step 4 -- Publish & Confirm', 'dc-sw-prefetch' ), __( 'Click <strong>Submit</strong> → <strong>Publish</strong> in GTM to deploy your container. This plugin injects the GTM snippet in <code>&lt;head&gt;</code> with GCM v2 consent pre-configured. Click <strong>Complete Setup</strong> below to save your Container ID.', 'dc-sw-prefetch' ) ),
 							);
 							foreach ( $_wiz_steps as $_sn => $_wiz_step ) :
 								$_st = $_wiz_step[0];
@@ -685,10 +685,10 @@ function dc_swp_admin_page_html() {
 							<input type="checkbox" name="dc_swp_consent_mode" value="yes" <?php checked( $consent_mode, true ); ?>>
 							<span class="pwa-slider"></span>
 						</label>
-						<p class="description"><?php echo wp_kses_post( __( 'Global consent authority for all GCM v2-compatible services. Injects a full 7-parameter <code>gtag("consent","default",{...})</code> snippet in &lt;head&gt; before any scripts load — with per-category consent signals (marketing → ads, statistics → analytics, preferences → personalisation). When active, scripts for GCM v2-aware services (Google Tag Manager, Hotjar, LinkedIn Insight, TikTok Pixel, Microsoft Clarity) always run as <code>text/partytown</code>. A revoke listener is automatically injected to fire <code>gtag("consent","update",{...denied})</code> if the visitor withdraws consent. <strong>Requires GTM or a gtag.js-based setup together with a GCM v2-compatible CMP.</strong>', 'dc-sw-prefetch' ) ); ?></p>
+						<p class="description"><?php echo wp_kses_post( __( 'Global consent authority for all GCM v2-compatible services. Injects a full 7-parameter <code>gtag("consent","default",{...})</code> snippet in &lt;head&gt; before any scripts load -- with per-category consent signals (marketing → ads, statistics → analytics, preferences → personalisation). When active, scripts for GCM v2-aware services (Google Tag Manager, Hotjar, LinkedIn Insight, TikTok Pixel, Microsoft Clarity) always run as <code>text/partytown</code>. A revoke listener is automatically injected to fire <code>gtag("consent","update",{...denied})</code> if the visitor withdraws consent. <strong>Requires GTM or a gtag.js-based setup together with a GCM v2-compatible CMP.</strong>', 'dc-sw-prefetch' ) ); ?></p>
 					<div id="dc-swp-gcm-notices"></div>
 					<?php
-					// ── Consent Architecture info panel ─────────────────────────────────
+					// -- Consent Architecture info panel ---------------------------------
 					// CSS badges are always rendered as the fallback (pure CSS ::before/::after).
 					// The shields.io <img> fires onload to swap in the real badge when available;
 					// offline / firewalled environments automatically keep the CSS version.
@@ -721,7 +721,7 @@ function dc_swp_admin_page_html() {
 						<div class="dc-swp-consent-info-body">
 
 							<p class="dc-swp-info-section"><?php echo esc_html( __( 'GCM v2-Aware Services', 'dc-sw-prefetch' ) ); ?></p>
-							<p class="description" style="margin-bottom:6px"><?php echo esc_html( __( 'These services natively read the GCM v2 consent state and self-restrict data collection — no text/plain blocking is needed when GCM v2 is active.', 'dc-sw-prefetch' ) ); ?></p>
+							<p class="description" style="margin-bottom:6px"><?php echo esc_html( __( 'These services natively read the GCM v2 consent state and self-restrict data collection -- no text/plain blocking is needed when GCM v2 is active.', 'dc-sw-prefetch' ) ); ?></p>
 							<div class="dc-swp-badges">
 								<?php
 								foreach ( $_gcm as $_b ) {
@@ -729,8 +729,8 @@ function dc_swp_admin_page_html() {
 								?>
 							</div>
 
-							<p class="dc-swp-info-section"><?php echo esc_html( __( 'Meta Pixel — Separate LDU Mechanism', 'dc-sw-prefetch' ) ); ?></p>
-							<p class="description" style="margin-bottom:6px"><?php echo esc_html( __( 'Meta Pixel does not implement GCM v2. Enable Meta Pixel LDU below — Meta applies Limited Data Use restrictions internally.', 'dc-sw-prefetch' ) ); ?></p>
+							<p class="dc-swp-info-section"><?php echo esc_html( __( 'Meta Pixel -- Separate LDU Mechanism', 'dc-sw-prefetch' ) ); ?></p>
+							<p class="description" style="margin-bottom:6px"><?php echo esc_html( __( 'Meta Pixel does not implement GCM v2. Enable Meta Pixel LDU below -- Meta applies Limited Data Use restrictions internally.', 'dc-sw-prefetch' ) ); ?></p>
 							<div class="dc-swp-badges">
 								<?php echo $_badge( 'Meta Pixel', 'LDU API', 'meta', $_si . 'Meta%20Pixel-LDU%20API-1877f2' . $_sq ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 							</div>
@@ -745,7 +745,7 @@ function dc_swp_admin_page_html() {
 							<input type="checkbox" name="dc_swp_url_passthrough" value="yes" <?php checked( $url_passthrough, true ); ?>>
 							<span class="pwa-slider"></span>
 						</label>
-						<p class="description"><?php echo wp_kses_post( __( 'Enables <code>gtag("set","url_passthrough",true)</code>. Preserves gclid / wbraid parameters in URLs so conversion attribution works cookieless — even when <code>ad_storage</code> is denied. Recommended for Google Ads advertisers.', 'dc-sw-prefetch' ) ); ?></p>
+						<p class="description"><?php echo wp_kses_post( __( 'Enables <code>gtag("set","url_passthrough",true)</code>. Preserves gclid / wbraid parameters in URLs so conversion attribution works cookieless -- even when <code>ad_storage</code> is denied. Recommended for Google Ads advertisers.', 'dc-sw-prefetch' ) ); ?></p>
 					</td>
 				</tr>
 				<tr valign="top">
@@ -755,7 +755,7 @@ function dc_swp_admin_page_html() {
 							<input type="checkbox" name="dc_swp_ads_data_redaction" value="yes" <?php checked( $ads_data_redaction, true ); ?>>
 							<span class="pwa-slider"></span>
 						</label>
-						<p class="description"><?php echo wp_kses_post( __( 'Enables <code>gtag("set","ads_data_redaction",true)</code>. Redacts click IDs (gclid, wbraid) from data sent to Google when <code>ad_storage</code> is denied — enhanced privacy for visitors who have not granted marketing consent.', 'dc-sw-prefetch' ) ); ?></p>
+						<p class="description"><?php echo wp_kses_post( __( 'Enables <code>gtag("set","ads_data_redaction",true)</code>. Redacts click IDs (gclid, wbraid) from data sent to Google when <code>ad_storage</code> is denied -- enhanced privacy for visitors who have not granted marketing consent.', 'dc-sw-prefetch' ) ); ?></p>
 					</td>
 				</tr>
 				<tr valign="top">					<th scope="row"><?php echo esc_html( __( 'Meta Pixel Limited Data Use (LDU)', 'dc-sw-prefetch' ) ); ?></th>
@@ -764,7 +764,7 @@ function dc_swp_admin_page_html() {
 							<input type="checkbox" name="dc_swp_meta_ldu" value="yes" <?php checked( $meta_ldu, true ); ?>>
 							<span class="pwa-slider"></span>
 						</label>
-						<p class="description"><?php echo wp_kses_post( __( 'Meta/Facebook Pixel does not support Google Consent Mode v2 — it uses its own Limited Data Use (LDU) consent API. Injects an fbq stub + <code>fbq("dataProcessingOptions",["LDU"],0,0)</code> in &lt;head&gt; before Partytown and Facebook Pixel scripts load. The Meta Pixel always runs as <code>text/partytown</code> — Meta applies LDU restrictions internally (data not used for ad targeting). Your CMP does not need to block the script via <code>text/plain</code>. Requires Meta Pixel to be added via the Partytown Script List or an Inline Script Block.', 'dc-sw-prefetch' ) ); ?></p>
+						<p class="description"><?php echo wp_kses_post( __( 'Meta/Facebook Pixel does not support Google Consent Mode v2 -- it uses its own Limited Data Use (LDU) consent API. Injects an fbq stub + <code>fbq("dataProcessingOptions",["LDU"],0,0)</code> in &lt;head&gt; before Partytown and Facebook Pixel scripts load. The Meta Pixel always runs as <code>text/partytown</code> -- Meta applies LDU restrictions internally (data not used for ad targeting). Your CMP does not need to block the script via <code>text/plain</code>. Requires Meta Pixel to be added via the Partytown Script List or an Inline Script Block.', 'dc-sw-prefetch' ) ); ?></p>
 					</td>
 				</tr>
 				<tr valign="top">
@@ -774,7 +774,7 @@ function dc_swp_admin_page_html() {
 							<input type="checkbox" name="dc_swp_coi_headers" value="yes" <?php checked( $coi_headers, true ); ?>>
 							<span class="pwa-slider"></span>
 						</label>
-						<p class="description"><?php echo wp_kses_post( __( 'Sends <code>Cross-Origin-Opener-Policy: same-origin</code> and <code>Cross-Origin-Embedder-Policy: credentialless</code> on public pages. Enables <code>crossOriginIsolated</code> in the browser so Partytown switches to the faster Atomics bridge instead of the sync-XHR bridge. Skipped for bots, logged-in users and checkout. All cross-origin iframes are automatically given the <code>credentialless</code> attribute so they can load under COEP — regardless of the exclusion list. <strong>Test in staging first — can break OAuth popups or other cross-origin iframes.</strong>', 'dc-sw-prefetch' ) ); ?></p>
+						<p class="description"><?php echo wp_kses_post( __( 'Sends <code>Cross-Origin-Opener-Policy: same-origin</code> and <code>Cross-Origin-Embedder-Policy: credentialless</code> on public pages. Enables <code>crossOriginIsolated</code> in the browser so Partytown switches to the faster Atomics bridge instead of the sync-XHR bridge. Skipped for bots, logged-in users and checkout. All cross-origin iframes are automatically given the <code>credentialless</code> attribute so they can load under COEP -- regardless of the exclusion list. <strong>Test in staging first -- can break OAuth popups or other cross-origin iframes.</strong>', 'dc-sw-prefetch' ) ); ?></p>
 					</td>
 				</tr>
 				<tr valign="top">
@@ -804,7 +804,7 @@ function dc_swp_admin_page_html() {
 							<input type="checkbox" name="dc_swp_perf_monitor" value="yes" <?php checked( $perf_monitor, true ); ?>>
 							<span class="pwa-slider"></span>
 						</label>
-						<p class="description"><?php echo esc_html( __( 'Collects anonymous TBT (Total Blocking Time) and INP (Interaction to Next Paint) measurements from real visitors and shows rolling averages + P75 percentiles in the admin — giving tangible proof of Partytown\'s main-thread offloading benefit.', 'dc-sw-prefetch' ) ); ?></p>
+						<p class="description"><?php echo esc_html( __( 'Collects anonymous TBT (Total Blocking Time) and INP (Interaction to Next Paint) measurements from real visitors and shows rolling averages + P75 percentiles in the admin -- giving tangible proof of Partytown\'s main-thread offloading benefit.', 'dc-sw-prefetch' ) ); ?></p>
 					</td>
 				</tr>
 				<tr valign="top">
@@ -814,16 +814,16 @@ function dc_swp_admin_page_html() {
 							<input type="checkbox" name="dc_swp_debug_mode" value="yes" <?php checked( $debug_mode, true ); ?>>
 							<span class="pwa-slider"></span>
 						</label>
-						<p class="description"><?php echo wp_kses_post( __( 'Loads the unminified debug build of Partytown and enables all log flags. Output is emitted via <code>console.debug()</code> — you must enable the <strong>Verbose</strong> level in the DevTools Console filter (hidden by default). Worker-side logs only appear in <strong>Atomics Bridge</strong> mode, which requires the <em>COI Headers</em> option above to be enabled. <strong>Use only in staging or local development — enables verbose logging for all visitors.</strong>', 'dc-sw-prefetch' ) ); ?></p>
+						<p class="description"><?php echo wp_kses_post( __( 'Loads the unminified debug build of Partytown and enables all log flags. Output is emitted via <code>console.debug()</code> -- you must enable the <strong>Verbose</strong> level in the DevTools Console filter (hidden by default). Worker-side logs only appear in <strong>Atomics Bridge</strong> mode, which requires the <em>COI Headers</em> option above to be enabled. <strong>Use only in staging or local development -- enables verbose logging for all visitors.</strong>', 'dc-sw-prefetch' ) ); ?></p>
 					</td>
 				</tr>
 			</table>
 			</fieldset>
 
-			<!-- ── Server-Side GA4 Events ──────────────────────────────────── -->
+			<!-- -- Server-Side GA4 Events ------------------------------------ -->
 			<fieldset class="dc-swp-fieldset">
 			<legend><?php echo esc_html( __( 'Server-Side GA4 Events', 'dc-sw-prefetch' ) ); ?></legend>
-			<p><?php echo wp_kses_post( __( 'Sends WooCommerce ecommerce events directly from the server to GA4 via Measurement Protocol v2 — independent of browser consent and ad-blockers. Events fire from PHP; visitor consent rejection does not affect data quality. <strong>Requires a GA4 Measurement ID (G-XXXXXXXXXX) and an API Secret.</strong>', 'dc-sw-prefetch' ) ); ?></p>
+			<p><?php echo wp_kses_post( __( 'Sends WooCommerce ecommerce events directly from the server to GA4 via Measurement Protocol v2 -- independent of browser consent and ad-blockers. Events fire from PHP; visitor consent rejection does not affect data quality. <strong>Requires a GA4 Measurement ID (G-XXXXXXXXXX) and an API Secret.</strong>', 'dc-sw-prefetch' ) ); ?></p>
 			<?php if ( ! class_exists( 'WooCommerce' ) ) : ?>
 				<div class="notice notice-warning inline" style="margin:8px 0;padding:8px 12px">
 					<p><?php echo esc_html( __( '⚠ WooCommerce is not active. Server-Side GA4 Events require WooCommerce.', 'dc-sw-prefetch' ) ); ?></p>
@@ -833,7 +833,7 @@ function dc_swp_admin_page_html() {
 				<tr valign="top">
 					<th scope="row"><?php echo esc_html( __( 'GA4 Setup', 'dc-sw-prefetch' ) ); ?></th>
 					<td>
-						<!-- Hidden fields — JS syncs from active panel -->
+						<!-- Hidden fields -- JS syncs from active panel -->
 						<input type="hidden" name="dc_swp_ssga4_measurement_id" id="dc_swp_ssga4_mid_field"
 							value="<?php echo esc_attr( $ssga4_measurement_id ); ?>">
 						<input type="hidden" name="dc_swp_ssga4_api_secret" id="dc_swp_ssga4_secret_field"
@@ -841,10 +841,10 @@ function dc_swp_admin_page_html() {
 						<fieldset>
 						<?php
 						$_ssga4_modes = array(
-							'off'     => __( 'Disabled — no server-side GA4 events', 'dc-sw-prefetch' ),
-							'own'     => __( 'Enter Credentials — I have my Measurement ID and API Secret', 'dc-sw-prefetch' ),
-							'detect'  => __( 'Auto-Detect — find GA4 tag in page source', 'dc-sw-prefetch' ),
-							'managed' => __( 'Setup Guide — step-by-step GA4 configuration', 'dc-sw-prefetch' ),
+							'off'     => __( 'Disabled -- no server-side GA4 events', 'dc-sw-prefetch' ),
+							'own'     => __( 'Enter Credentials -- I have my Measurement ID and API Secret', 'dc-sw-prefetch' ),
+							'detect'  => __( 'Auto-Detect -- find GA4 tag in page source', 'dc-sw-prefetch' ),
+							'managed' => __( 'Setup Guide -- step-by-step GA4 configuration', 'dc-sw-prefetch' ),
 						);
 						foreach ( $_ssga4_modes as $_sv => $_sl ) :
 							?>
@@ -922,23 +922,23 @@ function dc_swp_admin_page_html() {
 							<?php
 							$_ssga4_wiz_steps = array(
 								1 => array(
-									__( 'Step 1 — Access Your GA4 Property', 'dc-sw-prefetch' ),
+									__( 'Step 1 -- Access Your GA4 Property', 'dc-sw-prefetch' ),
 									__( 'Visit <a href="https://analytics.google.com" target="_blank" rel="noopener">analytics.google.com ↗</a> and sign in. If you don\'t have a GA4 property yet, click <strong>Admin</strong> (gear icon) → <strong>Create Property</strong> and follow the prompts to set up a Web data stream.', 'dc-sw-prefetch' ),
 								),
 								2 => array(
-									__( 'Step 2 — Copy Your Measurement ID', 'dc-sw-prefetch' ),
+									__( 'Step 2 -- Copy Your Measurement ID', 'dc-sw-prefetch' ),
 									__( 'In GA4 Admin, go to <strong>Data Streams</strong> → click your Web stream → copy the <strong>Measurement ID</strong> (format: <code>G-XXXXXXXXXX</code>). Paste it below.', 'dc-sw-prefetch' ),
 								),
 								3 => array(
-									__( 'Step 3 — Create an API Secret', 'dc-sw-prefetch' ),
+									__( 'Step 3 -- Create an API Secret', 'dc-sw-prefetch' ),
 									__( 'In the same Data Stream screen, scroll to <strong>Measurement Protocol API Secrets</strong> → click <strong>Create</strong> → give it a nickname (e.g. "WP Server") → copy the generated secret and paste it below.', 'dc-sw-prefetch' ),
 								),
 								4 => array(
-									__( 'Step 4 — Configure Options', 'dc-sw-prefetch' ),
+									__( 'Step 4 -- Configure Options', 'dc-sw-prefetch' ),
 									__( 'Choose how GA4 tracking should work on your site.', 'dc-sw-prefetch' ),
 								),
 								5 => array(
-									__( 'Step 5 — Verify & Save', 'dc-sw-prefetch' ),
+									__( 'Step 5 -- Verify & Save', 'dc-sw-prefetch' ),
 									__( 'Test the connection to confirm your credentials work, then save your settings.', 'dc-sw-prefetch' ),
 								),
 							);
@@ -990,7 +990,7 @@ function dc_swp_admin_page_html() {
 									<label style="display:block">
 										<input type="checkbox" id="dc-swp-ssga4-wizard-server-events" checked disabled>
 										<strong><?php echo esc_html( __( 'Server-side WooCommerce events', 'dc-sw-prefetch' ) ); ?></strong>
-										<p class="description" style="margin:4px 0 0 24px"><?php echo esc_html( __( 'Always enabled — this is the core feature of Server-Side GA4.', 'dc-sw-prefetch' ) ); ?></p>
+										<p class="description" style="margin:4px 0 0 24px"><?php echo esc_html( __( 'Always enabled -- this is the core feature of Server-Side GA4.', 'dc-sw-prefetch' ) ); ?></p>
 									</label>
 								</div>
 								<?php endif; ?>
@@ -1073,7 +1073,7 @@ function dc_swp_admin_page_html() {
 			</table>
 			</fieldset>
 
-			<!-- ── Performance Dashboard ──────────────────────────────────────── -->
+			<!-- -- Performance Dashboard ---------------------------------------- -->
 			<fieldset class="dc-swp-fieldset">
 			<legend><?php echo esc_html( __( 'Performance Dashboard', 'dc-sw-prefetch' ) ); ?></legend>
 		<?php if ( ! is_array( $perf_metrics ) || empty( $perf_metrics['samples'] ) ) : ?>
@@ -1118,7 +1118,7 @@ function dc_swp_admin_page_html() {
 					<td>
 						<strong><?php echo (int) $_perf_count; ?></strong>
 						<?php if ( '' !== $_last_upd ) : ?>
-							&nbsp;— <?php echo esc_html( __( 'Last updated', 'dc-sw-prefetch' ) ); ?>: <code><?php echo esc_html( $_last_upd ); ?></code>
+							&nbsp;-- <?php echo esc_html( __( 'Last updated', 'dc-sw-prefetch' ) ); ?>: <code><?php echo esc_html( $_last_upd ); ?></code>
 						<?php endif; ?>
 					</td>
 				</tr>
@@ -1136,7 +1136,7 @@ function dc_swp_admin_page_html() {
 		<?php endif; ?>
 		</fieldset>
 
-		<!-- ── Advanced: Exclusion Patterns ──────────────────────────────── -->
+		<!-- -- Advanced: Exclusion Patterns -------------------------------- -->
 		<fieldset class="dc-swp-fieldset">
 		<legend><?php esc_html_e( 'Advanced', 'dc-sw-prefetch' ); ?></legend>
 		<table class="form-table">
@@ -1154,12 +1154,12 @@ function dc_swp_admin_page_html() {
 			<fieldset class="dc-swp-fieldset">
 			<legend><?php echo esc_html( __( 'Benefits', 'dc-sw-prefetch' ) ); ?></legend>
 			<ul style="list-style: disc; margin-left: 20px;">
-				<li>✅ <?php echo esc_html( __( 'Analytics scripts run in a Web Worker — unlike async, they never execute on the browser main thread', 'dc-sw-prefetch' ) ); ?></li>
+				<li>✅ <?php echo esc_html( __( 'Analytics scripts run in a Web Worker -- unlike async, they never execute on the browser main thread', 'dc-sw-prefetch' ) ); ?></li>
 				<li>✅ <?php echo esc_html( __( 'Viewport prefetch pre-loads product links automatically', 'dc-sw-prefetch' ) ); ?></li>
 				<li>✅ <?php echo esc_html( __( 'Pagination next-page link prefetched 2 s ahead', 'dc-sw-prefetch' ) ); ?></li>
 				<li>✅ <?php echo esc_html( __( 'Bots and crawlers never receive Partytown (clean HTML)', 'dc-sw-prefetch' ) ); ?></li>
 				<li>✅ <?php echo esc_html( __( 'Automatic updates via GitHub Actions workflow', 'dc-sw-prefetch' ) ); ?></li>
-				<li>✅ <?php echo esc_html( __( 'WP emoji scripts removed — saves a DNS lookup and ~76 KB', 'dc-sw-prefetch' ) ); ?></li>
+				<li>✅ <?php echo esc_html( __( 'WP emoji scripts removed -- saves a DNS lookup and ~76 KB', 'dc-sw-prefetch' ) ); ?></li>
 				<li>✅ <?php echo esc_html( __( 'Third-party scripts auto-detected and offloaded to Partytown in one click', 'dc-sw-prefetch' ) ); ?></li>
 				<li>✅ <?php echo esc_html( __( 'Consent-aware: optional Consent Gate blocks scripts (text/plain) until consent is granted via the WP Consent API', 'dc-sw-prefetch' ) ); ?></li>
 			</ul>
@@ -1192,7 +1192,7 @@ function dc_swp_admin_page_html() {
 		array(
 			'nonce'              => wp_create_nonce( 'dc_swp_detect_nonce' ),
 			'noScriptsMsg'       => __( 'No external scripts found on the homepage.', 'dc-sw-prefetch' ),
-			'unknownMsg'         => __( 'Compatibility unknown — not on Partytown\'s verified services list. Test carefully before adding.', 'dc-sw-prefetch' ),
+			'unknownMsg'         => __( 'Compatibility unknown -- not on Partytown\'s verified services list. Test carefully before adding.', 'dc-sw-prefetch' ),
 			'knownMsg'           => __( '✔ Verified compatible service', 'dc-sw-prefetch' ),
 			'noBlocksMsg'        => __( 'No script blocks added yet.', 'dc-sw-prefetch' ),
 			'noEntriesMsg'       => esc_attr__( 'No patterns added yet. Click “+ Add Pattern” or use Auto-Detect.', 'dc-sw-prefetch' ),
@@ -1204,7 +1204,7 @@ function dc_swp_admin_page_html() {
 			'badgeSupported'     => __( '✓ Supported | Partytown', 'dc-sw-prefetch' ),
 			'badgeUnsupported'   => __( '⚠ Unsupported | Deferred', 'dc-sw-prefetch' ),
 			'forcePtLabel'       => __( 'Force Enable Partytown', 'dc-sw-prefetch' ),
-			'forcePtNotice'      => __( 'Running script with unknown Partytown compatibility — test your site in debug mode to confirm no render errors.', 'dc-sw-prefetch' ),
+			'forcePtNotice'      => __( 'Running script with unknown Partytown compatibility -- test your site in debug mode to confirm no render errors.', 'dc-sw-prefetch' ),
 			'blockCategoryLabel' => __( 'Consent category', 'dc-sw-prefetch' ),
 			'consentGateEnabled' => $consent_gate,
 			'consentCategories'  => array( 'marketing', 'statistics', 'statistics-anonymous', 'functional', 'preferences' ),
@@ -1220,9 +1220,9 @@ function dc_swp_admin_page_html() {
 				'saved'        => __( '✔ Saved', 'dc-sw-prefetch' ),
 			),
 			'gcm'                => array(
-				'checking'          => __( 'Checking for GCM v2 conflicts…', 'dc-sw-prefetch' ),
+				'checking'          => __( 'Checking for GCM v2 conflicts...', 'dc-sw-prefetch' ),
 				'conflictTitle'     => __( '⚠ Existing GCM v2 stub detected', 'dc-sw-prefetch' ),
-				'conflictBody'      => __( 'Another plugin or theme on your site already outputs a gtag(\'consent\',\'default\',...) call. Running two GCM v2 stubs simultaneously causes unpredictable consent behaviour — whichever fires last wins, non-deterministically. Disable Google Consent Mode in the other plugin before enabling it here.', 'dc-sw-prefetch' ),
+				'conflictBody'      => __( 'Another plugin or theme on your site already outputs a gtag(\'consent\',\'default\',...) call. Running two GCM v2 stubs simultaneously causes unpredictable consent behaviour -- whichever fires last wins, non-deterministically. Disable Google Consent Mode in the other plugin before enabling it here.', 'dc-sw-prefetch' ),
 				'noConsentApiTitle' => __( 'WP Consent API not installed', 'dc-sw-prefetch' ),
 				'noConsentApiBody'  => __( 'Our GCM v2 update script reads consent state via the WP Consent API plugin. Without it, consent signals cannot be delivered reliably to Google across different CMP plugins.', 'dc-sw-prefetch' ),
 				'noConsentApiLink'  => __( 'Install WP Consent API ↗', 'dc-sw-prefetch' ),
@@ -1235,20 +1235,20 @@ function dc_swp_admin_page_html() {
 				'detected'    => __( 'Detected', 'dc-sw-prefetch' ),
 				'active'      => __( 'Auto-detected and active', 'dc-sw-prefetch' ),
 				'saved'       => __( '✔ Saved', 'dc-sw-prefetch' ),
-				'testSuccess' => __( '✔ Connection OK — GA4 accepted the test event.', 'dc-sw-prefetch' ),
-				'testFail'    => __( '⚠ Connection failed — check Measurement ID and API Secret.', 'dc-sw-prefetch' ),
+				'testSuccess' => __( '✔ Connection OK -- GA4 accepted the test event.', 'dc-sw-prefetch' ),
+				'testFail'    => __( '⚠ Connection failed -- check Measurement ID and API Secret.', 'dc-sw-prefetch' ),
 				'events'      => $ssga4_events,
 			),
 			'perf'               => array(
 				'resetNonce' => wp_create_nonce( 'dc_swp_perf_reset_nonce' ),
-				'resetted'   => '✔ ' . esc_html__( 'Metrics reset — reload to confirm.', 'dc-sw-prefetch' ),
+				'resetted'   => '✔ ' . esc_html__( 'Metrics reset -- reload to confirm.', 'dc-sw-prefetch' ),
 			),
 		)
 	);
 }
 
 // ============================================================
-// ADMIN NOTICE — Partytown Health Monitor Issues
+// ADMIN NOTICE -- Partytown Health Monitor Issues
 // ============================================================
 
 add_action( 'admin_notices', 'dc_swp_admin_health_notice' );
@@ -1276,7 +1276,7 @@ function dc_swp_admin_health_notice(): void {
 }
 
 // ============================================================
-// AJAX — Auto-detect third-party scripts on the homepage
+// AJAX -- Auto-detect third-party scripts on the homepage
 // ============================================================
 
 add_action( 'wp_ajax_dc_swp_detect_scripts', 'dc_swp_ajax_detect_scripts' );
@@ -1315,10 +1315,10 @@ function dc_swp_ajax_detect_scripts() {
 	// phpcs:ignore Squiz.Commenting.InlineComment.InvalidEndChar
 	$known_patterns = dc_swp_get_known_services();
 
-	// Hosts with dedicated plugin panels — excluded from generic autodetect results.
+	// Hosts with dedicated plugin panels -- excluded from generic autodetect results.
 	$dedicated_hosts = array( 'googletagmanager.com', 'connect.facebook.net' );
 
-	// Already-configured hosts (include list + Script Block) — never suggest these.
+	// Already-configured hosts (include list + Script Block) -- never suggest these.
 	$already_configured = dc_swp_get_proxy_allowed_hosts();
 
 	$seen    = array();
@@ -1328,7 +1328,7 @@ function dc_swp_ajax_detect_scripts() {
 			$src = 'https:' . $src;
 		}
 		if ( str_starts_with( $src, '/' ) ) {
-			continue; // On-site relative URL — skip.
+			continue; // On-site relative URL -- skip.
 		}
 		$parsed = wp_parse_url( $src );
 		if ( empty( $parsed['host'] ) || $parsed['host'] === $site_host ) {
@@ -1381,7 +1381,7 @@ function dc_swp_ajax_detect_scripts() {
 }
 
 // ============================================================
-// AJAX — Check for conflicting GCM v2 stubs on the homepage
+// AJAX -- Check for conflicting GCM v2 stubs on the homepage
 // ============================================================
 
 add_action( 'wp_ajax_dc_swp_check_gcm_conflict', 'dc_swp_ajax_check_gcm_conflict' );
@@ -1390,7 +1390,7 @@ add_action( 'wp_ajax_dc_swp_check_gcm_conflict', 'dc_swp_ajax_check_gcm_conflict
  * not produced by this plugin.
  *
  * Strategy: scan for gtag('consent','default',...) and exclude matches
- * that contain 'default_consent' nearby — that string is the exclusive
+ * that contain 'default_consent' nearby -- that string is the exclusive
  * fingerprint of our own stub (dataLayer.push({event:'default_consent'})).
  * Also reports whether the WP Consent API plugin is active so the admin
  * UI can prompt the user to install it if missing.
@@ -1432,7 +1432,7 @@ function dc_swp_ajax_check_gcm_conflict() {
 	/*
 	 * Find every gtag('consent','default',...) call in the page source.
 	 * Our own stub always emits `dataLayer.push({event:'default_consent'})`
-	 * immediately after — use that as the exclusion fingerprint so we never
+	 * immediately after -- use that as the exclusion fingerprint so we never
 	 * flag our own output as a conflict.
 	 */
 	if ( preg_match_all( "/gtag\s*\(\s*['\"]consent['\"]\s*,\s*['\"]default['\"]/i", $body, $m, PREG_OFFSET_CAPTURE ) ) {
@@ -1456,7 +1456,7 @@ function dc_swp_ajax_check_gcm_conflict() {
 }
 
 // ============================================================
-// AJAX — Auto-detect GA4 Measurement ID for Server-Side GA4
+// AJAX -- Auto-detect GA4 Measurement ID for Server-Side GA4
 // ============================================================
 
 add_action( 'wp_ajax_dc_swp_detect_ga4_mid', 'dc_swp_ajax_detect_ga4_mid' );
@@ -1485,7 +1485,7 @@ function dc_swp_ajax_detect_ga4_mid() {
 }
 
 // ============================================================
-// AJAX — Test SSGA4 Measurement Protocol connection
+// AJAX -- Test SSGA4 Measurement Protocol connection
 // ============================================================
 
 add_action( 'wp_ajax_dc_swp_test_ssga4', 'dc_swp_ajax_test_ssga4' );
@@ -1518,7 +1518,7 @@ function dc_swp_ajax_test_ssga4() {
 	}
 
 	$endpoint = dc_swp_ssga4_get_endpoint();
-	// Use the debug endpoint for validation — does not record the event.
+	// Use the debug endpoint for validation -- does not record the event.
 	$debug_url = str_replace( '/mp/collect', '/debug/mp/collect', $endpoint );
 	$url       = add_query_arg(
 		array(
@@ -1558,7 +1558,7 @@ function dc_swp_ajax_test_ssga4() {
 	$code = wp_remote_retrieve_response_code( $response );
 	$body = json_decode( wp_remote_retrieve_body( $response ), true );
 
-	// The debug endpoint returns validationMessages — empty array means success.
+	// The debug endpoint returns validationMessages -- empty array means success.
 	$valid = 200 === $code && ( empty( $body['validationMessages'] ) || 0 === count( $body['validationMessages'] ) );
 
 	wp_send_json_success(

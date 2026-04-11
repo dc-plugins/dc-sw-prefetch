@@ -54,7 +54,7 @@
 		if ( next && next.href ) setTimeout( () => prefetch( next.href ), 2000 );
 	}
 
-	// Wide selector — catches product grid items and upsell anchor-wrappers.
+	// Wide selector -- catches product grid items and upsell anchor-wrappers.
 	const items = document.querySelectorAll(
 		'.products .product, ul.products li.product, .product-item, li.product, a.upsell-item[href]'
 	);

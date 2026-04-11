@@ -1,5 +1,5 @@
 /**
- * DC Script Worker Proxy — Consent Gate (client-side unblocking)
+ * DC Script Worker Proxy -- Consent Gate (client-side unblocking)
  *
  * Listens for consent changes via the WP Consent API and dynamically
  * unblocks scripts that were rendered as type="text/plain" with a
@@ -78,18 +78,18 @@
 		categories.forEach( unblockCategory );
 	}
 
-	// Initial check on DOMContentLoaded — consent may already be set.
+	// Initial check on DOMContentLoaded -- consent may already be set.
 	if ( document.readyState === 'loading' ) {
 		document.addEventListener( 'DOMContentLoaded', checkAll );
 	} else {
 		checkAll();
 	}
 
-	// Live listener — fires when the visitor interacts with the CMP banner.
+	// Live listener -- fires when the visitor interacts with the CMP banner.
 	if ( typeof wp_listen_for_consent_change === 'function' ) {
 		wp_listen_for_consent_change( checkAll );
 	} else {
-		// WP Consent API not loaded yet — wait for it.
+		// WP Consent API not loaded yet -- wait for it.
 		document.addEventListener( 'wp_listen_for_consent_change', function () {
 			if ( typeof wp_listen_for_consent_change === 'function' ) {
 				wp_listen_for_consent_change( checkAll );

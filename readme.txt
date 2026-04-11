@@ -9,7 +9,7 @@ Stable tag: 2.3.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Offload third-party scripts (GTM, Pixel, HubSpot…) to a web worker via Partytown + consent-aware loading. Vendored.
+Offload third-party scripts (GTM, Pixel, HubSpot...) to a web worker via Partytown + consent-aware loading. Vendored.
 
 == Description ==
 
@@ -23,28 +23,28 @@ Officially tested compatible services: **Google Tag Manager** (GA4), **Facebook 
 
 = Key features =
 
-* **Partytown Web Worker execution** — unlike `async`/`defer` (which still execute on the main thread and can block `window.onload`), Partytown lazy-loads and executes third-party scripts entirely in a Web Worker. Officially tested: Google Tag Manager, Facebook Pixel, HubSpot, Intercom, Klaviyo, TikTok Pixel, Mixpanel.
-* **Consent-aware loading** — optional **Consent Gate** delegates consent decisions to the [WP Consent API](https://wordpress.org/plugins/wp-consent-api/). When enabled, scripts are blocked as `type="text/plain"` until the visitor grants consent for the script's category. When disabled (default), scripts load unconditionally. Any CMP that integrates with the WP Consent API is automatically supported.
-* **Configured via URL patterns** — enter one URL pattern per line in the admin. Any `<script src>` whose src matches is automatically managed for consent + Partytown offloading. No manual code edits.
-* **Auto-detect** — one-click scan of the homepage discovers all external scripts and lets you add them to the list.
-* **Exclusion list** — built-in exclusions for Trustpilot, Stripe, PayPal, Braintree, Facebook SDK, Google Maps, and Reamaze; add your own patterns as needed.
-* **Vendored lib** — Partytown's `lib/` files are bundled in `assets/partytown/`; no npm or build step needed on the server.
-* **Automatic Partytown updates** — a weekly GitHub Actions workflow detects new Partytown releases and opens a PR with the updated vendor files.
-* **Bot detection** — bots never receive Partytown JS, keeping crawl budget clean.
-* **Cart/checkout safe** — Partytown is skipped on cart, checkout, and account pages.
-* **Admin UI** — toggle Partytown, see the vendored Partytown version at a glance.
-* **Bilingual** — EN/DA auto-detection.
-* **Optional footer credit** — easily disabled.
+* **Partytown Web Worker execution** -- unlike `async`/`defer` (which still execute on the main thread and can block `window.onload`), Partytown lazy-loads and executes third-party scripts entirely in a Web Worker. Officially tested: Google Tag Manager, Facebook Pixel, HubSpot, Intercom, Klaviyo, TikTok Pixel, Mixpanel.
+* **Consent-aware loading** -- optional **Consent Gate** delegates consent decisions to the [WP Consent API](https://wordpress.org/plugins/wp-consent-api/). When enabled, scripts are blocked as `type="text/plain"` until the visitor grants consent for the script's category. When disabled (default), scripts load unconditionally. Any CMP that integrates with the WP Consent API is automatically supported.
+* **Configured via URL patterns** -- enter one URL pattern per line in the admin. Any `<script src>` whose src matches is automatically managed for consent + Partytown offloading. No manual code edits.
+* **Auto-detect** -- one-click scan of the homepage discovers all external scripts and lets you add them to the list.
+* **Exclusion list** -- built-in exclusions for Trustpilot, Stripe, PayPal, Braintree, Facebook SDK, Google Maps, and Reamaze; add your own patterns as needed.
+* **Vendored lib** -- Partytown's `lib/` files are bundled in `assets/partytown/`; no npm or build step needed on the server.
+* **Automatic Partytown updates** -- a weekly GitHub Actions workflow detects new Partytown releases and opens a PR with the updated vendor files.
+* **Bot detection** -- bots never receive Partytown JS, keeping crawl budget clean.
+* **Cart/checkout safe** -- Partytown is skipped on cart, checkout, and account pages.
+* **Admin UI** -- toggle Partytown, see the vendored Partytown version at a glance.
+* **Bilingual** -- EN/DA auto-detection.
+* **Optional footer credit** -- easily disabled.
 
 = How Partytown works =
 
-1. Scripts matching your configured patterns are output with `type="text/partytown"` — this attribute tells the browser **not** to execute them on the main thread.
+1. Scripts matching your configured patterns are output with `type="text/partytown"` -- this attribute tells the browser **not** to execute them on the main thread.
 2. Partytown's **service worker** intercepts fetch requests from the web worker.
 3. The **web worker** receives and executes the scripts entirely off the main thread.
-4. **JavaScript Proxies** replicate main thread APIs (DOM reads/writes) synchronously inside the worker — so third-party scripts run exactly as coded, without modification.
+4. **JavaScript Proxies** replicate main thread APIs (DOM reads/writes) synchronously inside the worker -- so third-party scripts run exactly as coded, without modification.
 5. Communication between the web worker and main thread uses either:
    * **Synchronous XHR + Service Worker** (default fallback)
-   * **Atomics bridge** when `crossOriginIsolated` is enabled — roughly **10× faster**. Activated by enabling the **SharedArrayBuffer (Atomics Bridge)** option in settings, which sends the required `Cross-Origin-Opener-Policy` and `Cross-Origin-Embedder-Policy` headers.
+   * **Atomics bridge** when `crossOriginIsolated` is enabled -- roughly **10× faster**. Activated by enabling the **SharedArrayBuffer (Atomics Bridge)** option in settings, which sends the required `Cross-Origin-Opener-Policy` and `Cross-Origin-Embedder-Policy` headers.
 
 = Updating Partytown =
 
@@ -56,8 +56,8 @@ Officially tested compatible services: **Google Tag Manager** (GA4), **Facebook 
 
 The easiest way is the **Partytown Script List** in the admin settings. Enter one URL pattern per line (e.g. `analytics.ahrefs.com` or the full GTM URL). The plugin then:
 1. If the Consent Gate is enabled, checks consent via `wp_has_consent()` for the script's category.
-2. Sets `type="text/partytown"` when consent is present (or gate is disabled) — Partytown runs the script off the main thread.
-3. Sets `type="text/plain"` with `data-wp-consent-category` when consent is absent — the script is blocked until consent is granted.
+2. Sets `type="text/partytown"` when consent is present (or gate is disabled) -- Partytown runs the script off the main thread.
+3. Sets `type="text/plain"` with `data-wp-consent-category` when consent is absent -- the script is blocked until consent is granted.
 
 Alternatively, you can manually tag a script:
 
@@ -65,22 +65,22 @@ Alternatively, you can manually tag a script:
 
 The `window.partytown.forward` array is pre-configured for all officially tested services: `dataLayer.push` (GTM), `fbq` (Facebook Pixel), `_hsq.push` (HubSpot), `Intercom`, `_learnq.push` (Klaviyo), `ttq.track`/`ttq.page`/`ttq.load` (TikTok Pixel), `mixpanel.track` (Mixpanel). See [partytown.qwik.dev/common-services](https://partytown.qwik.dev/common-services/).
 
-= Consent Gate — WP Consent API =
+= Consent Gate -- WP Consent API =
 
 The optional Consent Gate delegates consent decisions to the [WP Consent API](https://wordpress.org/plugins/wp-consent-api/) standard. When enabled:
 
 * Scripts are output as `type="text/plain"` with a `data-wp-consent-category` attribute until the visitor grants consent for that category.
 * A consent-change listener dynamically unblocks scripts when consent is granted, swapping `text/plain` to `text/partytown`.
-* Any CMP that integrates with the WP Consent API is automatically supported — no per-CMP cookie reading required.
+* Any CMP that integrates with the WP Consent API is automatically supported -- no per-CMP cookie reading required.
 * Each inline script block has a configurable consent category: marketing (default), statistics, statistics-anonymous, functional, or preferences.
 * GCM v2-aware services and Meta LDU scripts bypass the gate (they self-restrict internally).
 
 == Screenshots ==
 
-1. Admin settings — Partytown Integration toggle, Consent Gate, and Script List configuration.
-2. Admin settings — Google Consent Mode v2 options including URL Passthrough and Ads Data Redaction.
-3. DevTools Performance panel — Third-party scripts (Facebook, Clarity, GTM, Ahrefs) running in Web Worker with minimal main thread impact.
-4. Lighthouse Treemap comparison — Before: GTM and Facebook dominate; After: Partytown offloads heavy scripts, jQuery remains first-party only.
+1. Admin settings -- Partytown Integration toggle, Consent Gate, and Script List configuration.
+2. Admin settings -- Google Consent Mode v2 options including URL Passthrough and Ads Data Redaction.
+3. DevTools Performance panel -- Third-party scripts (Facebook, Clarity, GTM, Ahrefs) running in Web Worker with minimal main thread impact.
+4. Lighthouse Treemap comparison -- Before: GTM and Facebook dominate; After: Partytown offloads heavy scripts, jQuery remains first-party only.
 
 == Installation ==
 
@@ -92,7 +92,7 @@ The optional Consent Gate delegates consent decisions to the [WP Consent API](ht
 == Frequently Asked Questions ==
 
 = Are there any trade-offs or known limitations? =
-Yes. Partytown is in beta. While it works well for the [officially tested services](https://partytown.qwik.dev/common-services/), some scripts may not be compatible — particularly those that rely on APIs not yet proxied by Partytown, use synchronous `document.write()`, or require persistent event listeners on the main thread. Test in staging before enabling on production. See the [Partytown trade-offs page](https://partytown.qwik.dev/trade-offs) for a full list of known limitations.
+Yes. Partytown is in beta. While it works well for the [officially tested services](https://partytown.qwik.dev/common-services/), some scripts may not be compatible -- particularly those that rely on APIs not yet proxied by Partytown, use synchronous `document.write()`, or require persistent event listeners on the main thread. Test in staging before enabling on production. See the [Partytown trade-offs page](https://partytown.qwik.dev/trade-offs) for a full list of known limitations.
 
 = Will this interfere with WooCommerce cart/checkout? =
 No. Partytown is disabled on cart, checkout, and account pages.
@@ -126,7 +126,7 @@ Some third-party CDNs do not send CORS headers, which prevents Partytown's sandb
 
 * **What is sent:** an HTTP GET request for the script file (no visitor personal data).
 * **When:** only when Partytown cannot fetch the script directly due to missing CORS headers, and only for hostnames the administrator has added to the Partytown Script List.
-* **Allowlist-only:** the proxy strictly rejects any hostname not configured by the administrator — no hard-coded vendor list is contacted automatically.
+* **Allowlist-only:** the proxy strictly rejects any hostname not configured by the administrator -- no hard-coded vendor list is contacted automatically.
 
 = Third-party analytics and marketing scripts (site administrator configured) =
 
@@ -177,35 +177,35 @@ The administrator may freely add other services through the Partytown Script Lis
 * Docs: Tightened readme text, simplified External Services section.
 
 = 2.3.0 =
-* Feature: Early Resource Hints (Feature 1) — auto-injects `<link rel="preconnect">` and `<link rel="dns-prefetch">` for all configured third-party hosts in `<head>`, reducing TCP+TLS round-trip latency for first-visit page loads. Controlled by the new "Early Resource Hints" toggle (on by default).
-* Feature: Partytown Health Monitor (Feature 2) — uses `PerformanceObserver` to detect services that fail silently inside the Partytown worker (no network traffic observed within 15 seconds) and surfaces an admin notice. Reported via `sendBeacon` AJAX. Controlled by the new "Partytown Health Monitor" toggle (on by default).
-* Feature: Performance Metrics Dashboard (Feature 3) — collects anonymous TBT and INP measurements from real visitors using `PerformanceObserver`. Stores rolling averages and P75 percentiles in non-autoloaded WP options. Admin dashboard shows CSS progress bars. Includes reset button. Controlled by the new "Performance Metrics" toggle (on by default).
-* Feature: Per-Page Script Exclusion Patterns (Feature 4) — new "Advanced" section textarea allows admins to define URL patterns (one per line, supports `*` wildcard) where Partytown is completely skipped. Useful for landing pages or payment flows with scripts incompatible with the Partytown worker.
+* Feature: Early Resource Hints (Feature 1) -- auto-injects `<link rel="preconnect">` and `<link rel="dns-prefetch">` for all configured third-party hosts in `<head>`, reducing TCP+TLS round-trip latency for first-visit page loads. Controlled by the new "Early Resource Hints" toggle (on by default).
+* Feature: Partytown Health Monitor (Feature 2) -- uses `PerformanceObserver` to detect services that fail silently inside the Partytown worker (no network traffic observed within 15 seconds) and surfaces an admin notice. Reported via `sendBeacon` AJAX. Controlled by the new "Partytown Health Monitor" toggle (on by default).
+* Feature: Performance Metrics Dashboard (Feature 3) -- collects anonymous TBT and INP measurements from real visitors using `PerformanceObserver`. Stores rolling averages and P75 percentiles in non-autoloaded WP options. Admin dashboard shows CSS progress bars. Includes reset button. Controlled by the new "Performance Metrics" toggle (on by default).
+* Feature: Per-Page Script Exclusion Patterns (Feature 4) -- new "Advanced" section textarea allows admins to define URL patterns (one per line, supports `*` wildcard) where Partytown is completely skipped. Useful for landing pages or payment flows with scripts incompatible with the Partytown worker.
 
 = 1.9.0 =
-* Feature: Consent Gate (WP Consent API) — optional admin toggle that delegates consent decisions to the WP Consent API standard. Scripts output as `type="text/plain"` with `data-wp-consent-category` until consent is granted. Client-side listener dynamically unblocks scripts. When disabled (default), all scripts load unconditionally.
-* Feature: Per-script consent category — each inline script block can be assigned a WP Consent API category (marketing, statistics, statistics-anonymous, functional, preferences). Script List uses a configurable default category.
-* Feature: Hostname-to-category mapping — known services automatically assigned the correct consent category.
+* Feature: Consent Gate (WP Consent API) -- optional admin toggle that delegates consent decisions to the WP Consent API standard. Scripts output as `type="text/plain"` with `data-wp-consent-category` until consent is granted. Client-side listener dynamically unblocks scripts. When disabled (default), all scripts load unconditionally.
+* Feature: Per-script consent category -- each inline script block can be assigned a WP Consent API category (marketing, statistics, statistics-anonymous, functional, preferences). Script List uses a configurable default category.
+* Feature: Hostname-to-category mapping -- known services automatically assigned the correct consent category.
 * Removed: 8 CMP-specific cookie detection functions replaced by WP Consent API delegation.
 * Removed: CMP compatibility badges from admin Consent Architecture panel.
 
 = 1.8.2 =
-* Fix: PHPCS — resolved 78 auto-fixable code style violations (function brace spacing, inline comment spacing, single-line associative arrays, double-quote usage, scope indentation). Zero errors/warnings remain under the WordPress coding standard.
+* Fix: PHPCS -- resolved 78 auto-fixable code style violations (function brace spacing, inline comment spacing, single-line associative arrays, double-quote usage, scope indentation). Zero errors/warnings remain under the WordPress coding standard.
 
 = 1.8.1 =
 * Fix: GTM and GA4 scripts now load via `type="text/partytown"` so they run entirely in a Partytown Web Worker off the main thread, consistent with the plugin's core offloading principle. A thin main-thread stub (`window.dataLayer||=[];function gtag(){...}`) is emitted before the Partytown tag to support main-thread consent signals and CMP pushes; Partytown's existing `forward:['dataLayer.push',{preserveBehavior:true}]` config relays these into the worker automatically.
 
 = 1.8.0 =
-* Feature: Google Tag Management — three modes for managing your Google Tag: Enter Tag ID (own GTM/GA4 ID), Auto-Detect (scans Site Kit, MonsterInsights, GTM4WP, CAOS), and Setup Guide (step-by-step onboarding wizard). GTM snippet injected in `<head>` at priority 5, after GCM v2 consent default; `<noscript>` iframe injected at `wp_body_open`.
-* Feature: GTM onboarding wizard — 4-step guided flow to create a GTM account and container, enter the Container ID with real-time validation, add tags in GTM (GA4, LinkedIn, TikTok etc.), and publish.
+* Feature: Google Tag Management -- three modes for managing your Google Tag: Enter Tag ID (own GTM/GA4 ID), Auto-Detect (scans Site Kit, MonsterInsights, GTM4WP, CAOS), and Setup Guide (step-by-step onboarding wizard). GTM snippet injected in `<head>` at priority 5, after GCM v2 consent default; `<noscript>` iframe injected at `wp_body_open`.
+* Feature: GTM onboarding wizard -- 4-step guided flow to create a GTM account and container, enter the Container ID with real-time validation, add tags in GTM (GA4, LinkedIn, TikTok etc.), and publish.
 * Feature: Auto-detect scans plugin options (Site Kit, MonsterInsights, GTM4WP, CAOS, Analytify) for existing tags and confirms GCM v2 consent mode fires before them.
 
 = 1.7.0 =
-* Enhancement: Google Consent Mode v2 — all 7 parameters now declared (`security_storage`, `functionality_storage`, `personalization_storage`, `analytics_storage`, `ad_storage`, `ad_user_data`, `ad_personalization`).
+* Enhancement: Google Consent Mode v2 -- all 7 parameters now declared (`security_storage`, `functionality_storage`, `personalization_storage`, `analytics_storage`, `ad_storage`, `ad_user_data`, `ad_personalization`).
 * Enhancement: GCM v2 consent defaults now split per category: `analytics_storage` follows statistics consent, `personalization_storage` follows preferences consent, ad signals follow marketing consent.
-* Enhancement: Consent revoke listener — fires `gtag('consent','update',{denied})` on `cmplz_revoke` and `dc_swp_consent_revoke` DOM events so withdrawn consent is immediately reflected without a page reload.
-* Enhancement: New admin options — `url_passthrough` and `ads_data_redaction` for GCM v2 cookieless measurement configuration.
-* Enhancement: Opt-out mode awareness — Complianz opt-out and CookieYes non-consent-region visitors correctly default to granted state; explicit denial cookies are still respected.
+* Enhancement: Consent revoke listener -- fires `gtag('consent','update',{denied})` on `cmplz_revoke` and `dc_swp_consent_revoke` DOM events so withdrawn consent is immediately reflected without a page reload.
+* Enhancement: New admin options -- `url_passthrough` and `ads_data_redaction` for GCM v2 cookieless measurement configuration.
+* Enhancement: Opt-out mode awareness -- Complianz opt-out and CookieYes non-consent-region visitors correctly default to granted state; explicit denial cookies are still respected.
 
 = 1.6.0 =
 * Standards: Renamed all `dampcig_pwa_*` options to `dc_swp_*` prefix; existing settings are migrated automatically on activation.
@@ -215,23 +215,23 @@ The administrator may freely add other services through the Partytown Script Lis
 * Security: `dc_swp_sanitize_js_code()` now applied to inline script code fields at save time.
 
 = 1.5.3 =
-* Fix: Google Consent Mode v2 — set `gtag('consent','default')` directly to `granted` when the visitor's CMP cookie is already set, rather than emitting a redundant default-denied + update-granted pair. `wait_for_update` is only included when consent has not yet been given.
+* Fix: Google Consent Mode v2 -- set `gtag('consent','default')` directly to `granted` when the visitor's CMP cookie is already set, rather than emitting a redundant default-denied + update-granted pair. `wait_for_update` is only included when consent has not yet been given.
 
 = 1.5.2 =
-* Fix: Google Consent Mode v2 — immediately follow the `gtag('consent','default',{denied})` stub with a `gtag('consent','update',{granted})` call when the visitor's CMP marketing cookie is already set, so GTM/GA4 receive the correct consent state without waiting for the CMP JavaScript to fire.
+* Fix: Google Consent Mode v2 -- immediately follow the `gtag('consent','default',{denied})` stub with a `gtag('consent','update',{granted})` call when the visitor's CMP marketing cookie is already set, so GTM/GA4 receive the correct consent state without waiting for the CMP JavaScript to fire.
 
 = 1.5.1 =
 * Compat: Declare WooCommerce HPOS (High-Performance Order Storage / Custom Order Tables) compatibility. The plugin does not interact with the orders table, so it is unconditionally compatible. Resolves the "Incompatible plugin" warning in WooCommerce → Settings → Advanced → Features.
 
 = 1.5.0 =
-**Google Consent Mode v2 — per-service consent architecture**
+**Google Consent Mode v2 -- per-service consent architecture**
 
-* Feature: Replaced the global GCM v2 bypass with a per-service consent gate. Six hostnames are now classified as GCM v2-aware (`googletagmanager.com`, `google-analytics.com`, `static.hotjar.com`, `script.hotjar.com`, `clarity.ms`, `snap.licdn.com`, `analytics.tiktok.com`): when GCM v2 is active these scripts always run as `type="text/partytown"` — each service reads the consent state and self-restricts data collection internally. Unrelated scripts (HubSpot, Intercom, Mixpanel, etc.) continue to gate on the marketing consent cookie as before.
-* Feature: Meta Pixel is intentionally excluded from GCM v2 — it uses its own Limited Data Use (LDU) consent API. The existing Meta LDU toggle is now the correct gate for Meta Pixel regardless of GCM v2 state. Both mechanisms are fully independent.
-* Feature: New helper API — `dc_swp_get_gcm_v2_aware_services()` (filterable via `dc_swp_gcm_v2_aware_services`), `dc_swp_script_uses_gcm_v2()`, `dc_swp_is_meta_script()`, `dc_swp_inline_uses_gcm_v2()`, `dc_swp_inline_is_meta()`. Developers can register additional GCM v2-aware services via the filter without modifying plugin code.
+* Feature: Replaced the global GCM v2 bypass with a per-service consent gate. Six hostnames are now classified as GCM v2-aware (`googletagmanager.com`, `google-analytics.com`, `static.hotjar.com`, `script.hotjar.com`, `clarity.ms`, `snap.licdn.com`, `analytics.tiktok.com`): when GCM v2 is active these scripts always run as `type="text/partytown"` -- each service reads the consent state and self-restricts data collection internally. Unrelated scripts (HubSpot, Intercom, Mixpanel, etc.) continue to gate on the marketing consent cookie as before.
+* Feature: Meta Pixel is intentionally excluded from GCM v2 -- it uses its own Limited Data Use (LDU) consent API. The existing Meta LDU toggle is now the correct gate for Meta Pixel regardless of GCM v2 state. Both mechanisms are fully independent.
+* Feature: New helper API -- `dc_swp_get_gcm_v2_aware_services()` (filterable via `dc_swp_gcm_v2_aware_services`), `dc_swp_script_uses_gcm_v2()`, `dc_swp_is_meta_script()`, `dc_swp_inline_uses_gcm_v2()`, `dc_swp_inline_is_meta()`. Developers can register additional GCM v2-aware services via the filter without modifying plugin code.
 * Feature: Per-service gate applied to all three consent-check locations: `wp_script_attributes` filter (priority 5), output-buffer rewriter, and inline Script Block output.
-* Feature: Consent Architecture info panel added to the admin settings page — collapsible `<details>` element showing three badge groups: GCM v2-aware services, Meta Pixel LDU, and CMP compatibility (8 CMPs). Badges use shields.io SVGs with a pure CSS fallback for offline/firewalled staging environments; the CSS pill renders from `data-label`/`data-msg` attributes and flips to the shields.io image via an `onload` swap — zero flash, no broken images.
-* Feature: CMP compatibility research completed and documented in the panel: Complianz, CookieYes, Cookiebot, Cookie Information, Borlabs Cookie, and WebToffee GDPR fire `gtag('consent','update',…)` natively without GTM; Moove GDPR requires the premium plan; Cookie Notice (free) cannot fire GCM v2 update signals and is marked as "fallback only".
+* Feature: Consent Architecture info panel added to the admin settings page -- collapsible `<details>` element showing three badge groups: GCM v2-aware services, Meta Pixel LDU, and CMP compatibility (8 CMPs). Badges use shields.io SVGs with a pure CSS fallback for offline/firewalled staging environments; the CSS pill renders from `data-label`/`data-msg` attributes and flips to the shields.io image via an `onload` swap -- zero flash, no broken images.
+* Feature: CMP compatibility research completed and documented in the panel: Complianz, CookieYes, Cookiebot, Cookie Information, Borlabs Cookie, and WebToffee GDPR fire `gtag('consent','update',...)` natively without GTM; Moove GDPR requires the premium plan; Cookie Notice (free) cannot fire GCM v2 update signals and is marked as "fallback only".
 * Enhancement: Updated `consent_mode_desc` and `meta_ldu_desc` admin strings in both EN and DA to accurately describe the per-service architecture and distinguish the two consent mechanisms.
 
 **Bug fixes**
@@ -241,20 +241,20 @@ The administrator may freely add other services through the Partytown Script Lis
 
 **Security**
 
-* Security: `sslverify => false` removed from the auto-detect AJAX handler (`dc_swp_ajax_detect_scripts`). Certificate verification is now always enabled — a self-signed cert in staging is no longer a reason to globally bypass SSL verification (OWASP A02).
+* Security: `sslverify => false` removed from the auto-detect AJAX handler (`dc_swp_ajax_detect_scripts`). Certificate verification is now always enabled -- a self-signed cert in staging is no longer a reason to globally bypass SSL verification (OWASP A02).
 
 **Standards & housekeeping**
 
 * Standards: Plugin main-file header brought fully in line with blueprint §2: `License` changed to SPDX identifier `GPL-2.0-or-later`; `Update URI` added (prevents accidental WordPress.org auto-update overwrite); `WC tested up to: 10.4.3` added to the PHP header (was previously only in `readme.txt`).
-* i18n: Badge and force-Partytown UI strings (`badge_supported`, `badge_unsupported`, `force_pt_label`, `force_pt_notice`) were hardcoded English in `wp_localize_script`. Moved into `dc_swp_str()` with full Danish translations — the admin UI is now fully bilingual for all dynamic strings.
+* i18n: Badge and force-Partytown UI strings (`badge_supported`, `badge_unsupported`, `force_pt_label`, `force_pt_notice`) were hardcoded English in `wp_localize_script`. Moved into `dc_swp_str()` with full Danish translations -- the admin UI is now fully bilingual for all dynamic strings.
 * Cleanup: `dc_swp_debug_mode` option was the only plugin option not deleted on uninstall. Added to the `uninstall.php` cleanup list.
 
 = 1.4.2 =
-* Feature: Script Block compatibility badges — each block now shows a "✓ Supported / Partytown" or "⚠ Unsupported / Deferred" badge based on whether its scripts (src= or inline) reference a Partytown-verified service.
-* Feature: "Force Enable Partytown" toggle for unsupported Script Block scripts — admin can force an unknown src= script into the Partytown worker, with a warning notice that render errors should be tested in debug mode.
+* Feature: Script Block compatibility badges -- each block now shows a "✓ Supported / Partytown" or "⚠ Unsupported / Deferred" badge based on whether its scripts (src= or inline) reference a Partytown-verified service.
+* Feature: "Force Enable Partytown" toggle for unsupported Script Block scripts -- admin can force an unknown src= script into the Partytown worker, with a warning notice that render errors should be tested in debug mode.
 * Fix: Script Block inline scripts (e.g. Meta Pixel) that reference a known-service URL are now correctly routed to the Partytown worker; unknown inline scripts fall back to deferred main-thread execution instead of always entering the worker.
 * Fix: Script Block src= scripts with unknown hostnames now always run on the main thread (consent-gated), preventing the about:srcdoc sandbox error caused by Partytown trying to run iframe-dependent scripts (e.g. ContentSquare) in the worker.
-* Refactor: `dc_swp_get_known_services()` is now the single source of truth for Partytown compatibility decisions — shared by Script Block output, inline detection, and the auto-detect AJAX handler.
+* Refactor: `dc_swp_get_known_services()` is now the single source of truth for Partytown compatibility decisions -- shared by Script Block output, inline detection, and the auto-detect AJAX handler.
 * Refactor: `dc_swp_inline_matches_known_service()` added to mirror the JS-side known-service scan for inline script bodies.
 * Chore: Add vendor/ and node_modules/ exclude-patterns to phpcs.xml so `vendor/bin/phpcs` without arguments only lints plugin files.
 
@@ -262,7 +262,7 @@ The administrator may freely add other services through the Partytown Script Lis
 * Chore: Rename plugin to "DC Script Worker Prefetcher" in all remaining source files (admin.php, uninstall.php, phpcs.xml, package.json, .pot file, copilot-instructions.md, PHP docblock headers).
 
 = 1.4.0 =
-* Feature: Add FullStory (`FS.identify`, `FS.event`) to the Partytown `forward` array — now on the official tested-services list.
+* Feature: Add FullStory (`FS.identify`, `FS.event`) to the Partytown `forward` array -- now on the official tested-services list.
 * Feature: Auto-enable `strictProxyHas` when FullStory patterns are detected in the Script List or Inline Script Blocks, preventing the `in` operator false-positive that blocks FullStory initialisation via GTM.
 * Feature: Add **Partytown Debug Mode** admin toggle (`dc_swp_debug_mode`). When enabled, loads the unminified `debug/partytown.js` build and sets all seven Partytown log flags (`logCalls`, `logGetters`, `logSetters`, `logImageRequests`, `logScriptExecution`, `logSendBeaconRequests`, `logStackTraces`) for DevTools Verbose output. Bilingual UI (EN/DA).
 * Feature: Expose `window.dcSwpPartytownUpdate()` JS helper in `partytown-config.js` that dispatches the `ptupdate` CustomEvent, enabling integrators to notify Partytown of dynamically appended `type="text/partytown"` scripts.
@@ -274,13 +274,13 @@ The administrator may freely add other services through the Partytown Script Lis
 * Fix: Add `phpcs:ignore` to `dc_swp_enqueue_admin_assets` function declaration.
 * Deploy: Add SSH cleanup step to remove dev-only files (.distignore, scripts/, vendor/, etc.) from the production server after rsync.
 * Docs: Add External Services section to readme.txt and README.md disclosing Partytown, CORS proxy, and all pre-configured third-party analytics services with privacy policy and terms links.
-* Docs: Correct async/defer description — scripts still execute on the main thread (and can block window.onload); the download is already off-thread.
+* Docs: Correct async/defer description -- scripts still execute on the main thread (and can block window.onload); the download is already off-thread.
 * Docs: Add Partytown beta disclaimer and trade-offs link.
 * Docs: Add "How Partytown works" section explaining type attribute, service worker, web worker, JS Proxies, and Atomics vs sync XHR communication.
 
 = 1.3.8 =
 * Refactor: Auto-detect scan now returns all third-party scripts found on the homepage. Scripts on Partytown's officially verified services list (https://partytown.qwik.dev/common-services/) are pre-checked and shown with a green badge; unrecognised scripts are shown unchecked with an "unknown compatibility" warning so admins make an explicit choice rather than having scripts silently accepted or rejected.
-* Removed: The auto-detect feature no longer auto-populates the exclude/blocklist textarea when incompatible scripts are found — the exclude-list concept is being phased out in favour of a pure allow-list architecture.
+* Removed: The auto-detect feature no longer auto-populates the exclude/blocklist textarea when incompatible scripts are found -- the exclude-list concept is being phased out in favour of a pure allow-list architecture.
 
 = 1.3.7 =
 * Revert: Remove `script_loader_tag` filter that patched third-party plugin scripts. DC SW Prefetch only manages scripts it explicitly moves into Partytown; all other scripts are left entirely on the main thread as-is. Fixing compatibility issues in scripts belonging to other plugins is out of scope.
@@ -289,13 +289,13 @@ The administrator may freely add other services through the Partytown Script Lis
 * Fix: Strip `crossorigin="anonymous"` from `widget-bootstrap-js` (Trustpilot bootstrap) via `script_loader_tag` filter. Under `COEP: credentialless`, scripts with `crossorigin` are fetched in CORS mode; since `widget.trustpilot.com` sends no `Access-Control-Allow-Origin` header the load is blocked. Without the attribute the browser uses no-cors mode, which succeeds. The Trustpilot plugin added `crossorigin` via the WP 6.3+ `$args` API; this filter removes it for scripts that are incompatible with enforced CORS.
 
 = 1.3.5 =
-* Revert: restore `partytown-config.js` as a normal enqueued file (the inline approach in 1.3.3 was a misdiagnosis — the Partytown SW does not intercept regular script requests). The `file_get_contents()` load and unnecessary inline output are removed.
+* Revert: restore `partytown-config.js` as a normal enqueued file (the inline approach in 1.3.3 was a misdiagnosis -- the Partytown SW does not intercept regular script requests). The `file_get_contents()` load and unnecessary inline output are removed.
 
 = 1.3.4 =
-* Fix: `resolveUrl` in `partytown-config.js` now uses `this.pathRewrites` / `this.proxyAllowedHosts` / `this.proxyUrl` instead of referencing `dcSwpPartytownData` directly. Partytown serialises `resolveUrl` to a string and reconstructs it with `new Function()` inside the web worker, so closures are lost — the function must be fully self-contained. Data is now stored as plain properties on `window.partytown` and accessed via `this`.
+* Fix: `resolveUrl` in `partytown-config.js` now uses `this.pathRewrites` / `this.proxyAllowedHosts` / `this.proxyUrl` instead of referencing `dcSwpPartytownData` directly. Partytown serialises `resolveUrl` to a string and reconstructs it with `new Function()` inside the web worker, so closures are lost -- the function must be fully self-contained. Data is now stored as plain properties on `window.partytown` and accessed via `this`.
 
 = 1.3.3 =
-* Fix: Inline `partytown-config.js` output to prevent `ReferenceError: dcSwpPartytownData is not defined` inside the Partytown service worker sandbox. The config script must be inline — when served as a separate file the Partytown SW intercepts the fetch and evaluates it in a context where `wp_localize_script` data is unavailable.
+* Fix: Inline `partytown-config.js` output to prevent `ReferenceError: dcSwpPartytownData is not defined` inside the Partytown service worker sandbox. The config script must be inline -- when served as a separate file the Partytown SW intercepts the fetch and evaluates it in a context where `wp_localize_script` data is unavailable.
 
 = 1.3.2 =
 * Update: Vendor Partytown 0.13.1 (built from source, pre-release). Fixes Lighthouse deprecated-API warnings caused by Chrome Privacy Sandbox properties (SharedStorage, AttributionReporting) being accessed during window introspection.
@@ -306,13 +306,13 @@ The administrator may freely add other services through the Partytown Script Lis
 * Tooling: Add ESLint configuration targeting `assets/js/`.
 
 = 1.3.0 =
-* **New:** Consent-aware script loading — reads marketing-consent cookies from 8 common WordPress CMPs (Complianz, Cookiebot, CookieYes, Borlabs, Cookie Notice, WebToffee, Cookie Information, Moove GDPR).
-* Scripts in the Partytown list now output `type="text/partytown"` when consent is granted and `type="text/plain"` when it is not — no CMP hooks or DOM patching required.
+* **New:** Consent-aware script loading -- reads marketing-consent cookies from 8 common WordPress CMPs (Complianz, Cookiebot, CookieYes, Borlabs, Cookie Notice, WebToffee, Cookie Information, Moove GDPR).
+* Scripts in the Partytown list now output `type="text/partytown"` when consent is granted and `type="text/plain"` when it is not -- no CMP hooks or DOM patching required.
 * Removed the `dc_swp_cmp_intercept_script` Node.prototype hook introduced in 1.2.x (approach replaced by server-side consent detection).
 * Version bump: 1.2.0 → 1.3.0.
 
 = 1.2.0 =
-* **New:** WP emoji removal — dequeues `print_emoji_detection_script` and `print_emoji_styles` saving ~76 KB and one s.w.org DNS lookup per page. Toggle in admin (default: on).
+* **New:** WP emoji removal -- dequeues `print_emoji_detection_script` and `print_emoji_styles` saving ~76 KB and one s.w.org DNS lookup per page. Toggle in admin (default: on).
 * Version bump: 1.1.0 → 1.2.0.
 
 = 1.1.0 =
@@ -336,7 +336,7 @@ The administrator may freely add other services through the Partytown Script Lis
 New: Early Resource Hints, Partytown Health Monitor, Performance Metrics Dashboard, and Per-Page Exclusion Patterns.
 
 = 2.0.0 =
-New: Server-Side GA4 (SSGA4) sends WooCommerce ecommerce events directly to GA4 via Measurement Protocol — independent of browser consent and ad-blockers.
+New: Server-Side GA4 (SSGA4) sends WooCommerce ecommerce events directly to GA4 via Measurement Protocol -- independent of browser consent and ad-blockers.
 
 = 1.6.0 =
 Breaking: All `dampcig_pwa_*` options renamed to `dc_swp_*`. Existing settings are migrated automatically on activation.

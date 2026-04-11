@@ -1,4 +1,4 @@
-/* DC SW Prefetch — Partytown Health Monitor */
+/* DC SW Prefetch -- Partytown Health Monitor */
 /* global PerformanceObserver, FormData */
 ( function () {
 	if ( ! window.dcSwpHealthData ) return;
@@ -23,7 +23,7 @@
 	try {
 		observer.observe( { type: 'resource', buffered: true } );
 	} catch {
-		return; // PerformanceObserver not supported — skip silently.
+		return; // PerformanceObserver not supported -- skip silently.
 	}
 
 	setTimeout( function () {

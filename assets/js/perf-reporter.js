@@ -1,4 +1,4 @@
-/* DC SW Prefetch — Performance Reporter */
+/* DC SW Prefetch -- Performance Reporter */
 /* global PerformanceObserver, FormData, sessionStorage, requestIdleCallback */
 ( function () {
 	if ( ! window.dcSwpPerfData ) return;

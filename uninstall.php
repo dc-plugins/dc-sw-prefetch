@@ -1,6 +1,6 @@
 <?php
 /**
- * DC Script Worker Proxy — Uninstall
+ * DC Script Worker Proxy -- Uninstall
  *
  * Fired when the plugin is deleted via the WordPress admin.
  * Removes all plugin-specific options and transients from the database.
@@ -48,7 +48,7 @@ function dc_swp_uninstall() {
 		'dc_swp_health_monitor',
 		'dc_swp_perf_monitor',
 		'dc_swp_exclusion_patterns',
-		// Legacy names (pre-1.6.0) — remove if migration never ran.
+		// Legacy names (pre-1.6.0) -- remove if migration never ran.
 		'dampcig_pwa_sw_enabled',
 		'dampcig_pwa_footer_credit',
 	) as $dc_swp_opt ) {

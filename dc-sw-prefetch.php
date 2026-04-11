@@ -1,12 +1,12 @@
 <?php
 /**
- * DC Script Worker Proxy — Main Plugin File
+ * DC Script Worker Proxy -- Main Plugin File
  *
  * @wordpress-plugin
  * Plugin Name: DC Script Worker Proxy
  * Plugin URI:  https://github.com/dc-plugins/dc-sw-prefetch
- * Description: Offloads third-party scripts (GTM, Pixel, Analytics…) to a Web Worker via Partytown with consent-aware loading. Fully vendored — no build step required.
- * Version:     2.3.4
+ * Description: Offloads third-party scripts (GTM, Pixel, Analytics...) to a Web Worker via Partytown with consent-aware loading. Fully vendored -- no build step required.
+ * Version:     2.3.5
  * Author:      lennilg
  * Author URI:  https://github.com/lennilg
  * License:           GPL-2.0-or-later
@@ -25,7 +25,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	die(); }
 
 // ============================================================
-// ACTIVATION — OPTION MIGRATION
+// ACTIVATION -- OPTION MIGRATION
 // Migrates legacy dampcig_pwa_* option names to the canonical
 // dc_swp_* prefix introduced in v1.6.0. Safe to run multiple
 // times: only copies the value when the old key exists AND the
@@ -167,12 +167,12 @@ endif; // End dc_swp_is_bot_request check.
 
 
 // ============================================================
-// CONSENT GATE — WP Consent API
+// CONSENT GATE -- WP Consent API
 //
 // All consent decisions are delegated to the WP Consent API plugin.
 // The admin "Consent Gate" toggle (dc_swp_consent_gate) controls
 // whether scripts are gated at all:
-// • OFF (default): scripts always load as text/partytown — no
+// • OFF (default): scripts always load as text/partytown -- no
 // consent check is performed. Suitable for sites without a
 // CMP or where the CMP handles blocking externally.
 // • ON: scripts are blocked (text/plain) until the WP Consent
@@ -250,7 +250,7 @@ function dc_swp_get_script_list_category() {
  * Return true if the Consent Gate is enabled in admin settings.
  *
  * When disabled (default), all scripts load unconditionally as
- * text/partytown — no consent check is performed.
+ * text/partytown -- no consent check is performed.
  *
  * @return bool
  */
@@ -342,7 +342,7 @@ function dc_swp_resolve_inline_consent( $js, $category = '' ) {
  * Return true if Google Consent Mode v2 is enabled in settings.
  *
  * When active, Partytown-managed scripts always use type="text/partytown"
- * and a gtag('consent','default',{…denied}) snippet is injected early in
+ * and a gtag('consent','default',{...denied}) snippet is injected early in
  * <head> so Google's own Consent Mode API handles measurement signals.
  *
  * @return bool
@@ -367,7 +367,7 @@ function dc_swp_is_meta_ldu_enabled() {
 
 
 // ============================================================
-// I18N — LOAD TEXT DOMAIN
+// I18N -- LOAD TEXT DOMAIN
 // Loads .mo translation files from the /languages directory so
 // that __() / _e() / esc_html__() calls with the 'dc-sw-prefetch'
 // text domain resolve to the admin user's locale.
@@ -463,10 +463,10 @@ function dc_swp_cross_origin_isolation_headers() {
 
 
 // ============================================================
-// PARTYTOWN — serve ~partytown/ lib files from the plugin
+// PARTYTOWN -- serve ~partytown/ lib files from the plugin
 // ============================================================
 
-define( 'DC_SWP_VERSION', '2.3.4' );
+define( 'DC_SWP_VERSION', '2.3.5' );
 
 add_action( 'init', 'dc_swp_serve_partytown_files', 1 );
 
@@ -486,7 +486,7 @@ function dc_swp_serve_partytown_files() {
 		return;
 	}
 
-	// Resolve the physical file — prevent directory traversal.
+	// Resolve the physical file -- prevent directory traversal.
 	$relative = ltrim( substr( $request_uri, strlen( '/~partytown/' ) ), '/' );
 	// Strip query string just in case.
 	$relative  = strtok( $relative, '?' );
@@ -552,7 +552,7 @@ function dc_swp_serve_partytown_files() {
 // the necessary CORS header.
 //
 // The allowlist is built dynamically from the admin-configured
-// Partytown Script List and Script Blocks — only hostnames the
+// Partytown Script List and Script Blocks -- only hostnames the
 // site owner has explicitly opted into are accepted. This prevents
 // SSRF and ensures the proxy never touches third-party scripts
 // that are not part of the active Partytown configuration.
@@ -600,7 +600,7 @@ function dc_swp_serve_partytown_proxy() {
 	$host = strtolower( $parsed['host'] ?? '' );
 
 	// Allowlist: derived dynamically from the admin-configured Partytown Script
-	// List and Script Blocks — only hostnames the site owner has opted into.
+	// List and Script Blocks -- only hostnames the site owner has opted into.
 	$allowed_hosts = dc_swp_get_proxy_allowed_hosts();
 
 	if ( empty( $allowed_hosts ) || ! in_array( $host, $allowed_hosts, true ) ) {
@@ -618,7 +618,7 @@ function dc_swp_serve_partytown_proxy() {
 		$clean_url,
 		array(
 			'timeout'     => 10,
-			'redirection' => 0, // No redirects — prevents SSRF via open redirect.
+			'redirection' => 0, // No redirects -- prevents SSRF via open redirect.
 			'sslverify'   => true,
 			'user-agent'  => 'WordPress/' . get_bloginfo( 'version' ) . '; ' . get_bloginfo( 'url' ),
 		)
@@ -635,7 +635,7 @@ function dc_swp_serve_partytown_proxy() {
 	header( 'Content-Type: application/javascript; charset=utf-8' );
 	header( 'Access-Control-Allow-Origin: *' );
 	header( 'X-Robots-Tag: none' );
-	// Cache for 1 hour — CDN script content rarely changes.
+	// Cache for 1 hour -- CDN script content rarely changes.
 	header( 'Cache-Control: public, max-age=3600, stale-while-revalidate=300' );
 
 	// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- proxied JS body from allowlisted CDN
@@ -655,7 +655,7 @@ function dc_swp_serve_partytown_proxy() {
  * after the resolveUrl() rewrite) to the absolute CDN endpoint they must reach.
  * These rules are only injected into the Partytown config when the matching
  * hostname is actually present in the admin-configured Script List or Inline
- * Script Blocks — so a site that has never added Ahrefs will never see the
+ * Script Blocks -- so a site that has never added Ahrefs will never see the
  * Ahrefs rewrite shipped to its visitors.
  *
  * To add a new service here: find the relative path that the analytics script
@@ -668,7 +668,7 @@ function dc_swp_serve_partytown_proxy() {
  */
 function dc_swp_get_known_path_rewrites() {
 	return array(
-		// Ahrefs Analytics — script posts beacon events to /api/event on its
+		// Ahrefs Analytics -- script posts beacon events to /api/event on its
 		// own domain; Partytown sees only the relative path so we must remap it.
 		'analytics.ahrefs.com' => array(
 			'/api/event' => 'https://analytics.ahrefs.com/api/event',
@@ -739,15 +739,15 @@ function dc_swp_build_path_rewrites() {
 
 // ============================================================
 // GOOGLE CONSENT MODE V2
-// When enabled, injects gtag('consent','default',{…denied}) at
-// wp_head priority 1 — before Partytown and any analytics scripts
-// — so GTM / GA4 running in the Partytown worker see the consent
+// When enabled, injects gtag('consent','default',{...denied}) at
+// wp_head priority 1 -- before Partytown and any analytics scripts
+// -- so GTM / GA4 running in the Partytown worker see the consent
 // defaults on startup.
 //
 // Partytown-managed scripts are always emitted as text/partytown
 // (never text/plain). Google's own Consent Mode API handles
 // measurement; the existing CMP fires
-// gtag('consent','update',{…granted}) when the visitor consents.
+// gtag('consent','update',{...granted}) when the visitor consents.
 // ============================================================
 
 /**
@@ -791,7 +791,7 @@ function dc_swp_inject_consent_mode_default() {
 	$nonce      = dc_swp_get_csp_nonce();
 	$nonce_attr = '' !== $nonce ? ' nonce="' . esc_attr( $nonce ) . '"' : '';
 
-	// Fully static GCM v2 default stub — always all-denied.
+	// Fully static GCM v2 default stub -- always all-denied.
 	// Safe for full-page caching: no cookie reading, no server-side logic.
 	// The external consent-update.js listens to CMP events (WP Consent API,
 	// Complianz cmplz_fire_categories / cmplz_revoke) and calls
@@ -874,7 +874,7 @@ function dc_swp_enqueue_consent_scripts() {
 }
 
 // ============================================================
-// CONSENT GATE — CLIENT-SIDE UNBLOCKING SCRIPT
+// CONSENT GATE -- CLIENT-SIDE UNBLOCKING SCRIPT
 // When the Consent Gate is enabled, scripts blocked as text/plain
 // carry a data-wp-consent-category attribute. consent-gate.js
 // listens for WP Consent API consent changes and swaps them to
@@ -936,19 +936,19 @@ function dc_swp_enqueue_consent_gate_script() {
 // GOOGLE TAG MANAGEMENT
 // Supports three active modes:
 //
-// own     — user-supplied GTM container ID or GA4 measurement ID.
+// own     -- user-supplied GTM container ID or GA4 measurement ID.
 // Plugin injects the snippet in <head> at priority 5
 // (after the GCM v2 consent default at priority 1) and
 // the <noscript> iframe at wp_body_open.
 //
-// detect  — scans known plugin options for an existing GTM/GA4
+// detect  -- scans known plugin options for an existing GTM/GA4
 // tag; no injection (the other plugin handles it).
 // GCM v2 consent default fires before any tag regardless.
 //
-// managed — identical to "own" but the admin reaches the Container
+// managed -- identical to "own" but the admin reaches the Container
 // ID via the guided onboarding wizard in the admin UI.
 //
-// off     — tag management disabled; GCM v2 still works independently.
+// off     -- tag management disabled; GCM v2 still works independently.
 //
 // Validated ID formats:  GTM-XXXXXXX  |  G-XXXXXXXXXX  |  UA-XXXXX-X
 // ============================================================
@@ -969,7 +969,7 @@ function dc_swp_is_valid_gtm_id( string $id ): bool {
  * Detect a live Google Tag ID by fetching and parsing the homepage HTML.
  *
  * Fetches the site's homepage via wp_remote_get() and scans the rendered
- * HTML for actual Google Tag script elements — GTM containers, GA4
+ * HTML for actual Google Tag script elements -- GTM containers, GA4
  * measurement IDs, and legacy UA IDs. This detects what is truly active
  * on the front-end, regardless of which plugin injected it.
  *
@@ -994,7 +994,7 @@ function dc_swp_detect_existing_gtm_id(): array {
 		return array();
 	}
 
-	// 1. GTM container — <script … src="…googletagmanager.com/gtm.js?id=GTM-XXXXXXX">
+	// 1. GTM container -- <script ... src="...googletagmanager.com/gtm.js?id=GTM-XXXXXXX">
 	if ( preg_match( '/googletagmanager\.com\/gtm\.js\?id=(GTM-[A-Z0-9]{4,10})/i', $body, $m ) ) {
 		return array(
 			'id'     => strtoupper( sanitize_text_field( $m[1] ) ),
@@ -1002,7 +1002,7 @@ function dc_swp_detect_existing_gtm_id(): array {
 		);
 	}
 
-	// 2. GA4 / gtag.js — <script … src="…googletagmanager.com/gtag/js?id=G-XXXXXXXXXX">
+	// 2. GA4 / gtag.js -- <script ... src="...googletagmanager.com/gtag/js?id=G-XXXXXXXXXX">
 	if ( preg_match( '/googletagmanager\.com\/gtag\/js\?id=(G-[A-Z0-9]{6,})/i', $body, $m ) ) {
 		return array(
 			'id'     => strtoupper( sanitize_text_field( $m[1] ) ),
@@ -1010,7 +1010,7 @@ function dc_swp_detect_existing_gtm_id(): array {
 		);
 	}
 
-	// 3. Legacy Universal Analytics — UA-XXXXXX-X anywhere in a gtag/analytics context.
+	// 3. Legacy Universal Analytics -- UA-XXXXXX-X anywhere in a gtag/analytics context.
 	if ( preg_match( '/google(?:tagmanager|-analytics)\.com\/(?:gtag\/js|analytics\.js)\?id=(UA-\d{4,}-\d+)/i', $body, $m ) ) {
 		return array(
 			'id'     => strtoupper( sanitize_text_field( $m[1] ) ),
@@ -1018,7 +1018,7 @@ function dc_swp_detect_existing_gtm_id(): array {
 		);
 	}
 
-	// 4. Inline gtag('config','G-…') or gtag('config','UA-…') without a matching src.
+	// 4. Inline gtag('config','G-...') or gtag('config','UA-...') without a matching src.
 	if ( preg_match( '/gtag\s*\(\s*["\']config["\']\s*,\s*["\']((?:G|UA)-[A-Z0-9-]+)["\']/i', $body, $m ) ) {
 		$tag = strtoupper( sanitize_text_field( $m[1] ) );
 		if ( dc_swp_is_valid_gtm_id( $tag ) ) {
@@ -1038,7 +1038,7 @@ add_action( 'wp_head', 'dc_swp_inject_gtm_head', 5 );
 /**
  * Inject the GTM / GA4 snippet in <head> for "own" and "managed" modes.
  *
- * Fires at priority 5 — after the GCM v2 consent default at priority 1 —
+ * Fires at priority 5 -- after the GCM v2 consent default at priority 1 --
  * so the consent state is already set before the container script loads.
  *
  * @return void
@@ -1075,14 +1075,14 @@ function dc_swp_inject_gtm_head() {
 	echo '<script' . $nonce_attr . ">window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}</script>\n";
 
 	if ( 0 === stripos( $tag_id, 'GTM-' ) ) {
-		// GTM container — load the container script in a Partytown Web Worker.
+		// GTM container -- load the container script in a Partytown Web Worker.
 		// Using type="text/partytown" offloads GTM (and all tags firing inside it)
 		// entirely off the main thread. The dataLayer.push forward ensures consent
 		// signals and other main-thread pushes are relayed into the worker.
 		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- tag ID regex-validated; esc_attr applied.
 		echo '<script type="text/partytown"' . $nonce_attr . ' src="https://www.googletagmanager.com/gtm.js?id=' . esc_attr( $tag_id ) . '"></script>' . "\n";
 	} else {
-		// GA4 / UA measurement ID — load gtag.js in a Partytown Web Worker.
+		// GA4 / UA measurement ID -- load gtag.js in a Partytown Web Worker.
 		// The inline gtag('config',...) call runs on the main thread and is forwarded
 		// to the worker via the dataLayer.push proxy (gtag() internally calls dataLayer.push).
 		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- tag ID regex-validated; esc_attr/esc_js applied.
@@ -1100,7 +1100,7 @@ add_action( 'wp_body_open', 'dc_swp_inject_gtm_body', 1 );
  * Inject the GTM <noscript> iframe fallback immediately after <body>.
  *
  * Only relevant for GTM-XXXXXXX container IDs (not GA4 measurement IDs).
- * Requires the active theme to call wp_body_open() — supported by all
+ * Requires the active theme to call wp_body_open() -- supported by all
  * themes that follow the WordPress 5.2+ standards.
  *
  * @return void
@@ -1131,7 +1131,7 @@ add_action( 'wp_head', 'dc_swp_inject_ga4_client_tag', 6 );
 /**
  * Inject the GA4 gtag.js snippet for client-side tracking when enabled.
  *
- * Fires at priority 6 — after GTM injection at priority 5 — so if both GTM
+ * Fires at priority 6 -- after GTM injection at priority 5 -- so if both GTM
  * and standalone GA4 are configured simultaneously, the user sees a warning
  * but GTM takes precedence. This function only fires when:
  * - SSGA4 is not off (mode is own/detect/managed)
@@ -1158,7 +1158,7 @@ function dc_swp_inject_ga4_client_tag() {
 		return;
 	}
 
-	// Skip if GTM is already active — both would fire the same GA4 tag.
+	// Skip if GTM is already active -- both would fire the same GA4 tag.
 	$gtm_mode = get_option( 'dc_swp_gtm_mode', 'off' );
 	if ( 'off' !== $gtm_mode && ! empty( get_option( 'dc_swp_gtm_id', '' ) ) ) {
 		return;
@@ -1219,7 +1219,7 @@ function dc_swp_ajax_detect_gtm() {
 }
 
 // ============================================================
-// META / FACEBOOK PIXEL — LIMITED DATA USE (LDU) MODE
+// META / FACEBOOK PIXEL -- LIMITED DATA USE (LDU) MODE
 // When enabled, injects the fbq stub + dataProcessingOptions
 // at wp_head priority 1, before Partytown and any fbq scripts.
 // The pixel always fires (type="text/partytown") and Meta
@@ -1277,7 +1277,7 @@ add_action( 'wp_enqueue_scripts', 'dc_swp_partytown_config', 2 );
  * <script>, and is passed to window.partytown.nonce so Partytown stamps it
  * on every worker script it creates. CSP-hardened sites can read this value
  * via the 'dc_swp_csp_nonce' filter and include it in their
- * Content-Security-Policy: script-src 'nonce-…' header.
+ * Content-Security-Policy: script-src 'nonce-...' header.
  *
  * @return string Base64-safe nonce, or empty string on failure.
  */
@@ -1308,21 +1308,21 @@ function dc_swp_get_csp_nonce() {
 /**
  * Detect whether FullStory is configured in the Partytown Script List or Inline Script Blocks.
  *
- * Used to auto-enable strictProxyHas — required when FullStory is loaded via GTM to prevent
+ * Used to auto-enable strictProxyHas -- required when FullStory is loaded via GTM to prevent
  * false namespace-conflict detection caused by Partytown's default `in` operator behaviour.
  * Follows the same dual-source scan pattern as dc_swp_get_proxy_allowed_hosts().
  *
  * @return bool
  */
 function dc_swp_has_fullstory_configured() {
-	// ── 1. Script List patterns ──────────────────────────────────────────────
+	// -- 1. Script List patterns ----------------------------------------------
 	foreach ( dc_swp_get_partytown_patterns() as $pattern ) {
 		if ( str_contains( strtolower( $pattern ), 'fullstory' ) ) {
 			return true;
 		}
 	}
 
-	// ── 2. Inline Script Blocks ──────────────────────────────────────────────
+	// -- 2. Inline Script Blocks ----------------------------------------------
 	$raw_stored = (string) get_option( 'dc_swp_inline_scripts', '' );
 	if ( '' !== $raw_stored ) {
 		$decoded = json_decode( $raw_stored, true );
@@ -1361,7 +1361,7 @@ function dc_swp_partytown_config() {
 
 	$debug_mode = get_option( 'dc_swp_debug_mode', 'no' ) === 'yes';
 
-	// Inline Partytown snippet — serves workers from /~partytown/.
+	// Inline Partytown snippet -- serves workers from /~partytown/.
 	// Debug mode uses the unminified build from assets/partytown/debug/; the serve
 	// endpoint already handles /~partytown/debug/* via its realpath security check.
 	$snippet_file = plugin_dir_path( __FILE__ ) . 'assets/partytown/' . ( $debug_mode ? 'debug/' : '' ) . 'partytown.js';
@@ -1377,10 +1377,10 @@ function dc_swp_partytown_config() {
 	$snippet = $wp_filesystem->get_contents( $snippet_file );
 
 	// Build the Partytown config as a PHP structure so it is always valid JSON.
-	// forward list — only officially tested services from https://partytown.qwik.dev/common-services/
-	// Note: 'gtag' is intentionally excluded — it is defined as an inline wrapper that calls
+	// forward list -- only officially tested services from https://partytown.qwik.dev/common-services/
+	// Note: 'gtag' is intentionally excluded -- it is defined as an inline wrapper that calls
 	// dataLayer.push(), which is already forwarded. Forwarding 'gtag' separately is redundant.
-	// 'lintrk' (LinkedIn) and 'twq' (Twitter/X) are excluded — not on the officially tested list.
+	// 'lintrk' (LinkedIn) and 'twq' (Twitter/X) are excluded -- not on the officially tested list.
 	$config = array(
 		'lib'     => '/~partytown/',
 		'debug'   => $debug_mode,
@@ -1403,7 +1403,7 @@ function dc_swp_partytown_config() {
 		),
 	);
 
-	// Feature 4: loadScriptsOnMainThread — scripts dynamically injected inside the
+	// Feature 4: loadScriptsOnMainThread -- scripts dynamically injected inside the
 	// worker that match a pattern are loaded on the main thread instead.
 	//
 	// NOTE: connect.facebook.net is intentionally NOT hardcoded here.
@@ -1422,7 +1422,7 @@ function dc_swp_partytown_config() {
 		$config['nonce'] = $nonce;
 	}
 
-	// Auto-enable strictProxyHas when FullStory is configured — required to prevent
+	// Auto-enable strictProxyHas when FullStory is configured -- required to prevent
 	// the `in` operator from falsely reporting a namespace conflict that blocks
 	// FullStory initialisation when loaded via a GTM Custom HTML tag.
 	if ( dc_swp_has_fullstory_configured() ) {
@@ -1465,14 +1465,14 @@ function dc_swp_partytown_config() {
 	);
 	wp_enqueue_script( 'dc-swp-partytown-config' );
 
-	// Partytown inline snippet — initializes the service worker bridge.
+	// Partytown inline snippet -- initializes the service worker bridge.
 	// phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion -- inline-only handle, no file to version.
 	wp_register_script( 'dc-swp-partytown', false, array( 'dc-swp-partytown-config' ), null, array( 'in_footer' => false ) );
 	wp_add_inline_script( 'dc-swp-partytown', $snippet );
 	wp_enqueue_script( 'dc-swp-partytown' );
 
 	// When Cross-Origin isolation (COEP) is active, every cross-origin iframe
-	// needs the `credentialless` attribute before its src navigation begins —
+	// needs the `credentialless` attribute before its src navigation begins --
 	// otherwise the browser enforces CORP and blocks it (e.g. Trustpilot).
 	//
 	// A MutationObserver fires too late: the browser starts the iframe navigation
@@ -1512,7 +1512,7 @@ function dc_swp_partytown_config() {
 // PARTYTOWN SCRIPT OFFLOADING
 // Reads the admin-configured list of URL patterns and marks
 // matching <script src="..."> tags as type="text/partytown" at
-// runtime via the wp_script_attributes filter — no manual code
+// runtime via the wp_script_attributes filter -- no manual code
 // edits needed for each third-party tool.
 //
 // Patterns (one per line, e.g. "analytics.ahrefs.com" or a full
@@ -1645,7 +1645,7 @@ function dc_swp_inline_matches_known_service( $code ) {
  * Google Consent Mode v2 (GCM v2).
  *
  * When GCM v2 is active in the plugin, scripts for these services are always
- * offloaded via Partytown — each service reads the GCM v2 consent state
+ * offloaded via Partytown -- each service reads the GCM v2 consent state
  * (analytics_storage, ad_storage, etc.) and self-restricts data collection
  * when consent is denied, so no text/plain gate is needed.
  *
@@ -1658,14 +1658,14 @@ function dc_swp_inline_matches_known_service( $code ) {
  */
 function dc_swp_get_gcm_v2_aware_services() {
 	$services = array(
-		'googletagmanager.com', // Google Tag Manager — owns the GCM v2 API.
+		'googletagmanager.com', // Google Tag Manager -- owns the GCM v2 API.
 		'google-analytics.com', // Google Analytics (UA / GA4).
 		'analytics.google.com', // GA4 measurement protocol.
-		'static.hotjar.com',    // Hotjar — respects analytics_storage since 2024.
+		'static.hotjar.com',    // Hotjar -- respects analytics_storage since 2024.
 		'script.hotjar.com',    // Hotjar (alternate CDN).
-		'clarity.ms',           // Microsoft Clarity — native GCM v2 integration.
-		'snap.licdn.com',       // LinkedIn Insight Tag v3 — GCM v2 support.
-		'analytics.tiktok.com', // TikTok Pixel — GCM v2 support.
+		'clarity.ms',           // Microsoft Clarity -- native GCM v2 integration.
+		'snap.licdn.com',       // LinkedIn Insight Tag v3 -- GCM v2 support.
+		'analytics.tiktok.com', // TikTok Pixel -- GCM v2 support.
 	);
 
 	/**
@@ -1804,7 +1804,7 @@ function dc_swp_get_script_list_entries( bool $reset = false ) {
 				);
 			}
 		} else {
-			// Legacy plain-text format — migrate in memory; no DB write here
+			// Legacy plain-text format -- migrate in memory; no DB write here
 			// (admin save will persist the new format once the user next saves).
 			foreach ( array_filter( array_map( 'trim', explode( "\n", $raw ) ) ) as $line ) {
 				if ( '' !== $line ) {
@@ -1850,7 +1850,7 @@ function dc_swp_get_partytown_patterns() {
  *     "https://connect.facebook.net/en_US/fbevents.js").
  *
  * Only domains the site owner has explicitly opted into are ever accepted by the
- * proxy — no hard-coded vendor list.
+ * proxy -- no hard-coded vendor list.
  *
  * @return string[] Lowercase, unique hostnames eligible for proxy.
  */
@@ -1866,7 +1866,7 @@ function dc_swp_get_proxy_allowed_hosts() {
 
 	$hosts = array();
 
-	// ── 1. Script List patterns ──────────────────────────────────────────────
+	// -- 1. Script List patterns ----------------------------------------------
 	foreach ( dc_swp_get_partytown_patterns() as $pattern ) {
 		if ( '' === $pattern ) {
 			continue;
@@ -1882,9 +1882,9 @@ function dc_swp_get_proxy_allowed_hosts() {
 		}
 	}
 
-	// ── 2. Script Blocks (inline scripts) ───────────────────────────────────
+	// -- 2. Script Blocks (inline scripts) -----------------------------------
 	// Inline snippets (e.g. Meta Pixel, TikTok Pixel) usually embed the CDN
-	// URL directly — extract every https:// hostname that appears in the code.
+	// URL directly -- extract every https:// hostname that appears in the code.
 	$raw_stored = (string) get_option( 'dc_swp_inline_scripts', '' );
 	if ( '' !== $raw_stored ) {
 		$decoded = json_decode( $raw_stored, true );
@@ -1992,7 +1992,7 @@ function dc_swp_partytown_script_attrs( $attributes ) {
 				$attributes['data-wp-consent-category'] = $cat;
 			}
 			unset( $attributes['async'] ); // async is meaningless for Partytown scripts and must be removed.
-			break; // First matched pattern wins — no need to continue.
+			break; // First matched pattern wins -- no need to continue.
 		}
 	}
 	return $attributes;
@@ -2007,13 +2007,13 @@ add_filter( 'wp_script_attributes', 'dc_swp_partytown_script_attrs_disabled', 99
  * When Partytown is enabled, consent management is handled exclusively by
  * dc_swp_partytown_script_attrs() at priority 5 (before any CMP). When Partytown
  * is DISABLED the admin has chosen "diagnostic mode" which the UI describes as
- * "no consent gating" — scripts render on the main thread. However, CMPs still run
+ * "no consent gating" -- scripts render on the main thread. However, CMPs still run
  * their own wp_script_attributes hook (priority ~10) and stamp type="text/plain" on
  * scripts they recognise, silently blocking them. By running at priority 9999 we
  * override that and guarantee matched scripts are executable in diagnostic mode.
  *
  * Note: raw HTML scripts (not WP-enqueued) bypass wp_script_attributes entirely,
- * which is why the admin reports they "already work" — this hook is the symmetric
+ * which is why the admin reports they "already work" -- this hook is the symmetric
  * fix for WP-enqueued scripts.
  *
  * @param array $attributes Script element attributes.
@@ -2021,7 +2021,7 @@ add_filter( 'wp_script_attributes', 'dc_swp_partytown_script_attrs_disabled', 99
  */
 function dc_swp_partytown_script_attrs_disabled( $attributes ) {
 	if ( get_option( 'dc_swp_sw_enabled', 'yes' ) === 'yes' ) {
-		return $attributes; // Partytown enabled — priority-5 hook owns this path entirely.
+		return $attributes; // Partytown enabled -- priority-5 hook owns this path entirely.
 	}
 	if ( dc_swp_is_bot_request() ) {
 		return $attributes;
@@ -2065,7 +2065,7 @@ function dc_swp_bust_page_cache() {
 
 
 // ============================================================
-// FEATURE 1 — EARLY RESOURCE HINTS
+// FEATURE 1 -- EARLY RESOURCE HINTS
 // Auto-injects <link rel="preconnect"> and <link rel="dns-prefetch">
 // for every unique third-party hostname configured in the Script List,
 // Inline Blocks, and GTM detect mode. Reduces TCP+TLS latency for
@@ -2141,7 +2141,7 @@ function dc_swp_inject_resource_hints(): void {
 
 
 // ============================================================
-// FEATURE 2 — PARTYTOWN HEALTH MONITOR
+// FEATURE 2 -- PARTYTOWN HEALTH MONITOR
 // Detects when a configured third-party service fails silently
 // inside the Partytown worker and surfaces an admin notice.
 // ============================================================
@@ -2204,7 +2204,7 @@ add_action( 'wp_ajax_nopriv_dc_swp_health_report', 'dc_swp_ajax_health_report' )
 /**
  * AJAX handler: receive a health-monitor failure report from the front-end.
  *
- * Anonymous — no cap check required. Nonce + allowlist validation is sufficient.
+ * Anonymous -- no cap check required. Nonce + allowlist validation is sufficient.
  * Appends the failing hostname to the dc_swp_health_issues transient (24-hour TTL).
  *
  * @since 2.1.0
@@ -2242,7 +2242,7 @@ function dc_swp_ajax_health_report(): void {
 
 
 // ============================================================
-// FEATURE 3 — PERFORMANCE METRICS DASHBOARD
+// FEATURE 3 -- PERFORMANCE METRICS DASHBOARD
 // Collects anonymous front-end TBT and INP measurements and
 // exposes rolling averages + P75 percentiles in the WP admin.
 // ============================================================
@@ -2298,7 +2298,7 @@ add_action( 'wp_ajax_nopriv_dc_swp_perf_report', 'dc_swp_ajax_perf_report' );
 /**
  * AJAX handler: receive a performance measurement from the front-end.
  *
- * Anonymous — no cap check required. Updates rolling averages and a sliding
+ * Anonymous -- no cap check required. Updates rolling averages and a sliding
  * window of 100 samples (for P75 computation) in non-autoloaded WP options.
  *
  * @since 2.2.0
@@ -2406,9 +2406,9 @@ function dc_swp_ajax_perf_reset(): void {
 
 
 // ============================================================
-// FEATURE 4 — PER-PAGE SCRIPT EXCLUSION PATTERNS
+// FEATURE 4 -- PER-PAGE SCRIPT EXCLUSION PATTERNS
 // Lets admins define URL patterns where Partytown is completely
-// skipped — useful for pages with scripts incompatible with the
+// skipped -- useful for pages with scripts incompatible with the
 // Partytown worker (payment flows, specific landing pages, etc.).
 // ============================================================
 
@@ -2506,7 +2506,7 @@ function dc_swp_is_excluded_url( string $request_uri = '' ): bool {
 			continue;
 		}
 		if ( str_contains( $pattern, '*' ) ) {
-			// Wildcard pattern — escape for regex then replace escaped \* with .*.
+			// Wildcard pattern -- escape for regex then replace escaped \* with .*.
 			$regex = '#' . str_replace( '\*', '.*', preg_quote( $pattern, '#' ) ) . '#';
 			if ( preg_match( $regex, $request_uri ) ) {
 				$matched = true;
@@ -2526,12 +2526,12 @@ function dc_swp_is_excluded_url( string $request_uri = '' ): bool {
 }
 
 // ============================================================
-// OUTPUT BUFFER — PARTYTOWN SCRIPT REWRITER
+// OUTPUT BUFFER -- PARTYTOWN SCRIPT REWRITER
 // Rewrites <script src> tags in the final HTML: when the src
 // matches a configured pattern, sets type to text/partytown
 // (marketing consent cookie present) or text/plain (no consent).
 // Catches scripts injected via direct echo that bypass
-// wp_script_attributes — e.g. Ahrefs in functions.php.
+// wp_script_attributes -- e.g. Ahrefs in functions.php.
 // ============================================================
 
 add_action( 'template_redirect', 'dc_swp_partytown_buffer_start', 2 );
@@ -2587,7 +2587,7 @@ function dc_swp_partytown_buffer_end() {
  * rewritten, the immediately following inline <script> (no src=) is given
  * the same type so both run in the same Partytown context. This fixes the
  * pattern emitted by GTM / Google Site Kit where the external loader is
- * followed by an inline gtag() initializer — without this, only the loader
+ * followed by an inline gtag() initializer -- without this, only the loader
  * runs in the worker while gtag() stays on the main thread, causing GTM to
  * receive no data.
  *
@@ -2603,7 +2603,7 @@ function dc_swp_partytown_buffer_end() {
 function dc_swp_partytown_buffer_rewrite( $html ) {
 	// Merge user-configured patterns with auto-detect GTM patterns so the buffer
 	// rewriter also catches GTM scripts injected by other plugins when detect mode
-	// is active — even if the user's Script List is empty.
+	// is active -- even if the user's Script List is empty.
 	$patterns = array_merge( dc_swp_get_partytown_patterns(), dc_swp_get_auto_detect_patterns() );
 	if ( empty( $patterns ) ) {
 		return $html;
@@ -2613,10 +2613,10 @@ function dc_swp_partytown_buffer_rewrite( $html ) {
 	 * Maps a src= URL substring to a regex that the following inline script's
 	 * body must match before it is rewritten to type="text/partytown".
 	 *
-	 * Only services that genuinely emit a <script src=…> loader followed by
+	 * Only services that genuinely emit a <script src=...> loader followed by
 	 * an inline <script> initializer are listed here. Services that use a
 	 * pure inline embed (Facebook Pixel, TikTok Pixel, GTM container snippet)
-	 * or a standalone src= tag (Ahrefs, HubSpot) must NOT be in this map —
+	 * or a standalone src= tag (Ahrefs, HubSpot) must NOT be in this map --
 	 * the next inline script in the page could be completely unrelated and
 	 * would break if pushed into the Partytown worker.
 	 *
@@ -2629,8 +2629,8 @@ function dc_swp_partytown_buffer_rewrite( $html ) {
 		'dc_swp_inline_companion_map',
 		array(
 			// Google gtag.js (Google Analytics 4 / Google Site Kit):
-			// <script src="…/gtag/js?id=G-…"></script>
-			// <script>window.dataLayer=…;function gtag(){…}</script>.
+			// <script src=".../gtag/js?id=G-..."></script>
+			// <script>window.dataLayer=...;function gtag(){...}</script>.
 			'googletagmanager.com/gtag/js' => '/\bdataLayer\b|\bgtag\s*\(/i',
 		)
 	);
@@ -2646,11 +2646,11 @@ function dc_swp_partytown_buffer_rewrite( $html ) {
 			$tag_inner = $matches[1];
 			$body      = $matches[2];
 
-			// ── Inline script (no src=) ──────────────────────────────────────
+			// -- Inline script (no src=) --------------------------------------
 			if ( ! preg_match( '/\bsrc=(["\'])([^"\']+)\1/i', $tag_inner, $src_match ) ) {
 				if ( null !== $pending_companion ) {
 					$carry             = $pending_companion;
-					$pending_companion = null; // Consume — one companion per src= script.
+					$pending_companion = null; // Consume -- one companion per src= script.
 
 					// Content guard: inline body must match the service's expected
 					// initializer pattern. If it doesn't, this is an unrelated inline
@@ -2675,11 +2675,11 @@ function dc_swp_partytown_buffer_rewrite( $html ) {
 					return '<script' . $tag_inner . '>' . $body . '</script>';
 				}
 
-				// Unrelated inline — leave untouched.
+				// Unrelated inline -- leave untouched.
 				return $matches[0];
 			}
 
-			// ── External (src=) script ───────────────────────────────────────
+			// -- External (src=) script ---------------------------------------
 			$src = $src_match[2];
 
 			foreach ( $patterns as $pattern ) {
@@ -2692,7 +2692,7 @@ function dc_swp_partytown_buffer_rewrite( $html ) {
 					$existing_type_val = strtolower( $type_match[2] );
 				}
 
-				// wp_script_attributes already set text/partytown — honour it and
+				// wp_script_attributes already set text/partytown -- honour it and
 				// still arm the companion state in case this src has a known companion.
 				if ( 'text/partytown' === $existing_type_val ) {
 					$tag_inner         = preg_replace( '/\s+async(?:=["\'][^"\']*["\'])?/i', '', $tag_inner );
@@ -2700,7 +2700,7 @@ function dc_swp_partytown_buffer_rewrite( $html ) {
 					return '<script' . $tag_inner . '>' . $body . '</script>';
 				}
 
-				// GDPR guard: CMP has blocked this script — leave untouched entirely.
+				// GDPR guard: CMP has blocked this script -- leave untouched entirely.
 				if ( '' !== $existing_type_val && 'text/javascript' !== $existing_type_val ) {
 					$pending_companion = null;
 					return $matches[0];
@@ -2731,18 +2731,18 @@ function dc_swp_partytown_buffer_rewrite( $html ) {
 				return '<script' . $tag_inner . '>' . $body . '</script>';
 			}
 
-			// No pattern matched — clear any pending companion state.
+			// No pattern matched -- clear any pending companion state.
 			$pending_companion = null;
 			return $matches[0];
 		},
 		$html
 	);
 
-	// ── Cross-origin iframe: inject `credentialless` attribute ────────────
+	// -- Cross-origin iframe: inject `credentialless` attribute ------------
 	// Under COEP: credentialless, the browser blocks cross-origin iframes
 	// whose response carries Cross-Origin-Resource-Policy: same-origin (or
 	// no COEP opt-in at all). The HTML `credentialless` attribute on <iframe>
-	// instructs Chrome to load the iframe without cookies — bypassing CORP
+	// instructs Chrome to load the iframe without cookies -- bypassing CORP
 	// enforcement for read-only embeds like Trustpilot TrustScore widgets.
 	// Firefox / Safari do not implement COEP credentialless and are unaffected.
 	if ( get_option( 'dc_swp_coi_headers', 'no' ) === 'yes' ) {
@@ -2751,7 +2751,7 @@ function dc_swp_partytown_buffer_rewrite( $html ) {
 			'/<iframe\b[^>]*>/i',
 			static function ( $iframe_match ) use ( $site_host ) {
 				$tag = $iframe_match[0];
-				// Already has the attribute — nothing to do.
+				// Already has the attribute -- nothing to do.
 				if ( preg_match( '/\bcredentialless\b/i', $tag ) ) {
 					return $tag;
 				}
@@ -2769,7 +2769,7 @@ function dc_swp_partytown_buffer_rewrite( $html ) {
 			$html
 		);
 
-		// ── Cross-origin scripts: inject `crossorigin="anonymous"` ───────
+		// -- Cross-origin scripts: inject `crossorigin="anonymous"` -------
 		// COEP: credentialless exempts no-cors subresources from needing a
 		// CORP header only when the CDN sends no CORP at all. A CDN that
 		// explicitly sends `Cross-Origin-Resource-Policy: same-origin`
@@ -2781,7 +2781,7 @@ function dc_swp_partytown_buffer_rewrite( $html ) {
 		// If the CDN responds with Access-Control-Allow-Origin: * (Trustpilot's
 		// CDN does), the CORS response satisfies COEP regardless of CORP.
 		//
-		// Only applied to patterns listed in the filter — keeps the change
+		// Only applied to patterns listed in the filter -- keeps the change
 		// conservative so scripts without CORS support are never broken.
 		//
 		// Usage: add_filter( 'dc_swp_coi_crossorigin_patterns', function( $p ) {
@@ -2823,7 +2823,7 @@ function dc_swp_partytown_buffer_rewrite( $html ) {
 					if ( ! $is_managed ) {
 						return $s_match[0];
 					}
-					// Already has crossorigin — leave untouched.
+					// Already has crossorigin -- leave untouched.
 					if ( preg_match( '/\bcrossorigin\b/i', $tag_inner ) ) {
 						return $s_match[0];
 					}
@@ -2870,7 +2870,7 @@ function dc_swp_resolve_companion( $src, $type, $companion_map ) {
 
 
 // ============================================================
-// SERVER-SIDE GA4 (SSGA4) — MEASUREMENT PROTOCOL V2
+// SERVER-SIDE GA4 (SSGA4) -- MEASUREMENT PROTOCOL V2
 // Sends WooCommerce ecommerce events to GA4 from PHP using the
 // Measurement Protocol, bypassing browser consent rejection.
 // ============================================================
@@ -2974,7 +2974,7 @@ function dc_swp_ssga4_get_session_id(): string {
 	$cookie  = '_ga_' . $mid_key;
 	if ( ! empty( $_COOKIE[ $cookie ] ) ) {
 		$parts = explode( '.', sanitize_text_field( wp_unslash( $_COOKIE[ $cookie ] ) ) );
-		// GS1.1.<session_id>.<count>… → session_id is parts[2].
+		// GS1.1.<session_id>.<count>... → session_id is parts[2].
 		if ( count( $parts ) >= 3 && is_numeric( $parts[2] ) ) {
 			return $parts[2];
 		}
@@ -3181,11 +3181,11 @@ function dc_swp_ssga4_should_fire_once( string $event_name ): bool {
 if ( class_exists( 'WooCommerce' ) ) {
 
 	// ============================================================
-	// SSGA4 — WOOCOMMERCE EVENT HOOKS
+	// SSGA4 -- WOOCOMMERCE EVENT HOOKS
 	// ============================================================
 
 	/**
-	 * SSGA4: purchase event — fires on thank-you page.
+	 * SSGA4: purchase event -- fires on thank-you page.
 	 *
 	 * Uses _dc_swp_ga4_purchase_tracked meta to prevent double-firing.
 	 * Also honours legacy _ga4_purchase_tracked from the theme version.
@@ -3231,7 +3231,7 @@ if ( class_exists( 'WooCommerce' ) ) {
 	add_action( 'woocommerce_thankyou', 'dc_swp_ssga4_purchase', 20 );
 
 	/**
-	 * SSGA4: refund event — fires when an order is fully refunded.
+	 * SSGA4: refund event -- fires when an order is fully refunded.
 	 *
 	 * @since 2.0.0
 	 * @param int $order_id WooCommerce order ID.
@@ -3378,7 +3378,7 @@ if ( class_exists( 'WooCommerce' ) ) {
 	add_action( 'woocommerce_remove_cart_item', 'dc_swp_ssga4_remove_from_cart', 20, 2 );
 
 	/**
-	 * SSGA4: view_item event — single product page.
+	 * SSGA4: view_item event -- single product page.
 	 *
 	 * @since 2.0.0
 	 * @return void
@@ -3517,13 +3517,13 @@ if ( class_exists( 'WooCommerce' ) ) {
 
 
 // ============================================================
-// INLINE SCRIPT BLOCKS — PARTYTOWN WEB WORKER
+// INLINE SCRIPT BLOCKS -- PARTYTOWN WEB WORKER
 // Allows admins to paste complete third-party script blocks
 // (e.g. Meta Pixel, TikTok Pixel) directly into the admin UI.
 // Inline <script> blocks are output with type="text/partytown"
 // so Partytown executes them in a Web Worker. External src= scripts
 // inside a block are also echoed directly (they only exist in the
-// block — not in functions.php or WP's script queue) with the
+// block -- not in functions.php or WP's script queue) with the
 // consent-gated type so Partytown loads them in the worker too.
 // When Partytown is disabled, all scripts (inline and src=) are
 // echoed with defer on the main thread.
@@ -3538,7 +3538,7 @@ add_action( 'wp_head', 'dc_swp_output_inline_scripts', 3 );
  * Parse the admin-stored raw script paste and output each inline
  * <script> block with type="text/partytown" (consent granted) or
  * type="text/plain" (no consent). External src= scripts inside the
- * paste are also echoed — they exist only in the block and are never
+ * paste are also echoed -- they exist only in the block and are never
  * added to functions.php or via wp_enqueue_script, so the output
  * buffer has nothing to rewrite. When Partytown is active they are
  * stamped with the consent-gated type so Partytown runs them in the
@@ -3593,8 +3593,8 @@ function dc_swp_output_inline_scripts() {
 					// id (scripts that read their own DOM id to initialise),
 					// crossorigin (CORS/COEP compliance),
 					// referrerpolicy (privacy-focused analytics).
-					// Excluded: src, type, nonce — set by us; async/defer — controlled by us;
-					// integrity — SRI is incompatible with Partytown's proxied fetch.
+					// Excluded: src, type, nonce -- set by us; async/defer -- controlled by us;
+					// integrity -- SRI is incompatible with Partytown's proxied fetch.
 					$extra_attrs = '';
 					if ( preg_match_all( $allowed_attr_re, $m[1], $da_m, PREG_SET_ORDER ) ) {
 						foreach ( $da_m as $da ) {
@@ -3651,7 +3651,7 @@ function dc_swp_output_inline_scripts() {
 	$nonce_attr = '' !== $nonce ? ' nonce="' . esc_attr( $nonce ) . '"' : '';
 
 	if ( $pt_enabled ) {
-		// Partytown active — per-block consent gate via WP Consent API.
+		// Partytown active -- per-block consent gate via WP Consent API.
 		foreach ( $js_blocks as $blk ) {
 			$js              = $blk['content'];
 			$cat             = $blk['category'];
@@ -3669,7 +3669,7 @@ function dc_swp_output_inline_scripts() {
 				echo '<script type="text/plain"' . $consent_cat . $nonce_attr . ">\n" . $js . "\n</script>\n";
 			}
 		}
-		// External src= scripts from blocks — per-service consent gate.
+		// External src= scripts from blocks -- per-service consent gate.
 		foreach ( $src_blocks as $blk ) {
 			// If block has an explicit category, use it; otherwise resolve from hostname.
 			if ( '' !== ( $blk['category'] ?? '' ) ) {
@@ -3694,7 +3694,7 @@ function dc_swp_output_inline_scripts() {
 				echo '<script type="text/plain" src="' . esc_url( $blk['src'] ) . '"' . $blk['extra'] . $consent_cat . $nonce_attr . "></script>\n";
 			}
 		}
-		// <noscript> tracking pixels — only emit when the gate allows.
+		// <noscript> tracking pixels -- only emit when the gate allows.
 		$noscript_consent = dc_swp_has_consent_for( dc_swp_get_script_list_category() );
 		if ( $noscript_consent ) {
 			foreach ( $noscript_blocks as $ns_content ) {
@@ -3703,7 +3703,7 @@ function dc_swp_output_inline_scripts() {
 			}
 		}
 	} else {
-		// Partytown disabled — diagnostic mode: render scripts directly on the main
+		// Partytown disabled -- diagnostic mode: render scripts directly on the main
 		// thread with defer so they do not block page rendering. No consent gate
 		// is applied here; this mode is intended for local debugging only.
 		foreach ( $js_blocks as $blk ) {

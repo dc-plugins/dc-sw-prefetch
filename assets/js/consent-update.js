@@ -1,5 +1,5 @@
 /**
- * GCM v2 consent update — WP Consent API integration.
+ * GCM v2 consent update -- WP Consent API integration.
  *
  * Strategy:
  * 1. On DOMContentLoaded, read initial consent state via wp_has_consent()
@@ -136,7 +136,7 @@
 		poll();
 	}
 
-	// ── Initial read on DOMContentLoaded ─────────────────────────────────────
+	// -- Initial read on DOMContentLoaded -------------------------------------
 	// This script lives in the footer, so its DOMContentLoaded handler is
 	// registered after all <head> CMP scripts.
 	function onReady() {
@@ -151,7 +151,7 @@
 		onReady();
 	}
 
-	// ── WP Consent API: live consent changes ─────────────────────────────────
+	// -- WP Consent API: live consent changes ---------------------------------
 	// Fired by any WP-Consent-API-compliant CMP when the visitor updates
 	// their preferences via the banner. detail: { [category]: 'allow'|'deny' }
 	document.addEventListener( 'wp_listen_for_consent_change', function ( e ) {
@@ -168,7 +168,7 @@
 		} );
 	} );
 
-	// ── Fallback: watch for WP Consent API cookie changes ────────────────────
+	// -- Fallback: watch for WP Consent API cookie changes --------------------
 	// Some CMPs might not fire wp_listen_for_consent_change reliably.
 	// Poll consent state periodically to catch cookie-based changes.
 	// This runs independently of the initial polling for 60 seconds.
@@ -182,7 +182,7 @@
 		}
 	}, 500 );
 
-	// ── Storage event listener for cross-tab consent sync ────────────────────
+	// -- Storage event listener for cross-tab consent sync --------------------
 	// If user accepts consent in another tab, pick it up here.
 	window.addEventListener( 'storage', function () {
 		applyCurrentConsent();

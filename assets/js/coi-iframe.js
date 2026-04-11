@@ -1,5 +1,5 @@
 /**
- * COI iframe guard — stamps `credentialless` on cross-origin iframes before
+ * COI iframe guard -- stamps `credentialless` on cross-origin iframes before
  * their src navigation begins, required when COEP headers are active.
  *
  * Only emitted when Cross-Origin Isolation is enabled in the plugin settings.
@@ -20,13 +20,13 @@
 		if ( ! src || el.hasAttribute( 'credentialless' ) ) return;
 		try {
 			const u = new URL( src, location.href );
-			// Skip about:, javascript:, data: — only http(s) cross-origin iframes need this.
+			// Skip about:, javascript:, data: -- only http(s) cross-origin iframes need this.
 			if ( u.protocol === 'about:' || u.protocol === 'javascript:' || u.protocol === 'data:' ) return;
 			if ( u.origin !== location.origin ) _sa.call( el, 'credentialless', '' );
-		} catch { /* malformed URL — ignore */ }
+		} catch { /* malformed URL -- ignore */ }
 	}
 
-	// Intercept iframe.src = '...' assignment — fires before the value is applied.
+	// Intercept iframe.src = '...' assignment -- fires before the value is applied.
 	const d = Object.getOwnPropertyDescriptor( HTMLIFrameElement.prototype, 'src' );
 	if ( d && d.set ) {
 		Object.defineProperty( HTMLIFrameElement.prototype, 'src', {
@@ -36,7 +36,7 @@
 		} );
 	}
 
-	// Intercept iframe.setAttribute('src', '...') — same guarantee.
+	// Intercept iframe.setAttribute('src', '...') -- same guarantee.
 	HTMLIFrameElement.prototype.setAttribute = function ( n, v ) {
 		if ( n.toLowerCase() === 'src' ) ensureCredentialless( this, v );
 		_sa.call( this, n, v );

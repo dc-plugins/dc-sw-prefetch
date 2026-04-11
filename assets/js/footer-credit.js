@@ -1,5 +1,5 @@
 /**
- * Footer credit — finds the first © symbol in the footer and wraps it with a link.
+ * Footer credit -- finds the first © symbol in the footer and wraps it with a link.
  * Data injected by PHP via wp_localize_script as dcSwpFooterCreditData.
  *
  * @package DC_Service_Worker_Prefetcher

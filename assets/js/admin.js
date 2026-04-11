@@ -1,5 +1,5 @@
 /**
- * Admin UI — autodetect scripts + inline script blocks accordion.
+ * Admin UI -- autodetect scripts + inline script blocks accordion.
  * Data injected by PHP via wp_localize_script as dcSwpAdminData.
  *
  * @package DC_Service_Worker_Prefetcher
@@ -7,7 +7,7 @@
 
 /* global dcSwpAdminData */
 
-// ── Partytown Script List (per-entry rows) ───────────────────────────────────
+// -- Partytown Script List (per-entry rows) -----------------------------------
 ( function ( $ ) {
 	const scriptEntries   = ( dcSwpAdminData.scriptListEntries || [] ).map( function ( e ) {
 		return { pattern: e.pattern || '', category: e.category || 'marketing' };
@@ -76,7 +76,7 @@
 		$row.find( '.dc-swp-sl-pattern' ).focus();
 	} );
 
-	// Live edit — pattern.
+	// Live edit -- pattern.
 	$( document ).on( 'input', '.dc-swp-sl-pattern', function () {
 		const idx = $( this ).closest( '.dc-swp-sl-row' ).data( 'idx' );
 		if ( scriptEntries[ idx ] !== undefined ) {
@@ -84,7 +84,7 @@
 		}
 	} );
 
-	// Live edit — category.
+	// Live edit -- category.
 	$( document ).on( 'change', '.dc-swp-sl-cat', function () {
 		const idx = $( this ).closest( '.dc-swp-sl-row' ).data( 'idx' );
 		if ( scriptEntries[ idx ] !== undefined ) {
@@ -127,7 +127,7 @@
 
 } )( jQuery );
 
-// ── Autodetect scripts ───────────────────────────────────────────────────────
+// -- Autodetect scripts -------------------------------------------------------
 jQuery( function ( $ ) {
 	const nonce        = dcSwpAdminData.nonce;
 	const noScriptsMsg = dcSwpAdminData.noScriptsMsg;
@@ -185,7 +185,7 @@ jQuery( function ( $ ) {
 	} );
 } );
 
-// ── Inline script blocks accordion ──────────────────────────────────────────
+// -- Inline script blocks accordion ------------------------------------------
 ( function ( $ ) {
 	let blocks      = dcSwpAdminData.blocks;
 	const noBlocksMsg  = dcSwpAdminData.noBlocksMsg;
@@ -451,7 +451,7 @@ jQuery( function ( $ ) {
 		patchBlock( $( this ).closest( '.dc-swp-blk-item' ).data( 'id' ), { label: $( this ).text().trim() } );
 	} );
 
-	// Live code edit — also refreshes the compatibility badge.
+	// Live code edit -- also refreshes the compatibility badge.
 	$( document ).on( 'input', '.dc-swp-blk-code', function () {
 		const $it  = $( this ).closest( '.dc-swp-blk-item' );
 		const id   = $it.data( 'id' );
@@ -501,7 +501,7 @@ jQuery( function ( $ ) {
 	} );
 } )( jQuery );
 
-// ── Google Tag Management — panel switcher + wizard ─────────────────────────
+// -- Google Tag Management -- panel switcher + wizard -------------------------
 ( function ( $ ) {
 	const GTM_REGEX = /^(GTM-[A-Z0-9]{4,10}|G-[A-Z0-9]{6,}|UA-\d{4,}-\d+)$/i;
 	const gtmStr    = ( dcSwpAdminData.gtm || {} );
@@ -524,7 +524,7 @@ jQuery( function ( $ ) {
 		}
 	}
 
-	// ── Wizard step navigation ──────────────────────────────────────────────
+	// -- Wizard step navigation ----------------------------------------------
 
 	function goToStep( step ) {
 		$( '.dc-swp-wizard-step' ).removeClass( 'dc-swp-active' ).hide();
@@ -537,7 +537,7 @@ jQuery( function ( $ ) {
 		} );
 	}
 
-	// ── Init ────────────────────────────────────────────────────────────────
+	// -- Init ----------------------------------------------------------------
 	const initMode = $( 'input[name="dc_swp_gtm_mode"]:checked' ).val() || 'off';
 	showPanel( initMode );
 	$( '#dc-swp-consent-mode-row' ).toggle( 'off' !== initMode );
@@ -563,7 +563,7 @@ jQuery( function ( $ ) {
 		}
 	}
 
-	// ── Mode radio change ───────────────────────────────────────────────────
+	// -- Mode radio change ---------------------------------------------------
 	$( 'input[name="dc_swp_gtm_mode"]' ).on( 'change', function () {
 		const mode = $( this ).val();
 		showPanel( mode );
@@ -586,7 +586,7 @@ jQuery( function ( $ ) {
 		}
 	} );
 
-	// ── Own mode: live validation ───────────────────────────────────────────
+	// -- Own mode: live validation -------------------------------------------
 	$( '#dc-swp-gtm-id-own' ).on( 'input', function () {
 		const val     = $( this ).val().trim();
 		const $status = $( '#dc-swp-gtm-id-status' );
@@ -605,7 +605,7 @@ jQuery( function ( $ ) {
 		}
 	} ).trigger( 'input' );
 
-	// ── Detect mode: scan button ────────────────────────────────────────────
+	// -- Detect mode: scan button --------------------------------------------
 	$( '#dc-swp-gtm-detect-btn' ).on( 'click', function () {
 		const $btn  = $( this );
 		const $spin = $( '#dc-swp-gtm-detect-spinner' );
@@ -623,7 +623,7 @@ jQuery( function ( $ ) {
 					const safeSource = $( '<span>' ).text( r.data.source || r.data.plugin || '' ).html();
 
 					// If googletagmanager.com is already in the Partytown Script List,
-					// auto-switch to detect mode — the tag is already being offloaded.
+					// auto-switch to detect mode -- the tag is already being offloaded.
 					const ptEntries   = dcSwpAdminData.scriptListEntries || [];
 					const alreadyInPt = ptEntries.some( function ( e ) {
 						return ( e.pattern || '' ).toLowerCase().indexOf( 'googletagmanager.com' ) !== -1;
@@ -665,7 +665,7 @@ jQuery( function ( $ ) {
 		$( this ).replaceWith( msg );
 	} );
 
-	// ── Wizard: ID validation in step 2 ────────────────────────────────────
+	// -- Wizard: ID validation in step 2 ------------------------------------
 	$( '#dc-swp-gtm-wizard-id' ).on( 'input', function () {
 		const val     = $( this ).val().trim();
 		const valid   = validId( val );
@@ -682,14 +682,14 @@ jQuery( function ( $ ) {
 		}
 	} ).trigger( 'input' );
 
-	// ── Wizard: next / prev navigation ─────────────────────────────────────
+	// -- Wizard: next / prev navigation -------------------------------------
 	$( document ).on( 'click', '.dc-swp-wizard-btn', function () {
 		const dir  = $( this ).data( 'dir' );
 		const step = parseInt( $( this ).data( 'step' ), 10 );
 		goToStep( 'next' === dir ? step + 1 : step - 1 );
 	} );
 
-	// ── Wizard: complete ────────────────────────────────────────────────────
+	// -- Wizard: complete ----------------------------------------------------
 	$( '#dc-swp-wizard-complete' ).on( 'click', function () {
 		const id = $( '#dc-swp-gtm-wizard-id' ).val().trim();
 		if ( validId( id ) ) {
@@ -701,7 +701,7 @@ jQuery( function ( $ ) {
 	} );
 } )( jQuery );
 
-// ── GCM v2 conflict + WP Consent API check ─────────────────────────────────
+// -- GCM v2 conflict + WP Consent API check ---------------------------------
 // Fired when the user enables the GCM v2 toggle, and on page load when it
 // is already enabled. Fetches the homepage via AJAX and warns if another
 // plugin's gtag('consent','default',...) stub is detected, or if the
@@ -774,7 +774,7 @@ jQuery( function ( $ ) {
 	}
 } )( jQuery );
 
-// ── Consent Gate toggle — show/hide Script List category row + block category ─
+// -- Consent Gate toggle -- show/hide Script List category row + block category -
 ( function ( $ ) {
 	$( '#dc_swp_consent_gate' ).on( 'change', function () {
 		const on = $( this ).prop( 'checked' );
@@ -784,7 +784,7 @@ jQuery( function ( $ ) {
 	} );
 } )( jQuery );
 
-// ── Server-Side GA4 (SSGA4) — mode-based setup, wizard, detect, test ────────
+// -- Server-Side GA4 (SSGA4) -- mode-based setup, wizard, detect, test --------
 ( function ( $ ) {
 	const ssga4 = dcSwpAdminData.ssga4 || {};
 	const MID_REGEX = /^G-[A-Z0-9]{6,}$/i;
@@ -843,7 +843,7 @@ jQuery( function ( $ ) {
 		$( '#dc-swp-ssga4-events-row, #dc-swp-ssga4-endpoint-row' ).toggle( 'off' !== mode );
 	}
 
-	// ── Wizard step navigation (5 steps) ────────────────────────────────────────
+	// -- Wizard step navigation (5 steps) ----------------------------------------
 	function goToSsga4Step( step ) {
 		$( '.dc-swp-ssga4-wizard-step' ).removeClass( 'dc-swp-active' ).hide();
 		$( '#dc-swp-ssga4-wizard-step-' + step ).addClass( 'dc-swp-active' ).show();
@@ -869,7 +869,7 @@ jQuery( function ( $ ) {
 		$( '#dc-swp-ssga4-gtm-conflict' ).toggle( clientTag && isGtmActive() );
 	}
 
-	// ── Init ────────────────────────────────────────────────────────────────────
+	// -- Init --------------------------------------------------------------------
 	const initMode = $( 'input[name="dc_swp_ssga4_mode"]:checked' ).val() || 'off';
 	showSsga4Panel( initMode );
 	goToSsga4Step( 1 );
@@ -901,7 +901,7 @@ jQuery( function ( $ ) {
 		checkGtmConflict();
 	}
 
-	// ── Mode radio change ───────────────────────────────────────────────────────
+	// -- Mode radio change -------------------------------------------------------
 	$( 'input[name="dc_swp_ssga4_mode"]' ).on( 'change', function () {
 		const mode = $( this ).val();
 		showSsga4Panel( mode );
@@ -932,7 +932,7 @@ jQuery( function ( $ ) {
 		}
 	} );
 
-	// ── Own mode: live validation ───────────────────────────────────────────────
+	// -- Own mode: live validation -----------------------------------------------
 	$( '#dc-swp-ssga4-mid-own' ).on( 'input', function () {
 		const val = $( this ).val().trim();
 		const $status = $( '#dc-swp-ssga4-mid-own-status' );
@@ -944,7 +944,7 @@ jQuery( function ( $ ) {
 		}
 	} ).trigger( 'input' );
 
-	// ── Detect mode: scan button ────────────────────────────────────────────────
+	// -- Detect mode: scan button ------------------------------------------------
 	$( '#dc-swp-ssga4-detect-btn' ).on( 'click', function () {
 		const $btn = $( this );
 		const $spin = $( '#dc-swp-ssga4-detect-spinner' );
@@ -973,7 +973,7 @@ jQuery( function ( $ ) {
 		} ).fail( function () { $btn.prop( 'disabled', false ); $spin.hide(); } );
 	} );
 
-	// ── Wizard step 2: MID validation ───────────────────────────────────────────
+	// -- Wizard step 2: MID validation -------------------------------------------
 	$( '#dc-swp-ssga4-wizard-mid' ).on( 'input', function () {
 		const val = $( this ).val().trim();
 		const valid = validMid( val );
@@ -987,7 +987,7 @@ jQuery( function ( $ ) {
 		}
 	} ).trigger( 'input' );
 
-	// ── Wizard step 2: Auto-detect button ───────────────────────────────────────
+	// -- Wizard step 2: Auto-detect button ---------------------------------------
 	$( '#dc-swp-ssga4-wizard-detect-btn' ).on( 'click', function () {
 		const $btn = $( this );
 		const $spin = $( '#dc-swp-ssga4-wizard-detect-spinner' );
@@ -1003,26 +1003,26 @@ jQuery( function ( $ ) {
 		} ).fail( function () { $btn.prop( 'disabled', false ); $spin.hide(); } );
 	} );
 
-	// ── Wizard step 3: API Secret validation ────────────────────────────────────
+	// -- Wizard step 3: API Secret validation ------------------------------------
 	$( '#dc-swp-ssga4-wizard-secret' ).on( 'input', function () {
 		const val = $( this ).val().trim();
 		$( '#dc-swp-ssga4-wizard-step-3 .dc-swp-ssga4-wizard-btn[data-dir="next"]' ).prop( 'disabled', ! val );
 	} ).trigger( 'input' );
 
-	// ── Wizard step 4: GTM conflict check ───────────────────────────────────────
+	// -- Wizard step 4: GTM conflict check ---------------------------------------
 	$( '#dc-swp-ssga4-wizard-client-tag' ).on( 'change', checkGtmConflict );
 	$( 'input[name="dc_swp_gtm_mode"]' ).on( 'change', function () {
 		setTimeout( checkGtmConflict, 50 );
 	} );
 
-	// ── Wizard: next / prev navigation ──────────────────────────────────────────
+	// -- Wizard: next / prev navigation ------------------------------------------
 	$( document ).on( 'click', '.dc-swp-ssga4-wizard-btn', function () {
 		const dir = $( this ).data( 'dir' );
 		const step = parseInt( $( this ).data( 'step' ), 10 );
 		goToSsga4Step( 'next' === dir ? step + 1 : step - 1 );
 	} );
 
-	// ── Wizard: complete ────────────────────────────────────────────────────────
+	// -- Wizard: complete --------------------------------------------------------
 	$( '#dc-swp-ssga4-wizard-complete' ).on( 'click', function () {
 		const mid = $( '#dc-swp-ssga4-wizard-mid' ).val().trim();
 		const secret = $( '#dc-swp-ssga4-wizard-secret' ).val().trim();
@@ -1034,7 +1034,7 @@ jQuery( function ( $ ) {
 		}
 	} );
 
-	// ── Test connection buttons (shared handler) ────────────────────────────────
+	// -- Test connection buttons (shared handler) --------------------------------
 	$( document ).on( 'click', '.dc-swp-ssga4-test-btn', function () {
 		const $btn = $( this );
 		const $spinner = $btn.siblings( '.dc-swp-ssga4-test-spinner' );
@@ -1065,7 +1065,7 @@ jQuery( function ( $ ) {
 			} else {
 				let msg = ssga4.testFail || 'Connection failed.';
 				if ( r.data && r.data.messages && r.data.messages.length ) {
-					msg += ' — ' + r.data.messages.map( function ( m ) { return m.description || m.validationCode; } ).join( '; ' );
+					msg += ' -- ' + r.data.messages.map( function ( m ) { return m.description || m.validationCode; } ).join( '; ' );
 				}
 				$result.html( '<span style="color:#d63638">\u2718 ' +
 					$( '<span>' ).text( msg ).html() +
@@ -1078,7 +1078,7 @@ jQuery( function ( $ ) {
 		} );
 	} );
 
-	// ── Form submit: sync all hidden fields ─────────────────────────────────────
+	// -- Form submit: sync all hidden fields -------------------------------------
 	$( 'form.pwa-cache-settings' ).on( 'submit', function () {
 		// Sync credentials.
 		syncSsga4Credentials();
@@ -1096,7 +1096,7 @@ jQuery( function ( $ ) {
 	} );
 } )( jQuery );
 
-// ── Performance Metrics reset button ────────────────────────────────────────
+// -- Performance Metrics reset button ----------------------------------------
 ( function ( $ ) {
 	const perf = ( dcSwpAdminData.perf ) || {};
 	$( '#dc-swp-perf-reset-btn' ).on( 'click', function () {
