@@ -10,3 +10,6 @@ phpcs.xml
 README.md
 scripts
 vendor
+node_modules
+package.json
+package-lock.json

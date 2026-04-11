@@ -173,12 +173,6 @@ Provided by Mixpanel, Inc. Sends page views, custom events, and an anonymous vis
 
 The administrator may freely add other services through the Partytown Script List. The plugin imposes no restriction on which services can be configured, beyond the security allowlist that prevents the CORS proxy from being used as an open relay. Refer to each service's own privacy policy and terms of service for details on what data they collect.
 
-== Screenshots ==
-
-1. Admin settings page (English) showing Partytown version and changelog link.
-2. Admin settings page (Danish).
-3. DevTools showing Partytown service worker registered at `/~partytown/`.
-
 == Changelog ==
 
 = 2.3.0 =
@@ -337,6 +331,15 @@ The administrator may freely add other services through the Partytown Script Lis
 * Bilingual admin UI (English default, Danish auto-detected).
 
 == Upgrade Notice ==
+
+= 2.3.0 =
+New: Early Resource Hints, Partytown Health Monitor, Performance Metrics Dashboard, and Per-Page Exclusion Patterns.
+
+= 2.0.0 =
+New: Server-Side GA4 (SSGA4) sends WooCommerce ecommerce events directly to GA4 via Measurement Protocol — independent of browser consent and ad-blockers.
+
+= 1.6.0 =
+Breaking: All `dampcig_pwa_*` options renamed to `dc_swp_*`. Existing settings are migrated automatically on activation.
 
 = 1.0.0 =
 Initial release.

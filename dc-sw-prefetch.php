@@ -521,11 +521,6 @@ function dc_swp_fallback_cache_headers() {
 // PARTYTOWN — serve ~partytown/ lib files from the plugin
 // ============================================================
 
-/**
- * Partytown lib directory relative to the WordPress root.
- * Partytown itself is registered at this virtual path.
- */
-define( 'DC_SWP_PARTYTOWN_LIB', '/wp-content/plugins/dc-sw-prefetch/assets/partytown/' );
 define( 'DC_SWP_VERSION', '2.3.0' );
 
 add_action( 'init', 'dc_swp_serve_partytown_files', 1 );
@@ -3135,6 +3130,8 @@ function dc_swp_ssga4_should_fire_once( string $event_name ): bool {
 	return true;
 }
 
+if ( class_exists( 'WooCommerce' ) ) {
+
 // ============================================================
 // SSGA4 — WOOCOMMERCE EVENT HOOKS
 // ============================================================
@@ -3467,6 +3464,8 @@ function dc_swp_ssga4_add_shipping_info(): void {
 	);
 }
 add_action( 'woocommerce_checkout_after_customer_details', 'dc_swp_ssga4_add_shipping_info', 20 );
+
+} // end if class_exists( 'WooCommerce' )
 
 
 // ============================================================
