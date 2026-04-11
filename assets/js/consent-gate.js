@@ -14,6 +14,9 @@
  * @package DC_Service_Worker_Proxy
  * @since   1.9.0
  */
+
+/* global wp_has_consent, wp_listen_for_consent_change */
+
 ( function () {
 	'use strict';
 
@@ -28,7 +31,7 @@
 			return;
 		}
 
-		var scripts = document.querySelectorAll(
+		const scripts = document.querySelectorAll(
 			'script[type="text/plain"][data-wp-consent-category="' + category + '"]'
 		);
 
@@ -36,10 +39,10 @@
 			return;
 		}
 
-		var changed = false;
+		let changed = false;
 
 		scripts.forEach( function ( oldScript ) {
-			var newScript = document.createElement( 'script' );
+			const newScript = document.createElement( 'script' );
 
 			// Copy all attributes except type.
 			Array.prototype.forEach.call( oldScript.attributes, function ( attr ) {
@@ -71,7 +74,7 @@
 	 * are now granted.
 	 */
 	function checkAll() {
-		var categories = [ 'marketing', 'statistics', 'statistics-anonymous', 'functional', 'preferences' ];
+		const categories = [ 'marketing', 'statistics', 'statistics-anonymous', 'functional', 'preferences' ];
 		categories.forEach( unblockCategory );
 	}
 

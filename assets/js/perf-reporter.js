@@ -1,15 +1,16 @@
 /* DC SW Prefetch — Performance Reporter */
+/* global PerformanceObserver, FormData, sessionStorage, requestIdleCallback */
 ( function () {
 	if ( ! window.dcSwpPerfData ) return;
-	var data = window.dcSwpPerfData;
-	var nonce = data.nonce;
-	var ajaxUrl = data.ajaxUrl;
-	var sessionKey = data.sessionKey;
+	const data = window.dcSwpPerfData;
+	const nonce = data.nonce;
+	const ajaxUrl = data.ajaxUrl;
+	const sessionKey = data.sessionKey;
 	if ( sessionStorage.getItem( sessionKey ) ) return;
 
-	var tbt = 0;
-	var inp = 0;
-	var LONG_TASK_THRESHOLD = 50;
+	let tbt = 0;
+	let inp = 0;
+	const LONG_TASK_THRESHOLD = 50;
 
 	try {
 		new PerformanceObserver( function ( list ) {
@@ -17,7 +18,7 @@
 				tbt += Math.max( 0, e.duration - LONG_TASK_THRESHOLD );
 			} );
 		} ).observe( { type: 'longtask', buffered: true } );
-	} catch ( e ) { /* not supported */ }
+	} catch { /* not supported */ }
 
 	try {
 		new PerformanceObserver( function ( list ) {
@@ -25,11 +26,11 @@
 				if ( e.interactionId > 0 ) inp = Math.max( inp, e.duration );
 			} );
 		} ).observe( { type: 'event', buffered: true, durationThreshold: 16 } );
-	} catch ( e ) { /* not supported */ }
+	} catch { /* not supported */ }
 
 	function report() {
 		sessionStorage.setItem( sessionKey, '1' );
-		var formData = new FormData();
+		const formData = new FormData();
 		formData.append( 'action', 'dc_swp_perf_report' );
 		formData.append( 'nonce', nonce );
 		formData.append( 'tbt', tbt.toFixed( 2 ) );
@@ -41,7 +42,7 @@
 		}
 	}
 
-	var IDLE_DELAY = 10000;
+	const IDLE_DELAY = 10000;
 	if ( 'requestIdleCallback' in window ) {
 		requestIdleCallback( report, { timeout: IDLE_DELAY } );
 	} else {

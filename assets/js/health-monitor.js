@@ -1,16 +1,17 @@
 /* DC SW Prefetch — Partytown Health Monitor */
+/* global PerformanceObserver, FormData */
 ( function () {
 	if ( ! window.dcSwpHealthData ) return;
-	var data = window.dcSwpHealthData;
-	var hosts = data.hosts;
-	var nonce = data.nonce;
-	var ajaxUrl = data.ajaxUrl;
-	var timeout = data.timeout;
+	const data = window.dcSwpHealthData;
+	const hosts = data.hosts;
+	const nonce = data.nonce;
+	const ajaxUrl = data.ajaxUrl;
+	const timeout = data.timeout;
 	if ( ! hosts || ! hosts.length ) return;
 
-	var observed = new Set();
+	const observed = new Set();
 
-	var observer = new PerformanceObserver( function ( list ) {
+	const observer = new PerformanceObserver( function ( list ) {
 		list.getEntries().forEach( function ( entry ) {
 			if ( entry.initiatorType !== 'script' && entry.initiatorType !== 'fetch' && entry.initiatorType !== 'xmlhttprequest' ) return;
 			hosts.forEach( function ( host ) {
@@ -21,7 +22,7 @@
 
 	try {
 		observer.observe( { type: 'resource', buffered: true } );
-	} catch ( e ) {
+	} catch {
 		return; // PerformanceObserver not supported — skip silently.
 	}
 
@@ -29,7 +30,7 @@
 		observer.disconnect();
 		hosts.forEach( function ( host ) {
 			if ( ! observed.has( host ) ) {
-				var formData = new FormData();
+				const formData = new FormData();
 				formData.append( 'action', 'dc_swp_health_report' );
 				formData.append( 'nonce', nonce );
 				formData.append( 'host', host );
