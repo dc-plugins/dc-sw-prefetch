@@ -6,7 +6,7 @@
  * Plugin Name: DC Script Worker Proxy
  * Plugin URI:  https://github.com/dc-plugins/dc-sw-prefetch
  * Description: Offloads third-party scripts (GTM, Pixel, Analytics…) to a Web Worker via Partytown with consent-aware loading. Fully vendored — no build step required.
- * Version:     2.3.2
+ * Version:     2.3.3
  * Author:      lennilg
  * Author URI:  https://github.com/lennilg
  * License:           GPL-2.0-or-later
@@ -466,7 +466,7 @@ function dc_swp_cross_origin_isolation_headers() {
 // PARTYTOWN — serve ~partytown/ lib files from the plugin
 // ============================================================
 
-define( 'DC_SWP_VERSION', '2.3.2' );
+define( 'DC_SWP_VERSION', '2.3.3' );
 
 add_action( 'init', 'dc_swp_serve_partytown_files', 1 );
 
@@ -824,7 +824,7 @@ function dc_swp_inject_consent_mode_default() {
 // Enqueued by dc_swp_enqueue_consent_scripts() below.
 // ============================================================
 
-add_action( 'wp_enqueue_scripts', 'dc_swp_enqueue_consent_scripts', 1 );
+add_action( 'wp_enqueue_scripts', 'dc_swp_enqueue_consent_scripts', 99 );
 
 /**
  * Enqueue the GCM v2 consent update script.
@@ -842,10 +842,17 @@ function dc_swp_enqueue_consent_scripts() {
 		return;
 	}
 
+	// Depend on WP Consent API if available, so our script loads AFTER theirs.
+	// This ensures wp_has_consent() exists when consent-update.js runs.
+	$deps = array();
+	if ( wp_script_is( 'wp-consent-api', 'registered' ) || wp_script_is( 'wp-consent-api', 'enqueued' ) ) {
+		$deps[] = 'wp-consent-api';
+	}
+
 	wp_register_script(
 		'dc-swp-consent-update',
 		plugins_url( 'assets/js/consent-update.js', __FILE__ ),
-		array(),
+		$deps,
 		DC_SWP_VERSION,
 		array( 'in_footer' => true )
 	);
@@ -874,7 +881,7 @@ function dc_swp_enqueue_consent_scripts() {
 // text/partytown once the required category is granted.
 // ============================================================
 
-add_action( 'wp_enqueue_scripts', 'dc_swp_enqueue_consent_gate_script', 2 );
+add_action( 'wp_enqueue_scripts', 'dc_swp_enqueue_consent_gate_script', 100 );
 
 /**
  * Enqueue the consent-gate.js unblocking script when the Consent Gate is enabled.
@@ -896,10 +903,16 @@ function dc_swp_enqueue_consent_gate_script() {
 		return;
 	}
 
+	// Depend on WP Consent API if available.
+	$deps = array();
+	if ( wp_script_is( 'wp-consent-api', 'registered' ) || wp_script_is( 'wp-consent-api', 'enqueued' ) ) {
+		$deps[] = 'wp-consent-api';
+	}
+
 	wp_register_script(
 		'dc-swp-consent-gate',
 		plugins_url( 'assets/js/consent-gate.js', __FILE__ ),
-		array(),
+		$deps,
 		DC_SWP_VERSION,
 		array( 'in_footer' => true )
 	);
