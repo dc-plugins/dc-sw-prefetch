@@ -1,7 +1,9 @@
+# Copyright (C) 2026 Dampcig
+# This file is distributed under the same license as the DC Script Worker Prefetcher plugin.
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: DC Script Worker Prefetcher 2.5.0\n"
+"Project-Id-Version: DC Script Worker Prefetcher 2.3.0\n"
 "Report-Msgid-Bugs-To: https://www.dampcig.dk\n"
 "POT-Creation-Date: 2026-04-11 18:04+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
