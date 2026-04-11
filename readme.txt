@@ -84,6 +84,13 @@ The optional Consent Gate delegates consent decisions to the [WP Consent API](ht
 * Each inline script block has a configurable consent category: marketing (default), statistics, statistics-anonymous, functional, or preferences.
 * GCM v2-aware services and Meta LDU scripts bypass the gate (they self-restrict internally).
 
+== Screenshots ==
+
+1. Admin settings — Partytown Integration toggle, Consent Gate, and Script List configuration.
+2. Admin settings — Google Consent Mode v2 options including URL Passthrough and Ads Data Redaction.
+3. DevTools Performance panel — Third-party scripts (Facebook, Clarity, GTM, Ahrefs) running in Web Worker with minimal main thread impact.
+4. Lighthouse Treemap comparison — Before: GTM and Facebook dominate; After: Partytown offloads heavy scripts, jQuery remains first-party only.
+
 == Installation ==
 
 1. Upload the `dc-sw-prefetch` folder to `/wp-content/plugins/`.

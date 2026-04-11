@@ -424,7 +424,7 @@ function dc_swp_footer_credit_js() {
 	}
 
 	$url   = 'https://www.dampcig.dk';
-	$title = 'Powered by Dampcig.dk';
+	$title = esc_html__( 'Powered by Dampcig.dk', 'dc-sw-prefetch' );
 	wp_register_script( 'dc-swp-footer-credit', plugins_url( 'assets/js/footer-credit.js', __FILE__ ), array(), DC_SWP_VERSION, array( 'in_footer' => true ) );
 	wp_localize_script(
 		'dc-swp-footer-credit',
