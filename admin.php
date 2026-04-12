@@ -381,7 +381,7 @@ function dc_swp_admin_page_html() {
 		}
 		update_option( 'dc_swp_ssga4_events', wp_json_encode( $_ssga4_events_clean ) );
 		// -- Meta CAPI -------------------------------------------------------
-		$_valid_capi_modes = array( 'off', 'own', 'detect' );
+		$_valid_capi_modes = array( 'off', 'own', 'detect', 'managed' );
 		$_capi_mode_raw    = sanitize_text_field( wp_unslash( $_POST['dc_swp_capi_mode'] ?? 'off' ) );
 		$_capi_mode        = in_array( $_capi_mode_raw, $_valid_capi_modes, true ) ? $_capi_mode_raw : 'off';
 		update_option( 'dc_swp_capi_mode', $_capi_mode );
@@ -809,7 +809,7 @@ function dc_swp_admin_page_html() {
 							<input type="checkbox" name="dc_swp_meta_ldu" value="yes" <?php checked( $meta_ldu, true ); ?>>
 							<span class="pwa-slider"></span>
 						</label>
-						<p class="description"><?php echo wp_kses_post( __( 'Meta/Facebook Pixel does not support Google Consent Mode v2 -- it uses its own Limited Data Use (LDU) consent API. Injects an fbq stub + <code>fbq("dataProcessingOptions",["LDU"],0,0)</code> in &lt;head&gt; before Partytown and Facebook Pixel scripts load. The Meta Pixel always runs as <code>text/partytown</code> -- Meta applies LDU restrictions internally (data not used for ad targeting). Your CMP does not need to block the script via <code>text/plain</code>. Requires Meta Pixel to be added via the Partytown Script List or an Inline Script Block.', 'dc-sw-prefetch' ) ); ?></p>
+						<p class="description"><?php echo wp_kses_post( __( 'Meta/Facebook Pixel does not support Google Consent Mode v2 — it uses its own Limited Data Use (LDU) consent API. Injects an <code>fbq</code> stub + <code>fbq("dataProcessingOptions",["LDU"],0,0)</code> in &lt;head&gt; before Partytown and Facebook Pixel scripts load. The Meta Pixel always runs as <code>text/partytown</code> — Meta applies LDU restrictions internally (data not used for ad targeting). Your CMP does not need to block the script via <code>text/plain</code>. <strong>When the WP Consent API is active:</strong> LDU is applied conditionally — consented visitors receive <code>fbq("consent","grant")</code> + <code>fbq("dataProcessingOptions",[],0,0)</code> (unrestricted), while non-consented visitors receive <code>fbq("consent","revoke")</code> + full LDU. Server-side CAPI payloads automatically mirror this state via <code>data_processing_options</code>. Requires Meta Pixel to be added via the Partytown Script List or an Inline Script Block.', 'dc-sw-prefetch' ) ); ?></p>
 					</td>
 				</tr>
 				<tr valign="top">
@@ -1141,9 +1141,10 @@ function dc_swp_admin_page_html() {
 						<fieldset>
 						<?php
 						$_capi_modes = array(
-							'off'    => __( 'Disabled -- no server-side Meta CAPI events', 'dc-sw-prefetch' ),
-							'own'    => __( 'Enter Credentials -- I have my Pixel ID and Access Token', 'dc-sw-prefetch' ),
-							'detect' => __( 'Auto-Detect -- find Meta Pixel ID in page source', 'dc-sw-prefetch' ),
+							'off'     => __( 'Disabled -- no server-side Meta CAPI events', 'dc-sw-prefetch' ),
+							'own'     => __( 'Enter Credentials -- I have my Pixel ID and Access Token', 'dc-sw-prefetch' ),
+							'detect'  => __( 'Auto-Detect -- find Meta Pixel ID in page source', 'dc-sw-prefetch' ),
+							'managed' => __( 'Getting Started -- step-by-step CAPI configuration', 'dc-sw-prefetch' ),
 						);
 						foreach ( $_capi_modes as $_cv => $_cl ) :
 							?>
@@ -1211,6 +1212,191 @@ function dc_swp_admin_page_html() {
 							</div>
 							<p class="description" style="margin-top:8px"><?php echo esc_html( __( 'Scans your homepage for an existing Meta Pixel and extracts the Pixel ID. You still need to paste your Access Token.', 'dc-sw-prefetch' ) ); ?></p>
 						</div>
+
+						<!-- Panel: managed (Getting Started wizard) -->
+						<div id="dc-swp-capi-panel-managed" class="dc-swp-capi-panel" <?php echo 'managed' !== $capi_mode ? 'style="display:none"' : ''; ?>>
+							<!-- Step indicator -->
+							<div class="dc-swp-step-indicator dc-swp-capi-steps" style="margin-bottom:16px">
+								<?php for ( $_cs = 1; $_cs <= 5; $_cs++ ) : ?>
+									<span class="dc-swp-step-dot" data-step="<?php echo (int) $_cs; ?>"><?php echo (int) $_cs; ?></span>
+									<?php if ( $_cs < 5 ) : ?><span class="dc-swp-step-connector"></span><?php endif; ?>
+								<?php endfor; ?>
+							</div>
+
+							<!-- Step 1: Create a Dataset -->
+							<div class="dc-swp-wizard-step dc-swp-capi-wizard-step" id="dc-swp-capi-wizard-step-1">
+								<h4 style="margin:0 0 8px 0;font-size:13px"><?php echo esc_html( __( 'Step 1 -- Create a Meta Dataset', 'dc-sw-prefetch' ) ); ?></h4>
+								<p style="margin:0 0 10px"><?php echo esc_html( __( 'A Dataset is Meta\'s server-side data receiver. You need one to connect this plugin to your Meta account.', 'dc-sw-prefetch' ) ); ?></p>
+								<ol style="margin:0 0 10px 18px">
+									<li><?php echo wp_kses_post( __( 'Go to <strong>Meta Events Manager</strong> &rarr; <strong>Connect Data Sources</strong>', 'dc-sw-prefetch' ) ); ?></li>
+									<li><?php echo wp_kses_post( __( 'Select <strong>Web</strong> &rarr; <strong>Conversions API</strong>', 'dc-sw-prefetch' ) ); ?></li>
+									<li><?php echo wp_kses_post( __( 'Click <strong>Create a new dataset</strong> and name it (e.g. your site name)', 'dc-sw-prefetch' ) ); ?></li>
+									<li><?php echo wp_kses_post( __( 'Copy the <strong>Pixel ID</strong> (a 15&ndash;16 digit number) shown after creation', 'dc-sw-prefetch' ) ); ?></li>
+								</ol>
+								<p class="description" style="margin-bottom:10px"><?php echo wp_kses_post( __( '<strong>You do not need Meta\'s &ldquo;Setup Events&rdquo; wizard</strong> &mdash; our plugin handles all event configuration here.', 'dc-sw-prefetch' ) ); ?></p>
+								<label style="display:block;margin-bottom:4px;font-weight:500"><?php echo esc_html( __( 'Pixel ID', 'dc-sw-prefetch' ) ); ?></label>
+								<input type="text" id="dc-swp-capi-wizard-pixel"
+									class="regular-text" style="font-family:monospace"
+									value="<?php echo esc_attr( $capi_pixel_id ); ?>"
+									placeholder="1234567890123456">
+								<span id="dc-swp-capi-wizard-pixel-status" style="margin-left:8px"></span>
+								<div class="dc-swp-wizard-nav">
+									<button type="button" class="button button-primary dc-swp-capi-wizard-btn"
+										data-dir="next" data-step="1" disabled>
+										<?php echo esc_html( __( 'Next', 'dc-sw-prefetch' ) ); ?> &rarr;
+									</button>
+								</div>
+							</div>
+
+							<!-- Step 2: Generate System User Token -->
+							<div class="dc-swp-wizard-step dc-swp-capi-wizard-step" id="dc-swp-capi-wizard-step-2">
+								<h4 style="margin:0 0 8px 0;font-size:13px"><?php echo esc_html( __( 'Step 2 -- Generate a System User Token', 'dc-sw-prefetch' ) ); ?></h4>
+								<p style="margin:0 0 10px"><?php echo esc_html( __( 'This token authorises our server to send events to your Dataset. It must be a System User token, not a personal account token.', 'dc-sw-prefetch' ) ); ?></p>
+								<ol style="margin:0 0 10px 18px">
+									<li><?php echo wp_kses_post( __( 'Go to <strong>Meta Business Suite</strong> &rarr; <strong>Business Settings</strong> &rarr; <strong>System Users</strong>', 'dc-sw-prefetch' ) ); ?></li>
+									<li><?php echo wp_kses_post( __( 'Click <strong>Add</strong> and create a System User with <em>Employee</em> role', 'dc-sw-prefetch' ) ); ?></li>
+									<li><?php echo wp_kses_post( __( 'Click <strong>Add Assets</strong> &rarr; assign your new Dataset with <strong>Standard</strong> access', 'dc-sw-prefetch' ) ); ?></li>
+									<li><?php echo wp_kses_post( __( 'Click <strong>Generate New Token</strong>, enable <strong>ads_management</strong> permission, and copy the token', 'dc-sw-prefetch' ) ); ?></li>
+								</ol>
+								<label style="display:block;margin-bottom:4px;font-weight:500"><?php echo esc_html( __( 'Access Token', 'dc-sw-prefetch' ) ); ?></label>
+								<input type="password" id="dc-swp-capi-wizard-token"
+									class="regular-text" style="font-family:monospace"
+									value="<?php echo esc_attr( $capi_access_token ); ?>"
+									placeholder="<?php echo esc_attr( __( 'Paste your System User access token', 'dc-sw-prefetch' ) ); ?>"
+									autocomplete="off">
+								<div class="dc-swp-wizard-nav">
+									<button type="button" class="button dc-swp-capi-wizard-btn" data-dir="prev" data-step="2">
+										&larr; <?php echo esc_html( __( 'Back', 'dc-sw-prefetch' ) ); ?>
+									</button>
+									<button type="button" class="button button-primary dc-swp-capi-wizard-btn"
+										data-dir="next" data-step="2" disabled>
+										<?php echo esc_html( __( 'Next', 'dc-sw-prefetch' ) ); ?> &rarr;
+									</button>
+								</div>
+							</div>
+
+							<!-- Step 3: Verify Connection -->
+							<div class="dc-swp-wizard-step dc-swp-capi-wizard-step" id="dc-swp-capi-wizard-step-3">
+								<h4 style="margin:0 0 8px 0;font-size:13px"><?php echo esc_html( __( 'Step 3 -- Verify the Connection', 'dc-sw-prefetch' ) ); ?></h4>
+								<p style="margin:0 0 10px"><?php echo wp_kses_post( __( 'Send a test event to confirm your credentials are working. Open <strong>Meta Events Manager &rarr; Test Events</strong> to watch it arrive in real time.', 'dc-sw-prefetch' ) ); ?></p>
+								<div style="margin-bottom:12px">
+									<label style="display:block;margin-bottom:4px;font-weight:500">
+										<?php echo esc_html( __( 'Test Event Code', 'dc-sw-prefetch' ) ); ?>
+										<span style="font-weight:400;color:#777"><?php echo esc_html( __( '(optional)', 'dc-sw-prefetch' ) ); ?></span>
+									</label>
+									<input type="text" id="dc-swp-capi-wizard-tec"
+										class="regular-text" style="font-family:monospace;max-width:200px"
+										value="<?php echo esc_attr( $capi_test_event_code ); ?>"
+										placeholder="TEST12345">
+									<p class="description"><?php echo esc_html( __( 'Found in Meta Events Manager > Test Events. Leave empty to skip the live test view.', 'dc-sw-prefetch' ) ); ?></p>
+								</div>
+								<button type="button" id="dc-swp-capi-wizard-test-btn" class="button button-secondary">
+									<?php echo esc_html( __( 'Test Connection', 'dc-sw-prefetch' ) ); ?>
+								</button>
+								<span id="dc-swp-capi-wizard-test-spinner" class="spinner" style="float:none;margin-left:4px;display:none"></span>
+								<span id="dc-swp-capi-wizard-test-result" style="margin-left:6px"></span>
+								<div class="dc-swp-wizard-nav" style="margin-top:14px">
+									<button type="button" class="button dc-swp-capi-wizard-btn" data-dir="prev" data-step="3">
+										&larr; <?php echo esc_html( __( 'Back', 'dc-sw-prefetch' ) ); ?>
+									</button>
+									<button type="button" class="button button-primary dc-swp-capi-wizard-btn" data-dir="next" data-step="3">
+										<?php echo esc_html( __( 'Next', 'dc-sw-prefetch' ) ); ?> &rarr;
+									</button>
+								</div>
+							</div>
+
+							<!-- Step 4: Select Events -->
+							<div class="dc-swp-wizard-step dc-swp-capi-wizard-step" id="dc-swp-capi-wizard-step-4">
+								<h4 style="margin:0 0 8px 0;font-size:13px"><?php echo esc_html( __( 'Step 4 -- Select Events to Track', 'dc-sw-prefetch' ) ); ?></h4>
+								<p style="margin:0 0 10px"><?php echo esc_html( __( 'Choose which WooCommerce actions to send to Meta. No additional Dataset configuration needed -- our plugin handles all event setup.', 'dc-sw-prefetch' ) ); ?></p>
+								<table style="border-collapse:collapse;width:100%;margin:0 0 10px">
+									<colgroup>
+										<col style="width:24px">
+										<col style="width:170px">
+										<col>
+									</colgroup>
+									<?php
+									$_capi_wizard_events = array(
+										'Purchase'         => array(
+											'label'       => 'Purchase',
+											'description' => __( 'Fires on the thank-you page when an order completes. Always sent -- not blocked by consent (legitimate interest).', 'dc-sw-prefetch' ),
+											'default'     => true,
+										),
+										'InitiateCheckout' => array(
+											'label'       => 'InitiateCheckout',
+											'description' => __( 'Fires when a visitor enters the WooCommerce checkout page. Requires marketing consent.', 'dc-sw-prefetch' ),
+											'default'     => true,
+										),
+										'AddPaymentInfo'   => array(
+											'label'       => 'AddPaymentInfo',
+											'description' => __( 'Fires when a payment method is selected at checkout. Requires marketing consent.', 'dc-sw-prefetch' ),
+											'default'     => false,
+										),
+										'AddToCart'        => array(
+											'label'       => 'AddToCart',
+											'description' => __( 'Fires when a product is added to the cart. Requires marketing consent.', 'dc-sw-prefetch' ),
+											'default'     => false,
+										),
+										'ViewContent'      => array(
+											'label'       => 'ViewContent',
+											'description' => __( 'Fires on WooCommerce product pages. Requires marketing consent.', 'dc-sw-prefetch' ),
+											'default'     => false,
+										),
+									);
+									foreach ( $_capi_wizard_events as $_wek => $_wev ) :
+										$_wechecked = isset( $capi_events[ $_wek ] ) ? (bool) $capi_events[ $_wek ] : $_wev['default'];
+										?>
+										<tr>
+											<td style="padding:5px 8px 5px 0;vertical-align:top">
+												<input type="checkbox" class="dc-swp-capi-wizard-event-cb"
+													data-event="<?php echo esc_attr( $_wek ); ?>"
+													<?php checked( $_wechecked ); ?>>
+											</td>
+											<td style="padding:5px 8px 5px 0;vertical-align:top">
+												<code style="font-size:12px"><?php echo esc_html( $_wev['label'] ); ?></code>
+											</td>
+											<td style="padding:5px 0;vertical-align:top;color:#666;font-size:12px">
+												<?php echo esc_html( $_wev['description'] ); ?>
+											</td>
+										</tr>
+									<?php endforeach; ?>
+								</table>
+								<p class="description"><?php echo esc_html( __( 'Events marked "requires marketing consent" are automatically blocked by the WP Consent API when the visitor has not consented. Purchase always fires on a legitimate-interest basis.', 'dc-sw-prefetch' ) ); ?></p>
+								<div class="dc-swp-wizard-nav">
+									<button type="button" class="button dc-swp-capi-wizard-btn" data-dir="prev" data-step="4">
+										&larr; <?php echo esc_html( __( 'Back', 'dc-sw-prefetch' ) ); ?>
+									</button>
+									<button type="button" class="button button-primary dc-swp-capi-wizard-btn" data-dir="next" data-step="4">
+										<?php echo esc_html( __( 'Next', 'dc-sw-prefetch' ) ); ?> &rarr;
+									</button>
+								</div>
+							</div>
+
+							<!-- Step 5: Finalise -->
+							<div class="dc-swp-wizard-step dc-swp-capi-wizard-step" id="dc-swp-capi-wizard-step-5">
+								<h4 style="margin:0 0 8px 0;font-size:13px"><?php echo esc_html( __( 'Step 5 -- Finalise Setup', 'dc-sw-prefetch' ) ); ?></h4>
+								<div id="dc-swp-capi-wizard-summary"
+									style="background:#f0f6fc;border:1px solid #c3d4e4;border-radius:3px;padding:10px 14px;margin-bottom:14px;font-size:13px"></div>
+								<label style="display:block;margin-bottom:10px">
+									<input type="checkbox" id="dc-swp-capi-wizard-pii" <?php checked( $capi_send_pii ); ?>>
+									<strong><?php echo esc_html( __( 'Send hashed customer details (email, phone, name, address)', 'dc-sw-prefetch' ) ); ?></strong>
+									<p class="description" style="margin-top:2px;margin-left:24px"><?php echo wp_kses_post( __( 'All fields are SHA-256 hashed before sending. Improves match rate significantly. <strong>Only enable if your privacy policy discloses server-to-server data sharing with Meta.</strong>', 'dc-sw-prefetch' ) ); ?></p>
+								</label>
+								<label style="display:block;margin-bottom:14px">
+									<input type="checkbox" id="dc-swp-capi-wizard-exclude" <?php checked( $capi_exclude_logged ); ?>>
+									<strong><?php echo esc_html( __( 'Exclude logged-in users', 'dc-sw-prefetch' ) ); ?></strong>
+									<p class="description" style="margin-top:2px;margin-left:24px"><?php echo esc_html( __( 'Skip server-side events for WordPress admins and editors.', 'dc-sw-prefetch' ) ); ?></p>
+								</label>
+								<div class="dc-swp-wizard-nav">
+									<button type="button" class="button dc-swp-capi-wizard-btn" data-dir="prev" data-step="5">
+										&larr; <?php echo esc_html( __( 'Back', 'dc-sw-prefetch' ) ); ?>
+									</button>
+									<button type="button" class="button button-primary" id="dc-swp-capi-wizard-complete">
+										<?php echo esc_html( __( 'Complete Setup', 'dc-sw-prefetch' ) ); ?>
+									</button>
+								</div>
+							</div>
+						</div><!-- /panel: managed -->
 					</td>
 				</tr>
 
@@ -1261,7 +1447,7 @@ function dc_swp_admin_page_html() {
 							</label>
 						<?php endforeach; ?>
 						</div>
-						<p class="description" style="margin-top:8px"><?php echo esc_html( __( 'Purchase and InitiateCheckout are recommended for revenue attribution. AddToCart and ViewContent require marketing consent.', 'dc-sw-prefetch' ) ); ?></p>
+						<p class="description" style="margin-top:8px"><?php echo esc_html( __( 'Purchase and InitiateCheckout are recommended for revenue attribution. AddToCart and ViewContent require marketing consent. When Meta Pixel LDU is enabled, CAPI payloads automatically include data_processing_options to match the client-side Pixel state.', 'dc-sw-prefetch' ) ); ?></p>
 					</td>
 				</tr>
 			</table>
@@ -1441,6 +1627,13 @@ function dc_swp_admin_page_html() {
 				'testSuccess' => __( '✔ Connection OK -- Meta accepted the test event.', 'dc-sw-prefetch' ),
 				'testFail'    => __( '⚠ Connection failed -- check Pixel ID and Access Token.', 'dc-sw-prefetch' ),
 				'events'      => $capi_events,
+				'wizardPixelRequired'  => __( 'Enter a valid 15–16 digit Pixel ID to continue.', 'dc-sw-prefetch' ),
+				'wizardTokenRequired'  => __( 'Paste your Access Token to continue.', 'dc-sw-prefetch' ),
+				'wizardSummaryDataset' => __( 'Dataset', 'dc-sw-prefetch' ),
+				'wizardSummaryEvents'  => __( 'Events', 'dc-sw-prefetch' ),
+				'wizardSummaryConn'    => __( 'Connection', 'dc-sw-prefetch' ),
+				'wizardConnNotTested'  => __( 'Not tested yet', 'dc-sw-prefetch' ),
+				'wizardNoneSelected'   => __( 'None selected', 'dc-sw-prefetch' ),
 			),
 			'perf'               => array(
 				'resetNonce' => wp_create_nonce( 'dc_swp_perf_reset_nonce' ),

@@ -13,7 +13,7 @@
  * @package DC_Service_Worker_Prefetcher
  */
 
-/* global gtag, wp_has_consent */
+/* global gtag, wp_has_consent, dcSwpMeta */
 
 ( function () {
 	'use strict';
@@ -38,6 +38,9 @@
 	/** Track whether any consent has been granted (user accepted something). */
 	let anyConsentGranted = false;
 
+	/** Track last known Meta Consent Mode state ('grant'|'revoke'|null). */
+	let lastMetaConsent = null;
+
 	/**
 	 * Call gtag('consent','update') for one consent category.
 	 *
@@ -58,6 +61,49 @@
 			update[ signal ] = gcmValue;
 		} );
 		gtag( 'consent', 'update', update );
+	}
+
+	/**
+	 * Apply Meta Pixel Consent Mode and LDU state when marketing consent changes.
+	 *
+	 * Only active when the WP Consent API gate is enabled (dcSwpMeta.consentGate).
+	 * Mirrors the server-side logic in dc_swp_inject_meta_ldu_default() so that
+	 * consent changes after page load are reflected in Meta Pixel immediately.
+	 *
+	 * @param {boolean} hasConsent Whether marketing consent was granted.
+	 */
+	function updateMetaConsent( hasConsent ) {
+		if ( typeof window.fbq !== 'function' ) {
+			return;
+		}
+		var meta        = window.dcSwpMeta || {};
+		var consentGate = meta.consentGate === '1';
+		var metaLdu     = meta.ldu === '1';
+
+		// Only drive Meta signals when the consent gate is on — when it's off,
+		// the server-side stub already handles the static state at page load.
+		if ( ! consentGate ) {
+			return;
+		}
+
+		var state = hasConsent ? 'grant' : 'revoke';
+		if ( lastMetaConsent === state ) {
+			return; // No change — avoid redundant fbq calls.
+		}
+		lastMetaConsent = state;
+
+		if ( hasConsent ) {
+			window.fbq( 'consent', 'grant' );
+			if ( metaLdu ) {
+				// Consented visitor — clear any LDU restriction.
+				window.fbq( 'dataProcessingOptions', [], 0, 0 );
+			}
+		} else {
+			window.fbq( 'consent', 'revoke' );
+			if ( metaLdu ) {
+				window.fbq( 'dataProcessingOptions', [ 'LDU' ], 0, 0 );
+			}
+		}
 	}
 
 	/**
@@ -83,6 +129,11 @@
 				if ( hasConsent ) {
 					anyConsentGranted = true;
 				}
+			}
+
+			// Sync Meta Pixel consent whenever marketing state is evaluated.
+			if ( category === 'marketing' ) {
+				updateMetaConsent( hasConsent );
 			}
 		} );
 
@@ -166,6 +217,11 @@
 				}
 			}
 		} );
+
+		// Sync Meta Pixel if the marketing category changed.
+		if ( 'marketing' in changed ) {
+			updateMetaConsent( changed.marketing === 'allow' );
+		}
 	} );
 
 	// -- Fallback: watch for WP Consent API cookie changes --------------------

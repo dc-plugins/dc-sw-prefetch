@@ -6,7 +6,7 @@
  * Plugin Name: DC Script Worker Proxy
  * Plugin URI:  https://github.com/dc-plugins/dc-sw-prefetch
  * Description: Offloads third-party scripts (GTM, Pixel, Analytics...) to a Web Worker via Partytown with consent-aware loading. Fully vendored -- no build step required.
- * Version:     2.4.0
+ * Version:     2.5.0
  * Author:      lennilg
  * Author URI:  https://github.com/lennilg
  * License:           GPL-2.0-or-later
@@ -467,7 +467,7 @@ function dc_swp_cross_origin_isolation_headers() {
 // PARTYTOWN -- serve ~partytown/ lib files from the plugin
 // ============================================================
 
-define( 'DC_SWP_VERSION', '2.4.0' );
+define( 'DC_SWP_VERSION', '2.5.0' );
 
 add_action( 'init', 'dc_swp_serve_partytown_files', 1 );
 
@@ -859,6 +859,17 @@ function dc_swp_enqueue_consent_scripts() {
 	);
 	wp_enqueue_script( 'dc-swp-consent-update' );
 
+	// Expose Meta LDU state so consent-update.js can call fbq('consent',...)
+	// and fbq('dataProcessingOptions',...) dynamically when consent changes.
+	wp_localize_script(
+		'dc-swp-consent-update',
+		'dcSwpMeta',
+		array(
+			'ldu'         => dc_swp_is_meta_ldu_enabled() ? '1' : '0',
+			'consentGate' => dc_swp_is_consent_gate_enabled() ? '1' : '0',
+		)
+	);
+
 	// Stamp the CSP nonce so strict-dynamic CSP allows the script.
 	$nonce = dc_swp_get_csp_nonce();
 	if ( '' !== $nonce ) {
@@ -1246,16 +1257,23 @@ function dc_swp_inject_meta_ldu_default() {
 	if ( get_option( 'dc_swp_sw_enabled', 'yes' ) !== 'yes' ) {
 		return;
 	}
-	if ( ! dc_swp_is_meta_ldu_enabled() ) {
+	if ( dc_swp_is_safe_page() ) {
 		return;
 	}
-	if ( dc_swp_is_safe_page() ) {
+
+	$ldu_on        = dc_swp_is_meta_ldu_enabled();
+	// WP Consent API is "active" when the gate is on AND the API function exists.
+	$consent_aware = dc_swp_is_consent_gate_enabled() && function_exists( 'wp_has_consent' );
+
+	// Nothing to inject if LDU is off and we have no consent API to signal.
+	if ( ! $ldu_on && ! $consent_aware ) {
 		return;
 	}
 
 	$nonce      = dc_swp_get_csp_nonce();
 	$nonce_attr = '' !== $nonce ? ' nonce="' . esc_attr( $nonce ) . '"' : '';
 
+	// Minimal fbq stub so calls below are queued before the full Pixel loads.
 	$ldu_js  = "window._fbq=window._fbq||[];\n";
 	$ldu_js .= "window.fbq=window.fbq||function(){\n";
 	$ldu_js .= "  window._fbq.push?window._fbq.push(arguments):window._fbq.que.push(arguments);\n";
@@ -1264,7 +1282,27 @@ function dc_swp_inject_meta_ldu_default() {
 	$ldu_js .= "window.fbq.loaded=true;\n";
 	$ldu_js .= "window.fbq.version='2.0';\n";
 	$ldu_js .= "window.fbq.queue=[];\n";
-	$ldu_js .= "fbq('dataProcessingOptions',['LDU'],0,0);\n";
+
+	if ( $consent_aware ) {
+		// WP Consent API is active: emit per-visitor Consent Mode + conditional LDU.
+		if ( wp_has_consent( 'marketing' ) ) {
+			$ldu_js .= "fbq('consent','grant');\n";
+			if ( $ldu_on ) {
+				// Consented visitor — clear any LDU restriction.
+				$ldu_js .= "fbq('dataProcessingOptions',[],0,0);\n";
+			}
+		} else {
+			$ldu_js .= "fbq('consent','revoke');\n";
+			if ( $ldu_on ) {
+				$ldu_js .= "fbq('dataProcessingOptions',['LDU'],0,0);\n";
+			}
+		}
+	} else {
+		// No WP Consent API — apply LDU unconditionally (legacy behaviour).
+		if ( $ldu_on ) {
+			$ldu_js .= "fbq('dataProcessingOptions',['LDU'],0,0);\n";
+		}
+	}
 	// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- fully static JS; nonce is pre-escaped via esc_attr.
 	echo '<script' . $nonce_attr . ">\n" . $ldu_js . "</script>\n";
 }

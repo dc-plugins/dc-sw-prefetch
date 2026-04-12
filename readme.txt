@@ -5,7 +5,7 @@ Requires at least: 6.8
 Tested up to: 6.9
 Requires PHP: 8.0
 WC tested up to: 10.4.3
-Stable tag: 2.4.0
+Stable tag: 2.5.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -169,6 +169,13 @@ Provided by Mixpanel, Inc. Sends page views, custom events, and an anonymous vis
 The administrator may freely add other services through the Partytown Script List. The plugin imposes no restriction on which services can be configured, beyond the security allowlist that prevents the CORS proxy from being used as an open relay. Refer to each service's own privacy policy and terms of service for details on what data they collect.
 
 == Changelog ==
+
+= 2.5.0 =
+* Feature: CAPI Getting Started wizard -- 5-step guided setup (Dataset creation, System User token, connection test, event selection, finalise) replaces the need for Meta's own Dataset Setup Events guide.
+* Feature: Meta Pixel Consent Mode -- fbq('consent','grant'/'revoke') now fires per-visitor based on WP Consent API marketing consent, replacing the unconditional LDU stub.
+* Feature: Consent-aware LDU -- when WP Consent API is active, consented visitors receive fbq('dataProcessingOptions',[]) (unrestricted) and non-consented visitors receive LDU; legacy unconditional behaviour preserved when WP Consent API is absent.
+* Feature: Meta consent-change reactivity -- consent-update.js now handles wp_listen_for_consent_change for Meta Pixel (fbq consent + LDU) alongside existing GCM v2 updates.
+* Feature: CAPI LDU parity -- Graph API payloads now include data_processing_options mirroring the client-side Pixel LDU state, keeping server-side and client-side declarations in sync.
 
 = 2.4.0 =
 * Feature: Server-Side Meta Conversions API (CAPI) -- sends WooCommerce events (Purchase, InitiateCheckout, AddToCart, ViewContent, AddPaymentInfo) directly from PHP to the Meta Graph API.

@@ -403,6 +403,36 @@ function dc_swp_capi_should_fire_once( string $event ): bool {
  * @param bool                             $blocking      True = wait for response (purchase/refund).
  * @return bool True on success or non-blocking dispatch, false on config error.
  */
+/**
+ * Build the data_processing_options fields to merge into a CAPI payload.
+ *
+ * When LDU is enabled, Meta requires the server-side payload to declare the
+ * same restriction level as the client-side Pixel so that Events Manager
+ * deduplication parity checks pass. When the visitor has consented (WP
+ * Consent API gate is active), we clear the LDU restriction instead.
+ *
+ * @return array Empty array (omit field) or associative array with DPO keys.
+ */
+function dc_swp_capi_get_ldu_payload_fields(): array {
+	if ( ! dc_swp_is_meta_ldu_enabled() ) {
+		return array();
+	}
+
+	// If the consent gate is active and the visitor has marketing consent,
+	// return an empty restriction array — consented visitors are unrestricted.
+	if ( dc_swp_is_consent_gate_enabled() && function_exists( 'dc_swp_has_consent_for' ) ) {
+		if ( dc_swp_has_consent_for( 'marketing' ) ) {
+			return array( 'data_processing_options' => array() );
+		}
+	}
+
+	return array(
+		'data_processing_options'         => array( 'LDU' ),
+		'data_processing_options_country' => 0,
+		'data_processing_options_state'   => 0,
+	);
+}
+
 function dc_swp_capi_send( array $server_events, bool $blocking = false ): bool {
 	$cfg          = dc_swp_capi_get_config();
 	$pixel_id     = $cfg['pixel_id'];
@@ -414,7 +444,7 @@ function dc_swp_capi_send( array $server_events, bool $blocking = false ): bool 
 
 	$url = 'https://graph.facebook.com/v20.0/' . rawurlencode( $pixel_id ) . '/events?access_token=' . rawurlencode( $access_token );
 
-	$payload = array( 'data' => $server_events );
+	$payload = array_merge( array( 'data' => $server_events ), dc_swp_capi_get_ldu_payload_fields() );
 
 	$tec = $cfg['test_event_code'];
 	if ( ! empty( $tec ) ) {

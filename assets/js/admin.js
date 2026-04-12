@@ -1132,17 +1132,29 @@ jQuery( function ( $ ) {
 	/** Sync credential hidden fields from whichever panel is active. */
 	function syncCapiFields() {
 		const mode = $( 'input[name="dc_swp_capi_mode"]:checked' ).val() || 'off';
-		let pixel = '', token = '';
+		let pixel = '', token = '', exclude = 'yes';
 		if ( 'own' === mode ) {
-			pixel = $( '#dc-swp-capi-pixel-own' ).val().trim();
-			token = $( '#dc-swp-capi-token-own' ).val().trim();
+			pixel   = $( '#dc-swp-capi-pixel-own' ).val().trim();
+			token   = $( '#dc-swp-capi-token-own' ).val().trim();
+			exclude = $( '#dc-swp-capi-exclude-own' ).is( ':checked' ) ? 'yes' : 'no';
 		} else if ( 'detect' === mode ) {
 			pixel = $( '#dc-swp-capi-panel-detect' ).data( 'detected-pixel' ) || $( '#dc-swp-capi-panel-detect' ).data( 'saved-pixel' ) || '';
 			token = $( '#dc-swp-capi-token-detect' ).val().trim();
+		} else if ( 'managed' === mode ) {
+			pixel   = $( '#dc-swp-capi-wizard-pixel' ).val().trim();
+			token   = $( '#dc-swp-capi-wizard-token' ).val().trim();
+			exclude = $( '#dc-swp-capi-wizard-exclude' ).is( ':checked' ) ? 'yes' : 'no';
+			// Sync wizard TEC and PII into their named form fields.
+			$( '#dc-swp-capi-tec-field' ).val( $( '#dc-swp-capi-wizard-tec' ).val().trim() );
+			$( 'input[name="dc_swp_capi_send_pii"]' ).prop( 'checked', $( '#dc-swp-capi-wizard-pii' ).is( ':checked' ) );
+			// Sync wizard event checkboxes to the named form checkboxes.
+			$( '.dc-swp-capi-wizard-event-cb' ).each( function () {
+				$( '.dc-swp-capi-event-cb[data-event="' + $( this ).data( 'event' ) + '"]' ).prop( 'checked', $( this ).is( ':checked' ) );
+			} );
 		}
 		$( '#dc_swp_capi_pixel_field' ).val( pixel );
 		$( '#dc_swp_capi_token_field' ).val( token );
-		$( '#dc_swp_capi_exclude_field' ).val( $( '#dc-swp-capi-exclude-own' ).is( ':checked' ) ? 'yes' : 'no' );
+		$( '#dc_swp_capi_exclude_field' ).val( exclude );
 	}
 
 	/** Get pixel + token for whichever panel is currently active. */
@@ -1153,6 +1165,13 @@ jQuery( function ( $ ) {
 				pixel_id:     $( '#dc-swp-capi-pixel-own' ).val().trim(),
 				access_token: $( '#dc-swp-capi-token-own' ).val().trim(),
 				tec:          $( '#dc-swp-capi-tec-field' ).val().trim(),
+			};
+		}
+		if ( 'managed' === mode ) {
+			return {
+				pixel_id:     $( '#dc-swp-capi-wizard-pixel' ).val().trim(),
+				access_token: $( '#dc-swp-capi-wizard-token' ).val().trim(),
+				tec:          $( '#dc-swp-capi-wizard-tec' ).val().trim(),
 			};
 		}
 		return {
@@ -1168,8 +1187,12 @@ jQuery( function ( $ ) {
 		if ( 'off' !== mode ) {
 			$( '#dc-swp-capi-panel-' + mode ).show();
 		}
-		$( '#dc-swp-capi-events-row, #dc-swp-capi-pii-row' ).toggle( 'off' !== mode );
+		// Wizard (managed) owns its own events/PII UI inside the steps.
+		$( '#dc-swp-capi-events-row, #dc-swp-capi-pii-row' ).toggle( 'off' !== mode && 'managed' !== mode );
 		$( '#dc-swp-capi-tec-row' ).toggle( 'own' === mode );
+		if ( 'managed' === mode ) {
+			goToCapiStep( 1 );
+		}
 	}
 
 	// Initialise on page load.
@@ -1192,7 +1215,127 @@ jQuery( function ( $ ) {
 		updateCapiMode( $( this ).val() );
 	} );
 
-	// Pixel ID format validation (own panel).
+	// -- Wizard functions (managed mode) -----------------------------------------
+
+	/** Return true when val is a 15-16 digit numeric Pixel ID. */
+	function validCapiPixel( val ) {
+		return /^\d{15,16}$/.test( val );
+	}
+
+	/** Navigate the CAPI Getting Started wizard to a specific step. */
+	function goToCapiStep( step ) {
+		$( '.dc-swp-capi-wizard-step' ).removeClass( 'dc-swp-active' ).hide();
+		$( '#dc-swp-capi-wizard-step-' + step ).addClass( 'dc-swp-active' ).show();
+		$( '.dc-swp-capi-steps .dc-swp-step-dot' ).each( function () {
+			const s = parseInt( $( this ).data( 'step' ), 10 );
+			$( this )
+				.toggleClass( 'active', s === step )
+				.toggleClass( 'done', s < step );
+		} );
+		if ( 5 === step ) {
+			updateCapiWizardSummary();
+		}
+	}
+
+	/** Refresh the step-5 summary block from current wizard inputs. */
+	function updateCapiWizardSummary() {
+		const pixel  = $( '#dc-swp-capi-wizard-pixel' ).val().trim();
+		const events = [];
+		$( '.dc-swp-capi-wizard-event-cb:checked' ).each( function () {
+			events.push( $( this ).data( 'event' ) );
+		} );
+		const pixelDisplay = pixel
+			? '\u2026' + $( '<span>' ).text( pixel.slice( -4 ) ).html()
+			: '<em>(not set)</em>';
+		const evList  = events.length ? $( '<span>' ).text( events.join( ', ' ) ).html() : '<em>' + ( capi.wizardNoneSelected || 'None selected' ) + '</em>';
+		const testMsg = $( '#dc-swp-capi-wizard-test-result' ).text().trim() || ( capi.wizardConnNotTested || 'Not tested yet' );
+		$( '#dc-swp-capi-wizard-summary' ).html(
+			'<strong>' + ( capi.wizardSummaryDataset || 'Dataset' ) + ':</strong> Pixel ID ending in <code>' + pixelDisplay + '</code><br>' +
+			'<strong>' + ( capi.wizardSummaryEvents  || 'Events'  ) + ':</strong> ' + evList + '<br>' +
+			'<strong>' + ( capi.wizardSummaryConn    || 'Connection' ) + ':</strong> ' + $( '<span>' ).text( testMsg ).html()
+		);
+	}
+
+	// Re-validate wizard inputs when returning to managed mode.
+	if ( 'managed' === initCapiMode ) {
+		if ( validCapiPixel( $( '#dc-swp-capi-wizard-pixel' ).val().trim() ) ) {
+			$( '#dc-swp-capi-wizard-step-1 .dc-swp-capi-wizard-btn[data-dir="next"]' ).prop( 'disabled', false );
+		}
+		if ( $( '#dc-swp-capi-wizard-token' ).val().trim() ) {
+			$( '#dc-swp-capi-wizard-step-2 .dc-swp-capi-wizard-btn[data-dir="next"]' ).prop( 'disabled', false );
+		}
+	}
+
+	// Pixel ID live validation in wizard step 1.
+	$( '#dc-swp-capi-wizard-pixel' ).on( 'input', function () {
+		const val   = $( this ).val().trim();
+		const valid = validCapiPixel( val );
+		const $st   = $( '#dc-swp-capi-wizard-pixel-status' );
+		$st.text( val ? ( valid ? '\u2714 Valid Pixel ID' : '\u26a0 Expected 15\u201316 digits' ) : '' )
+			.css( 'color', valid ? '#3cb034' : '#d63638' );
+		$( '#dc-swp-capi-wizard-step-1 .dc-swp-capi-wizard-btn[data-dir="next"]' ).prop( 'disabled', ! valid );
+	} );
+
+	// Access Token input — enable Next on step 2.
+	$( '#dc-swp-capi-wizard-token' ).on( 'input', function () {
+		$( '#dc-swp-capi-wizard-step-2 .dc-swp-capi-wizard-btn[data-dir="next"]' ).prop( 'disabled', ! $( this ).val().trim() );
+	} );
+
+	// Wizard Next / Back navigation.
+	$( document ).on( 'click', '.dc-swp-capi-wizard-btn', function () {
+		const dir  = $( this ).data( 'dir' );
+		const step = parseInt( $( this ).data( 'step' ), 10 );
+		goToCapiStep( 'next' === dir ? step + 1 : step - 1 );
+	} );
+
+	// Test Connection inside the wizard (step 3).
+	$( '#dc-swp-capi-wizard-test-btn' ).on( 'click', function () {
+		const $spin   = $( '#dc-swp-capi-wizard-test-spinner' );
+		const $result = $( '#dc-swp-capi-wizard-test-result' );
+		const pixel   = $( '#dc-swp-capi-wizard-pixel' ).val().trim();
+		const token   = $( '#dc-swp-capi-wizard-token' ).val().trim();
+		const tec     = $( '#dc-swp-capi-wizard-tec' ).val().trim();
+
+		if ( ! pixel || ! token ) {
+			$result.html( '<span style="color:#d63638">\u26a0 Complete steps 1 and 2 first.</span>' );
+			return;
+		}
+
+		$( this ).prop( 'disabled', true );
+		$spin.show();
+		$result.text( '' );
+
+		$.post(
+			ajaxurl,
+			{
+				action:          'dc_swp_test_capi',
+				nonce:           dcSwpAdminData.nonce,
+				pixel_id:        pixel,
+				access_token:    token,
+				test_event_code: tec,
+			},
+			function ( r ) {
+				$spin.hide();
+				$( '#dc-swp-capi-wizard-test-btn' ).prop( 'disabled', false );
+				if ( r.success && r.data && r.data.valid ) {
+					$result.html( '<span style="color:#3cb034">' + $( '<span>' ).text( capi.testSuccess || '\u2714 Connection OK -- Meta accepted the test event.' ).html() + '</span>' );
+				} else {
+					const errMsg = r.data && r.data.error ? r.data.error : ( capi.testFail || '\u26a0 Connection failed.' );
+					$result.html( '<span style="color:#d63638">' + $( '<span>' ).text( errMsg ).html() + '</span>' );
+				}
+			}
+		).fail( function () {
+			$spin.hide();
+			$( '#dc-swp-capi-wizard-test-btn' ).prop( 'disabled', false );
+			$result.html( '<span style="color:#d63638">\u2718 Request failed.</span>' );
+		} );
+	} );
+
+	// Complete Setup — triggers the standard form submit, which calls syncCapiFields()
+	// (syncing all wizard inputs) and serialises events JSON before posting.
+	$( '#dc-swp-capi-wizard-complete' ).on( 'click', function () {
+		$( '.pwa-cache-settings' ).submit();
+	} );
 	$( '#dc-swp-capi-pixel-own' ).on( 'input', function () {
 		const val     = $( this ).val().trim();
 		const valid   = /^\d{15,16}$/.test( val );
