@@ -29,6 +29,19 @@ add_filter(
 	}
 );
 
+add_filter(
+	'update_footer',
+	function ( $text ) {
+		$screen = get_current_screen();
+		if ( $screen && 'toplevel_page_dc-sw-prefetch' === $screen->id ) {
+			/* translators: %s: plugin version number */
+			return sprintf( esc_html__( 'Version %s', 'dc-sw-prefetch' ), DC_SWP_VERSION );
+		}
+		return $text;
+	},
+	PHP_INT_MAX
+);
+
 // Add admin menu.
 add_action( 'admin_menu', 'dc_swp_setup_menu' );
 /**
