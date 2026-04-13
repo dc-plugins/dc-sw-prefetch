@@ -6,7 +6,7 @@
  * Plugin Name: DC Script Worker Proxy
  * Plugin URI:  https://github.com/dc-plugins/dc-sw-prefetch
  * Description: Offloads third-party scripts (GTM, Pixel, Analytics...) to a Web Worker via Partytown with consent-aware loading. Fully vendored -- no build step required.
- * Version:     2.5.1
+ * Version:     2.6.0
  * Author:      lennilg
  * Author URI:  https://github.com/lennilg
  * License:           GPL-2.0-or-later
@@ -373,7 +373,7 @@ function dc_swp_is_meta_ldu_enabled() {
 // files can safely reference DC_SWP_VERSION at module level.
 // ============================================================
 
-define( 'DC_SWP_VERSION', '2.5.1' );
+define( 'DC_SWP_VERSION', '2.6.0' );
 
 
 // ============================================================
@@ -389,6 +389,7 @@ require_once plugin_dir_path( __FILE__ ) . 'admin.php';
 require_once plugin_dir_path( __FILE__ ) . 'capi.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/attribution.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/tiktok.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/integrations.php';
 
 
 // ============================================================
@@ -1451,6 +1452,20 @@ function dc_swp_has_fullstory_configured() {
 }
 
 /**
+ * Check whether FullStory is configured via the Integrations tab.
+ *
+ * Extends the auto-detection in dc_swp_has_fullstory_configured() so that
+ * strictProxyHas is enabled when FullStory is set up through the dedicated
+ * Integrations settings, not only when the user manually adds a FullStory
+ * snippet to the Script List or Inline Blocks.
+ *
+ * @return bool
+ */
+function dc_swp_has_fullstory_via_integrations(): bool {
+	return '' !== get_option( 'dc_swp_fullstory_org_id', '' );
+}
+
+/**
  * Emit the Partytown config object and the inline snippet in <head>.
  * Must run before any type="text/partytown" scripts.
  */
@@ -1537,7 +1552,7 @@ function dc_swp_partytown_config() {
 	// Auto-enable strictProxyHas when FullStory is configured -- required to prevent
 	// the `in` operator from falsely reporting a namespace conflict that blocks
 	// FullStory initialisation when loaded via a GTM Custom HTML tag.
-	if ( dc_swp_has_fullstory_configured() ) {
+	if ( dc_swp_has_fullstory_configured() || dc_swp_has_fullstory_via_integrations() ) {
 		$config['strictProxyHas'] = true;
 	}
 
@@ -2025,6 +2040,15 @@ function dc_swp_get_proxy_allowed_hosts() {
 	}
 
 	$hosts = array_values( array_unique( array_filter( $hosts ) ) );
+
+	// Allow integrations and other modules to register CDN hosts for auto-injected
+	// services (e.g. TikTok Pixel, HubSpot, Klaviyo) without requiring users to
+	// manually add each CDN to the Script List.
+	$extra = (array) apply_filters( 'dc_swp_extra_proxy_hosts', array() );
+	if ( ! empty( $extra ) ) {
+		$hosts = array_values( array_unique( array_merge( $hosts, $extra ) ) );
+	}
+
 	return $hosts;
 }
 

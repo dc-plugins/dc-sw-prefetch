@@ -601,3 +601,26 @@ if ( class_exists( 'WooCommerce' ) ) {
 	add_action( 'wp_footer', 'dc_swp_tt_view_content', 5 );
 
 }// class_exists WooCommerce
+
+// ============================================================
+// TIKTOK -- PROXY HOST REGISTRATION
+// ============================================================
+
+/**
+ * Register the TikTok Pixel CDN host with dc_swp_get_proxy_allowed_hosts().
+ *
+ * The analytics.tiktok.com CDN hosts the pixel events.js that ttq.load() dynamically
+ * injects -- Partytown must proxy requests to this host via its CORS proxy so
+ * the web worker can fetch the script from within the worker context.
+ *
+ * @since 2.6.0
+ * @param string[] $hosts Current list of allowed proxy hosts.
+ * @return string[]
+ */
+function dc_swp_tt_extra_proxy_hosts( array $hosts ): array {
+	if ( dc_swp_tt_is_active() ) {
+		$hosts[] = 'analytics.tiktok.com';
+	}
+	return $hosts;
+}
+add_filter( 'dc_swp_extra_proxy_hosts', 'dc_swp_tt_extra_proxy_hosts' );

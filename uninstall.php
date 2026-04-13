@@ -67,6 +67,12 @@ function dc_swp_uninstall() {
 		'dc_swp_tt_events',
 		'dc_swp_tt_exclude_logged_in',
 		'dc_swp_tt_send_pii',
+		// Partytown Integrations (v2.6.0+).
+		'dc_swp_hubspot_portal_id',
+		'dc_swp_klaviyo_site_id',
+		'dc_swp_mixpanel_token',
+		'dc_swp_fullstory_org_id',
+		'dc_swp_intercom_app_id',
 		// Legacy names (pre-1.6.0) -- remove if migration never ran.
 		'dampcig_pwa_sw_enabled',
 		'dampcig_pwa_footer_credit',
