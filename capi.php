@@ -676,6 +676,28 @@ if ( class_exists( 'WooCommerce' ) ) {
 	add_action( 'woocommerce_before_checkout_form', 'dc_swp_capi_initiate_checkout', 21 );
 
 	/**
+	 * WooCommerce Blocks checkout compatibility: fire InitiateCheckout via
+	 * template_redirect so it also triggers on block-based checkout pages,
+	 * which do not emit woocommerce_before_checkout_form.
+	 *
+	 * The dc_swp_capi_should_fire_once() guard prevents double-firing on classic checkout
+	 * where both hooks reach the function in the same session.
+	 *
+	 * @since 2.6.0
+	 * @return void
+	 */
+	function dc_swp_capi_initiate_checkout_blocks(): void {
+		if ( ! function_exists( 'is_checkout' ) || ! is_checkout() ) {
+			return;
+		}
+		if ( function_exists( 'is_order_received_page' ) && is_order_received_page() ) {
+			return; // Thank-you page satisfies is_checkout() -- exclude it.
+		}
+		dc_swp_capi_initiate_checkout();
+	}
+	add_action( 'template_redirect', 'dc_swp_capi_initiate_checkout_blocks', 21 );
+
+	/**
 	 * CAPI: AddToCart event.
 	 *
 	 * @since 2.4.0
@@ -727,7 +749,7 @@ if ( class_exists( 'WooCommerce' ) ) {
 			'event_name'       => 'AddToCart',
 			'event_time'       => time(),
 			'event_id'         => dc_swp_capi_get_event_id( 'AddToCart' ),
-			'event_source_url' => dc_swp_capi_current_url(),
+			'event_source_url' => esc_url_raw( get_permalink( $product->get_id() ) ),
 			'action_source'    => 'website',
 			'user_data'        => dc_swp_capi_get_user_data(),
 			'custom_data'      => $custom_data,
