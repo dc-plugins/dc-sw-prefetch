@@ -355,8 +355,8 @@ function dc_swp_capi_get_event_id( string $event, int $context_id = 0 ): string 
 		$session_key = (string) WC()->session->get_customer_id();
 	}
 	if ( '' === $session_key ) {
-		$remote = isset( $_SERVER['REMOTE_ADDR'] ) ? wp_unslash( $_SERVER['REMOTE_ADDR'] ) : '';
-		$ua     = isset( $_SERVER['HTTP_USER_AGENT'] ) ? wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) : '';
+		$remote = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
+		$ua     = isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '';
 		$session_key = wp_hash( $remote . $ua );
 	}
 	// 5-second bucket keeps server ID in sync with client ID emitted in the same page load.
@@ -442,7 +442,7 @@ function dc_swp_capi_send( array $server_events, bool $blocking = false ): bool 
 		return false;
 	}
 
-	$url = 'https://graph.facebook.com/v20.0/' . rawurlencode( $pixel_id ) . '/events?access_token=' . rawurlencode( $access_token );
+	$url = 'https://graph.facebook.com/v20.0/' . rawurlencode( $pixel_id ) . '/events';
 
 	$payload = array_merge( array( 'data' => $server_events ), dc_swp_capi_get_ldu_payload_fields() );
 
@@ -456,7 +456,10 @@ function dc_swp_capi_send( array $server_events, bool $blocking = false ): bool 
 		array(
 			'timeout'  => $blocking ? 5 : 1,
 			'blocking' => $blocking,
-			'headers'  => array( 'Content-Type' => 'application/json' ),
+			'headers'  => array(
+				'Content-Type'  => 'application/json',
+				'Authorization' => 'Bearer ' . $access_token,
+			),
 			'body'     => wp_json_encode( $payload ),
 		)
 	);
@@ -471,6 +474,29 @@ function dc_swp_capi_send( array $server_events, bool $blocking = false ): bool 
 // ============================================================
 // CAPI -- CLIENT-SIDE DEDUPLICATION INJECTION
 // ============================================================
+
+/**
+ * Inject the CSP nonce onto the dc-swp-capi-ids inline script tag.
+ *
+ * Hooked onto wp_inline_script_attributes (WP 6.3+) so the tag participates
+ * in any Content-Security-Policy: script-src 'nonce-...' header emitted by
+ * dc_swp_get_csp_nonce().
+ *
+ * @since 2.5.1
+ * @param array<string,string> $attributes Existing attributes for the tag.
+ * @param string               $handle     Script handle being output.
+ * @return array<string,string>
+ */
+function dc_swp_capi_ids_nonce( array $attributes, string $handle ): array {
+	if ( 'dc-swp-capi-ids' === $handle ) {
+		$nonce = dc_swp_get_csp_nonce();
+		if ( '' !== $nonce ) {
+			$attributes['nonce'] = $nonce;
+		}
+	}
+	return $attributes;
+}
+add_filter( 'wp_inline_script_attributes', 'dc_swp_capi_ids_nonce', 10, 2 );
 
 /**
  * Output the window.dcSwpCapiEventIds JSON blob in the page footer.
@@ -503,7 +529,13 @@ function dc_swp_capi_inject_event_ids(): void {
 		}
 	}
 
-	echo '<script id="dc-swp-capi-ids">window.dcSwpCapiEventIds=' . wp_json_encode( $ids ) . ';</script>' . "\n";
+	// Register a virtual (no-file) handle so the inline blob goes through the
+	// WP enqueue API: participates in wp_inline_script_attributes (nonce),
+	// can be deregistered by companion plugins, and avoids raw echo.
+	// phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion -- inline-only handle, no file to version.
+	wp_register_script( 'dc-swp-capi-ids', false, array(), null, array( 'in_footer' => true ) );
+	wp_add_inline_script( 'dc-swp-capi-ids', 'window.dcSwpCapiEventIds=' . wp_json_encode( $ids ) . ';' );
+	wp_enqueue_script( 'dc-swp-capi-ids' );
 }
 add_action( 'wp_footer', 'dc_swp_capi_inject_event_ids', 1 );
 

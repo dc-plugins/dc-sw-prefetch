@@ -22,7 +22,8 @@
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-	die(); }
+	die();
+}
 
 // ============================================================
 // ACTIVATION -- OPTION MIGRATION
@@ -367,6 +368,15 @@ function dc_swp_is_meta_ldu_enabled() {
 
 
 // ============================================================
+// VERSION
+// Must be defined before require_once calls so that included
+// files can safely reference DC_SWP_VERSION at module level.
+// ============================================================
+
+define( 'DC_SWP_VERSION', '2.5.0' );
+
+
+// ============================================================
 // I18N -- LOAD TEXT DOMAIN
 // Loads .mo translation files from the /languages directory so
 // that __() / _e() / esc_html__() calls with the 'dc-sw-prefetch'
@@ -466,8 +476,6 @@ function dc_swp_cross_origin_isolation_headers() {
 // ============================================================
 // PARTYTOWN -- serve ~partytown/ lib files from the plugin
 // ============================================================
-
-define( 'DC_SWP_VERSION', '2.5.0' );
 
 add_action( 'init', 'dc_swp_serve_partytown_files', 1 );
 
@@ -2025,7 +2033,7 @@ function dc_swp_partytown_script_attrs( $attributes ) {
 	foreach ( $all_patterns as $pattern ) {
 		if ( '' !== $pattern && str_contains( $src, $pattern ) ) {
 			// Per-service consent gate via WP Consent API.
-			list( $allowed, $cat ) = dc_swp_resolve_script_consent( $src );
+			[ $allowed, $cat ] = dc_swp_resolve_script_consent( $src );
 			$attributes['type']    = $allowed ? 'text/partytown' : 'text/plain';
 			if ( ! $allowed ) {
 				$attributes['data-wp-consent-category'] = $cat;
@@ -2246,6 +2254,12 @@ add_action( 'wp_ajax_nopriv_dc_swp_health_report', 'dc_swp_ajax_health_report' )
  * Anonymous -- no cap check required. Nonce + allowlist validation is sufficient.
  * Appends the failing hostname to the dc_swp_health_issues transient (24-hour TTL).
  *
+ * Security note: this endpoint is intentionally public (wp_ajax_nopriv). The nonce
+ * is embedded in every page load, making it effectively public knowledge.
+ * Mitigation: per-IP/60 s rate-limit transient + hostname allowlist restricts what
+ * data can be written and prevents single-source flooding. Distributed abuse is
+ * accepted as low-risk given the low sensitivity of the stored data (hostnames only).
+ *
  * @since 2.1.0
  * @return void
  */
@@ -2339,6 +2353,12 @@ add_action( 'wp_ajax_nopriv_dc_swp_perf_report', 'dc_swp_ajax_perf_report' );
  *
  * Anonymous -- no cap check required. Updates rolling averages and a sliding
  * window of 100 samples (for P75 computation) in non-autoloaded WP options.
+ *
+ * Security note: this endpoint is intentionally public (wp_ajax_nopriv). The nonce
+ * is embedded in every page load, making it effectively public knowledge.
+ * Mitigation: per-IP/60 s rate-limit transient prevents single-source flooding.
+ * TBT/INP values are clamped numerically before storage so a distributed attacker
+ * can only skew the performance dashboard -- accepted as low-risk.
  *
  * @since 2.2.0
  * @return void
@@ -2746,7 +2766,7 @@ function dc_swp_partytown_buffer_rewrite( $html ) {
 				}
 
 				// Per-service consent gate via WP Consent API.
-				list( $allowed, $cat ) = dc_swp_resolve_script_consent( $src );
+				[ $allowed, $cat ] = dc_swp_resolve_script_consent( $src );
 				$new_type              = $allowed ? 'text/partytown' : 'text/plain';
 				$tag_inner             = preg_replace( '/\s+async(?:=["\'][^"\']*["\'])?/i', '', $tag_inner );
 				// Stamp blocked scripts with their consent category for client-side unblocking.
@@ -3694,7 +3714,7 @@ function dc_swp_output_inline_scripts() {
 		foreach ( $js_blocks as $blk ) {
 			$js              = $blk['content'];
 			$cat             = $blk['category'];
-			list( $allowed ) = dc_swp_resolve_inline_consent( $js, $cat );
+			[ $allowed ] = dc_swp_resolve_inline_consent( $js, $cat );
 			$blk_type        = $allowed ? 'text/partytown' : 'text/plain';
 			$consent_cat     = ! $allowed ? ' data-wp-consent-category="' . esc_attr( $cat ? $cat : dc_swp_get_script_list_category() ) . '"' : '';
 			if ( dc_swp_inline_matches_known_service( $js ) || $blk['force_partytown'] ) {
@@ -3718,7 +3738,7 @@ function dc_swp_output_inline_scripts() {
 				$ldu_by  = dc_swp_is_meta_ldu_enabled() && dc_swp_is_meta_script( $blk['src'] );
 				$allowed = $gcm_by || $ldu_by || dc_swp_has_consent_for( $cat );
 			} else {
-				list( $allowed, $cat ) = dc_swp_resolve_script_consent( $blk['src'] );
+				[ $allowed, $cat ] = dc_swp_resolve_script_consent( $blk['src'] );
 			}
 			$blk_type    = $allowed ? 'text/partytown' : 'text/plain';
 			$consent_cat = ! $allowed ? ' data-wp-consent-category="' . esc_attr( $cat ) . '"' : '';

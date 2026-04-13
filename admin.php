@@ -9,7 +9,8 @@
 
 // If this file is called directly, abort.
 if ( ! defined( 'ABSPATH' ) ) {
-	die(); }
+	die();
+}
 
 
 // Admin footer -- only on this plugin's own page.
@@ -19,9 +20,9 @@ add_filter(
 		$screen = get_current_screen();
 		if ( $screen && 'toplevel_page_dc-sw-prefetch' === $screen->id ) {
 			return sprintf(
-			/* translators: %s: URL to DC Plugins GitHub organisation */
-				__( 'More plugins by <a href="%s" target="_blank" rel="noopener">DC Plugins</a>', 'dc-sw-prefetch' ),
-				'https://github.com/dc-plugins'
+				/* translators: %s: linked name of the plugin author organisation */
+				esc_html__( 'More plugins by %s', 'dc-sw-prefetch' ),
+				'<a href="' . esc_url( 'https://github.com/dc-plugins' ) . '" target="_blank" rel="noopener">' . esc_html__( 'DC Plugins', 'dc-sw-prefetch' ) . '</a>'
 			);
 		}
 		return $text;
@@ -183,10 +184,6 @@ function dc_swp_enqueue_admin_assets( $hook ) {
 	wp_register_script( 'dc-swp-admin-script', plugins_url( 'assets/js/admin.js', __FILE__ ), array( 'jquery' ), DC_SWP_VERSION, array( 'in_footer' => true ) );
 	wp_enqueue_script( 'dc-swp-admin-script' );
 }
-
-// Register settings.
-add_action( 'admin_init', 'dc_swp_register_settings' );
-
 /**
  * Sanitize a raw JavaScript code block entered by an admin.
  *
@@ -238,49 +235,6 @@ function dc_swp_sanitize_inline_scripts_option( $value ) {
 		);
 	}
 	return wp_json_encode( $sanitized );
-}
-
-/**
- * Register all plugin settings with the WordPress Settings API.
- *
- * @since 1.0.0
- * @return void
- */
-function dc_swp_register_settings() {
-	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_sw_enabled', array( 'sanitize_callback' => 'sanitize_text_field' ) );
-	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_footer_credit', array( 'sanitize_callback' => 'sanitize_text_field' ) );
-	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_partytown_scripts', array( 'sanitize_callback' => 'sanitize_textarea_field' ) );
-	// Inline script blocks -- admin-only JS content stored as JSON; validated via dc_swp_sanitize_inline_scripts_option.
-	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_inline_scripts', array( 'sanitize_callback' => 'dc_swp_sanitize_inline_scripts_option' ) );
-	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_coi_headers', array( 'sanitize_callback' => 'sanitize_text_field' ) );
-	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_consent_mode', array( 'sanitize_callback' => 'sanitize_text_field' ) );
-	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_url_passthrough', array( 'sanitize_callback' => 'sanitize_text_field' ) );
-	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_ads_data_redaction', array( 'sanitize_callback' => 'sanitize_text_field' ) );
-	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_meta_ldu', array( 'sanitize_callback' => 'sanitize_text_field' ) );
-	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_consent_gate', array( 'sanitize_callback' => 'sanitize_text_field' ) );
-	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_script_list_category', array( 'sanitize_callback' => 'sanitize_text_field' ) );
-	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_debug_mode', array( 'sanitize_callback' => 'sanitize_text_field' ) );
-	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_gtm_mode', array( 'sanitize_callback' => 'sanitize_text_field' ) );
-	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_gtm_id', array( 'sanitize_callback' => 'sanitize_text_field' ) );
-	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_ssga4_enabled', array( 'sanitize_callback' => 'sanitize_text_field' ) );
-	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_ssga4_mode', array( 'sanitize_callback' => 'sanitize_text_field' ) );
-	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_ssga4_measurement_id', array( 'sanitize_callback' => 'sanitize_text_field' ) );
-	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_ssga4_api_secret', array( 'sanitize_callback' => 'sanitize_text_field' ) );
-	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_ssga4_events', array( 'sanitize_callback' => 'sanitize_text_field' ) );
-	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_ga4_client_tag', array( 'sanitize_callback' => 'sanitize_text_field' ) );
-	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_ga4_exclude_logged_in', array( 'sanitize_callback' => 'sanitize_text_field' ) );
-	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_resource_hints', array( 'sanitize_callback' => 'sanitize_text_field' ) );
-	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_health_monitor', array( 'sanitize_callback' => 'sanitize_text_field' ) );
-	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_perf_monitor', array( 'sanitize_callback' => 'sanitize_text_field' ) );
-	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_exclusion_patterns', array( 'sanitize_callback' => 'sanitize_textarea_field' ) );
-	// Meta CAPI.
-	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_capi_mode', array( 'sanitize_callback' => 'sanitize_text_field' ) );
-	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_capi_pixel_id', array( 'sanitize_callback' => 'sanitize_text_field' ) );
-	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_capi_access_token', array( 'sanitize_callback' => 'sanitize_text_field' ) );
-	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_capi_test_event_code', array( 'sanitize_callback' => 'sanitize_text_field' ) );
-	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_capi_events', array( 'sanitize_callback' => 'sanitize_text_field' ) );
-	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_capi_exclude_logged_in', array( 'sanitize_callback' => 'sanitize_text_field' ) );
-	register_setting( 'dc-sw-prefetch-settings', 'dc_swp_capi_send_pii', array( 'sanitize_callback' => 'sanitize_text_field' ) );
 }
 
 // Admin page HTML.
@@ -415,7 +369,7 @@ function dc_swp_admin_page_html() {
 		$_excl_lines = array_map( 'sanitize_text_field', explode( "\n", $_raw_excl ) );
 		update_option( 'dc_swp_exclusion_patterns', implode( "\n", array_filter( $_excl_lines ) ) );
 		delete_transient( 'dc_swp_health_issues' );
-		echo '<div class="notice notice-success"><p>' . esc_html( __( 'Settings saved!', 'dc-sw-prefetch' ) ) . '</p></div>';
+		echo '<div class="notice notice-success"><p>' . esc_html__( 'Settings saved!', 'dc-sw-prefetch' ) . '</p></div>';
 	}
 
 	$sw_enabled          = get_option( 'dc_swp_sw_enabled', 'yes' ) === 'yes';
@@ -527,12 +481,12 @@ function dc_swp_admin_page_html() {
 	}
 	?>
 	<div class="wrap">
-		<h1><?php echo esc_html( __( 'SW Proxy Settings', 'dc-sw-prefetch' ) ); ?></h1>
+		<h1><?php echo esc_html__( 'SW Proxy Settings', 'dc-sw-prefetch' ); ?></h1>
 
 		<div class="notice notice-info">
-			<p><strong>ℹ️ <?php echo esc_html( __( 'Partytown Integration', 'dc-sw-prefetch' ) ); ?></strong></p>
-			<p><?php echo esc_html( __( 'Unlike async/defer -- which only delay loading but still execute scripts on the main thread -- Partytown runs third-party scripts entirely in a Web Worker. The browser main thread is never touched: no layout jank, no TBT penalty, no competition with user interactions. Officially tested compatible services: Google Tag Manager, Facebook Pixel, HubSpot, Intercom, Klaviyo, TikTok Pixel, and Mixpanel. Enable the Consent Gate to block scripts until visitor consent is granted via the WP Consent API.', 'dc-sw-prefetch' ) ); ?></p>
-			<p><?php echo esc_html( __( 'Partytown Version', 'dc-sw-prefetch' ) ); ?>: <code><?php echo esc_html( $pt_version ); ?></code>
+			<p><strong>ℹ️ <?php echo esc_html__( 'Partytown Integration', 'dc-sw-prefetch' ); ?></strong></p>
+			<p><?php echo esc_html__( 'Unlike async/defer -- which only delay loading but still execute scripts on the main thread -- Partytown runs third-party scripts entirely in a Web Worker. The browser main thread is never touched: no layout jank, no TBT penalty, no competition with user interactions. Officially tested compatible services: Google Tag Manager, Facebook Pixel, HubSpot, Intercom, Klaviyo, TikTok Pixel, and Mixpanel. Enable the Consent Gate to block scripts until visitor consent is granted via the WP Consent API.', 'dc-sw-prefetch' ); ?></p>
+			<p><?php echo esc_html__( 'Partytown Version', 'dc-sw-prefetch' ); ?>: <code><?php echo esc_html( $pt_version ); ?></code>
 				&nbsp;--&nbsp;
 				<a href="https://github.com/QwikDev/partytown/releases" target="_blank" rel="noopener">Changelog ↗</a></p>
 		</div>
@@ -553,17 +507,17 @@ function dc_swp_admin_page_html() {
 			<fieldset class="dc-swp-fieldset">
 			<table class="form-table">
 				<tr valign="top">
-					<th scope="row"><?php echo esc_html( __( 'Enable Partytown', 'dc-sw-prefetch' ) ); ?></th>
+					<th scope="row"><?php echo esc_html__( 'Enable Partytown', 'dc-sw-prefetch' ); ?></th>
 					<td>
 						<label class="pwa-toggle">
 							<input type="checkbox" id="dc_swp_sw_enabled" name="dc_swp_sw_enabled" value="yes" <?php checked( $sw_enabled, true ); ?>>
 							<span class="pwa-slider"></span>
 						</label>
-						<p class="description"><?php echo esc_html( __( 'Activate Partytown service worker for third-party script offloading and viewport prefetch. When disabled, scripts render directly on the main thread with defer -- useful for diagnosing Partytown issues (no Web Worker, no consent gating).', 'dc-sw-prefetch' ) ); ?></p>
+						<p class="description"><?php echo esc_html__( 'Activate Partytown service worker for third-party script offloading and viewport prefetch. When disabled, scripts render directly on the main thread with defer -- useful for diagnosing Partytown issues (no Web Worker, no consent gating).', 'dc-sw-prefetch' ); ?></p>
 					</td>
 				</tr>
 				<tr valign="top">
-					<th scope="row"><?php echo esc_html( __( 'Consent Gate (WP Consent API)', 'dc-sw-prefetch' ) ); ?></th>
+					<th scope="row"><?php echo esc_html__( 'Consent Gate (WP Consent API)', 'dc-sw-prefetch' ); ?></th>
 					<td>
 						<label class="pwa-toggle">
 							<input type="checkbox" id="dc_swp_consent_gate" name="dc_swp_consent_gate" value="yes" <?php checked( $consent_gate, true ); ?>>
@@ -577,13 +531,13 @@ function dc_swp_admin_page_html() {
 						</p>
 						<?php if ( $consent_gate && ! function_exists( 'wp_has_consent' ) ) : ?>
 							<div class="notice notice-warning inline" style="margin-top:8px;padding:8px 12px">
-								<p><?php echo esc_html( __( '⚠️ Consent Gate is enabled but the WP Consent API plugin is not installed. Scripts will be blocked for all visitors.', 'dc-sw-prefetch' ) ); ?></p>
+								<p><?php echo esc_html__( '⚠️ Consent Gate is enabled but the WP Consent API plugin is not installed. Scripts will be blocked for all visitors.', 'dc-sw-prefetch' ); ?></p>
 							</div>
 						<?php endif; ?>
 					</td>
 				</tr>
 				<tr valign="top">
-					<th scope="row"><?php echo esc_html( __( 'Partytown Script List', 'dc-sw-prefetch' ) ); ?></th>
+					<th scope="row"><?php echo esc_html__( 'Partytown Script List', 'dc-sw-prefetch' ); ?></th>
 					<td>
 						<input type="hidden" id="dc_swp_partytown_entries_json" name="dc_swp_partytown_entries_json" value="">
 						<div id="dc-swp-script-list" style="margin-bottom:8px;"></div>
@@ -593,7 +547,7 @@ function dc_swp_admin_page_html() {
 							</button>
 							&nbsp;
 							<button type="button" id="dc-swp-autodetect-btn" class="button button-secondary">
-								<?php echo esc_html( __( '🔍 Auto-Detect Third-Party Scripts', 'dc-sw-prefetch' ) ); ?>
+								<?php echo esc_html__( '🔍 Auto-Detect Third-Party Scripts', 'dc-sw-prefetch' ); ?>
 							</button>
 							<span id="dc-swp-autodetect-spinner" class="spinner" style="float:none;margin-left:4px;display:none;"></span>
 						</p>
@@ -601,20 +555,20 @@ function dc_swp_admin_page_html() {
 							<p style="margin:0 0 8px;"><strong><?php esc_html_e( 'Detected external scripts', 'dc-sw-prefetch' ); ?>:</strong></p>
 							<div id="dc-swp-autodetect-list" style="margin-bottom:8px;"></div>
 							<button type="button" id="dc-swp-add-selected" class="button button-primary" style="display:none;">
-								<?php echo esc_html( __( 'Add Selected to List', 'dc-sw-prefetch' ) ); ?>
+								<?php echo esc_html__( 'Add Selected to List', 'dc-sw-prefetch' ); ?>
 							</button>
 						</div>
 						<p class="description" style="margin-top:8px"><?php echo wp_kses_post( __( 'Enter one URL or pattern per line. Matched against the script <code>src</code> attribute. Only officially tested services are recommended: <strong>HubSpot</strong>, <strong>Intercom</strong>, <strong>Klaviyo</strong>, <strong>TikTok Pixel</strong>, <strong>Mixpanel</strong>, <strong>FullStory</strong> (<code>fullstory.com</code>). <a href="https://partytown.qwik.dev/common-services/" target="_blank" rel="noopener">Full list ↗</a>', 'dc-sw-prefetch' ) ); ?></p>
 					</td>
 				</tr>
 				<tr valign="top">
-					<th scope="row"><?php echo esc_html( __( 'Inline Script Blocks', 'dc-sw-prefetch' ) ); ?></th>
+					<th scope="row"><?php echo esc_html__( 'Inline Script Blocks', 'dc-sw-prefetch' ); ?></th>
 					<td>
 						<input type="hidden" id="dc_swp_inline_scripts_json" name="dc_swp_inline_scripts_json" value="">
 						<div id="dc-swp-block-list" style="margin-bottom:8px"></div>
 
 						<div class="dc-swp-add-area">
-							<h4><?php echo esc_html( __( 'Add Script Block', 'dc-sw-prefetch' ) ); ?></h4>
+							<h4><?php echo esc_html__( 'Add Script Block', 'dc-sw-prefetch' ); ?></h4>
 							<input type="text" id="dc-swp-new-label"
 								class="regular-text"
 								style="width:100%;margin-bottom:8px;box-sizing:border-box"
@@ -622,7 +576,7 @@ function dc_swp_admin_page_html() {
 							<textarea id="dc-swp-new-code" rows="8" class="large-text code"
 								placeholder="&lt;!-- Paste the complete script block here, including &lt;script&gt; tags --&gt;"></textarea>
 							<button type="button" id="dc-swp-add-block-btn" class="button button-secondary" style="margin-top:8px">
-								<?php echo esc_html( __( '+ Add Block', 'dc-sw-prefetch' ) ); ?>
+								<?php echo esc_html__( '+ Add Block', 'dc-sw-prefetch' ); ?>
 							</button>
 						</div>
 
@@ -630,7 +584,7 @@ function dc_swp_admin_page_html() {
 					</td>
 				</tr>
 				<tr valign="top"<?php if ( ! $sw_enabled ) echo ' class="dc-swp-row-disabled"'; ?>>
-					<th scope="row"><?php echo esc_html( __( 'SharedArrayBuffer (Atomics Bridge)', 'dc-sw-prefetch' ) ); ?></th>
+					<th scope="row"><?php echo esc_html__( 'SharedArrayBuffer (Atomics Bridge)', 'dc-sw-prefetch' ); ?></th>
 					<td>
 						<label class="pwa-toggle">
 							<input type="checkbox" name="dc_swp_coi_headers" value="yes" <?php checked( $coi_headers && $sw_enabled, true ); ?><?php if ( ! $sw_enabled ) echo ' disabled'; ?>>
@@ -640,7 +594,7 @@ function dc_swp_admin_page_html() {
 					</td>
 				</tr>
 				<tr valign="top">
-					<th scope="row"><?php echo esc_html( __( 'Early Resource Hints', 'dc-sw-prefetch' ) ); ?></th>
+					<th scope="row"><?php echo esc_html__( 'Early Resource Hints', 'dc-sw-prefetch' ); ?></th>
 					<td>
 						<label class="pwa-toggle">
 							<input type="checkbox" name="dc_swp_resource_hints" value="yes" <?php checked( $resource_hints, true ); ?>>
@@ -650,7 +604,7 @@ function dc_swp_admin_page_html() {
 					</td>
 				</tr>
 				<tr valign="top">
-					<th scope="row"><?php echo esc_html( __( 'Partytown Exclusion Patterns', 'dc-sw-prefetch' ) ); ?></th>
+					<th scope="row"><?php echo esc_html__( 'Partytown Exclusion Patterns', 'dc-sw-prefetch' ); ?></th>
 					<td>
 						<textarea name="dc_swp_exclusion_patterns" rows="5" class="large-text code"
 							placeholder="/landing-page/&#10;/payment-flow/*"><?php echo esc_textarea( $exclusion_patterns ); ?></textarea>
@@ -667,7 +621,7 @@ function dc_swp_admin_page_html() {
 			<legend><?php esc_html_e( 'Tag Management', 'dc-sw-prefetch' ); ?></legend>
 			<table class="form-table">
 				<tr valign="top">
-					<th scope="row"><?php echo esc_html( __( 'Google Tag Management', 'dc-sw-prefetch' ) ); ?></th>
+					<th scope="row"><?php echo esc_html__( 'Google Tag Management', 'dc-sw-prefetch' ); ?></th>
 					<td>
 						<!-- Hidden field -- always submitted; JS syncs it from whichever panel is active -->
 						<input type="hidden" name="dc_swp_gtm_id" id="dc_swp_gtm_id_field"
@@ -705,7 +659,7 @@ function dc_swp_admin_page_html() {
 							data-saved-id="<?php echo esc_attr( get_option( 'dc_swp_gtm_id', '' ) ); ?>"
 							<?php echo 'detect' !== $gtm_mode ? 'style="display:none"' : ''; ?>>
 							<button type="button" id="dc-swp-gtm-detect-btn" class="button button-secondary">
-								<?php echo esc_html( __( 'Scan Website', 'dc-sw-prefetch' ) ); ?>
+								<?php echo esc_html__( 'Scan Website', 'dc-sw-prefetch' ); ?>
 							</button>
 							<span id="dc-swp-gtm-detect-spinner" class="spinner" style="float:none;margin-left:4px;display:none;"></span>
 							<div id="dc-swp-gtm-detect-result" style="margin-top:8px"></div>
@@ -748,24 +702,24 @@ function dc_swp_admin_page_html() {
 								<?php endif; ?>
 								<?php if ( 4 === $_sn ) : ?>
 								<div id="dc-swp-wizard-summary" style="margin:10px 0;padding:10px;background:#f0f7f0;border:1px solid #3cb034;border-radius:3px;display:none">
-									<strong><?php echo esc_html( __( 'GTM Active', 'dc-sw-prefetch' ) ); ?>:</strong> <code id="dc-swp-wizard-summary-id"></code>
+									<strong><?php echo esc_html__( 'GTM Active', 'dc-sw-prefetch' ); ?>:</strong> <code id="dc-swp-wizard-summary-id"></code>
 								</div>
 								<?php endif; ?>
 								<div class="dc-swp-wizard-nav">
 									<?php if ( $_sn > 1 ) : ?>
 									<button type="button" class="button dc-swp-wizard-btn" data-dir="prev" data-step="<?php echo (int) $_sn; ?>">
-										<?php echo esc_html( __( '← Back', 'dc-sw-prefetch' ) ); ?>
+										<?php echo esc_html__( '← Back', 'dc-sw-prefetch' ); ?>
 									</button>
 									<?php endif; ?>
 									<?php if ( $_sn < 4 ) : ?>
 									<button type="button" class="button button-primary dc-swp-wizard-btn"
 										data-dir="next" data-step="<?php echo (int) $_sn; ?>"
 										<?php echo 2 === $_sn ? 'id="dc-swp-wizard-step2-next" disabled' : ''; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- fully static HTML attribute string. ?>>
-										<?php echo esc_html( __( 'Next →', 'dc-sw-prefetch' ) ); ?>
+										<?php echo esc_html__( 'Next →', 'dc-sw-prefetch' ); ?>
 									</button>
 									<?php else : ?>
 									<button type="button" class="button button-primary" id="dc-swp-wizard-complete">
-										<?php echo esc_html( __( '✔ Complete Setup', 'dc-sw-prefetch' ) ); ?>
+										<?php echo esc_html__( '✔ Complete Setup', 'dc-sw-prefetch' ); ?>
 									</button>
 									<?php endif; ?>
 								</div>
@@ -776,7 +730,7 @@ function dc_swp_admin_page_html() {
 					</td>
 				</tr>
 				<tr valign="top" id="dc-swp-consent-mode-row"<?php echo 'off' === $gtm_mode ? ' style="display:none"' : ''; ?>>
-					<th scope="row"><?php echo esc_html( __( 'Google Consent Mode v2', 'dc-sw-prefetch' ) ); ?></th>
+					<th scope="row"><?php echo esc_html__( 'Google Consent Mode v2', 'dc-sw-prefetch' ); ?></th>
 					<td>
 						<label class="pwa-toggle">
 							<input type="checkbox" name="dc_swp_consent_mode" value="yes" <?php checked( $consent_mode, true ); ?>>
@@ -814,11 +768,11 @@ function dc_swp_admin_page_html() {
 					// phpcs:enable
 					?>
 					<details class="dc-swp-consent-info">
-						<summary><?php echo esc_html( __( 'Consent Architecture & GCM v2 Services', 'dc-sw-prefetch' ) ); ?></summary>
+						<summary><?php echo esc_html__( 'Consent Architecture & GCM v2 Services', 'dc-sw-prefetch' ); ?></summary>
 						<div class="dc-swp-consent-info-body">
 
-							<p class="dc-swp-info-section"><?php echo esc_html( __( 'GCM v2-Aware Services', 'dc-sw-prefetch' ) ); ?></p>
-							<p class="description" style="margin-bottom:6px"><?php echo esc_html( __( 'These services natively read the GCM v2 consent state and self-restrict data collection -- no text/plain blocking is needed when GCM v2 is active.', 'dc-sw-prefetch' ) ); ?></p>
+							<p class="dc-swp-info-section"><?php echo esc_html__( 'GCM v2-Aware Services', 'dc-sw-prefetch' ); ?></p>
+							<p class="description" style="margin-bottom:6px"><?php echo esc_html__( 'These services natively read the GCM v2 consent state and self-restrict data collection -- no text/plain blocking is needed when GCM v2 is active.', 'dc-sw-prefetch' ); ?></p>
 							<div class="dc-swp-badges">
 								<?php
 								foreach ( $_gcm as $_b ) {
@@ -826,8 +780,8 @@ function dc_swp_admin_page_html() {
 								?>
 							</div>
 
-							<p class="dc-swp-info-section"><?php echo esc_html( __( 'Meta Pixel -- Separate LDU Mechanism', 'dc-sw-prefetch' ) ); ?></p>
-							<p class="description" style="margin-bottom:6px"><?php echo esc_html( __( 'Meta Pixel does not implement GCM v2. Enable Meta Pixel LDU below -- Meta applies Limited Data Use restrictions internally.', 'dc-sw-prefetch' ) ); ?></p>
+							<p class="dc-swp-info-section"><?php echo esc_html__( 'Meta Pixel -- Separate LDU Mechanism', 'dc-sw-prefetch' ); ?></p>
+							<p class="description" style="margin-bottom:6px"><?php echo esc_html__( 'Meta Pixel does not implement GCM v2. Enable Meta Pixel LDU below -- Meta applies Limited Data Use restrictions internally.', 'dc-sw-prefetch' ); ?></p>
 							<div class="dc-swp-badges">
 								<?php echo $_badge( 'Meta Pixel', 'LDU API', 'meta', $_si . 'Meta%20Pixel-LDU%20API-1877f2' . $_sq ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 							</div>
@@ -836,7 +790,7 @@ function dc_swp_admin_page_html() {
 					</details>
 					</td>
 				</tr>
-				<tr valign="top">					<th scope="row"><?php echo esc_html( __( 'URL Passthrough', 'dc-sw-prefetch' ) ); ?></th>
+				<tr valign="top">					<th scope="row"><?php echo esc_html__( 'URL Passthrough', 'dc-sw-prefetch' ); ?></th>
 					<td>
 						<label class="pwa-toggle">
 							<input type="checkbox" name="dc_swp_url_passthrough" value="yes" <?php checked( $url_passthrough, true ); ?>>
@@ -846,7 +800,7 @@ function dc_swp_admin_page_html() {
 					</td>
 				</tr>
 				<tr valign="top">
-					<th scope="row"><?php echo esc_html( __( 'Ads Data Redaction', 'dc-sw-prefetch' ) ); ?></th>
+					<th scope="row"><?php echo esc_html__( 'Ads Data Redaction', 'dc-sw-prefetch' ); ?></th>
 					<td>
 						<label class="pwa-toggle">
 							<input type="checkbox" name="dc_swp_ads_data_redaction" value="yes" <?php checked( $ads_data_redaction, true ); ?>>
@@ -855,7 +809,7 @@ function dc_swp_admin_page_html() {
 						<p class="description"><?php echo wp_kses_post( __( 'Enables <code>gtag("set","ads_data_redaction",true)</code>. Redacts click IDs (gclid, wbraid) from data sent to Google when <code>ad_storage</code> is denied -- enhanced privacy for visitors who have not granted marketing consent.', 'dc-sw-prefetch' ) ); ?></p>
 					</td>
 				</tr>
-				<tr valign="top">					<th scope="row"><?php echo esc_html( __( 'Meta Pixel Limited Data Use (LDU)', 'dc-sw-prefetch' ) ); ?></th>
+				<tr valign="top">					<th scope="row"><?php echo esc_html__( 'Meta Pixel Limited Data Use (LDU)', 'dc-sw-prefetch' ); ?></th>
 					<td>
 						<label class="pwa-toggle">
 							<input type="checkbox" name="dc_swp_meta_ldu" value="yes" <?php checked( $meta_ldu, true ); ?>>
@@ -869,16 +823,16 @@ function dc_swp_admin_page_html() {
 
 			<!-- -- Server-Side GA4 Events ------------------------------------ -->
 			<fieldset class="dc-swp-fieldset">
-			<legend><?php echo esc_html( __( 'Server-Side GA4 Events', 'dc-sw-prefetch' ) ); ?></legend>
+			<legend><?php echo esc_html__( 'Server-Side GA4 Events', 'dc-sw-prefetch' ); ?></legend>
 			<p><?php echo wp_kses_post( __( 'Sends WooCommerce ecommerce events directly from the server to GA4 via Measurement Protocol v2 -- independent of browser consent and ad-blockers. Events fire from PHP; visitor consent rejection does not affect data quality. <strong>Requires a GA4 Measurement ID (G-XXXXXXXXXX) and an API Secret.</strong>', 'dc-sw-prefetch' ) ); ?></p>
 			<?php if ( ! class_exists( 'WooCommerce' ) ) : ?>
 				<div class="notice notice-warning inline" style="margin:8px 0;padding:8px 12px">
-					<p><?php echo esc_html( __( '⚠ WooCommerce is not active. Server-Side GA4 Events require WooCommerce.', 'dc-sw-prefetch' ) ); ?></p>
+					<p><?php echo esc_html__( '⚠ WooCommerce is not active. Server-Side GA4 Events require WooCommerce.', 'dc-sw-prefetch' ); ?></p>
 				</div>
 			<?php endif; ?>
 			<table class="form-table">
 				<tr valign="top">
-					<th scope="row"><?php echo esc_html( __( 'GA4 Setup', 'dc-sw-prefetch' ) ); ?></th>
+					<th scope="row"><?php echo esc_html__( 'GA4 Setup', 'dc-sw-prefetch' ); ?></th>
 					<td>
 						<!-- Hidden fields -- JS syncs from active panel -->
 						<input type="hidden" name="dc_swp_ssga4_measurement_id" id="dc_swp_ssga4_mid_field"
@@ -906,7 +860,7 @@ function dc_swp_admin_page_html() {
 						<!-- Panel: own -->
 						<div id="dc-swp-ssga4-panel-own" class="dc-swp-ssga4-panel" <?php echo 'own' !== $ssga4_mode ? 'style="display:none"' : ''; ?>>
 							<div style="margin-bottom:12px">
-								<label style="display:block;margin-bottom:4px;font-weight:500"><?php echo esc_html( __( 'Measurement ID', 'dc-sw-prefetch' ) ); ?></label>
+								<label style="display:block;margin-bottom:4px;font-weight:500"><?php echo esc_html__( 'Measurement ID', 'dc-sw-prefetch' ); ?></label>
 								<input type="text" id="dc-swp-ssga4-mid-own"
 									class="regular-text" style="font-family:monospace"
 									value="<?php echo esc_attr( $ssga4_measurement_id ); ?>"
@@ -914,7 +868,7 @@ function dc_swp_admin_page_html() {
 								<span id="dc-swp-ssga4-mid-own-status"></span>
 							</div>
 							<div style="margin-bottom:12px">
-								<label style="display:block;margin-bottom:4px;font-weight:500"><?php echo esc_html( __( 'API Secret', 'dc-sw-prefetch' ) ); ?></label>
+								<label style="display:block;margin-bottom:4px;font-weight:500"><?php echo esc_html__( 'API Secret', 'dc-sw-prefetch' ); ?></label>
 								<input type="password" id="dc-swp-ssga4-secret-own"
 									class="regular-text" style="font-family:monospace"
 									value="<?php echo esc_attr( $ssga4_api_secret ); ?>"
@@ -923,7 +877,7 @@ function dc_swp_admin_page_html() {
 								<p class="description" style="margin-top:4px"><?php echo wp_kses_post( __( 'Create in GA4 Admin → Data Streams → Measurement Protocol API Secrets → Create. <a href="https://support.google.com/analytics/answer/9900444" target="_blank" rel="noopener">Instructions ↗</a>', 'dc-sw-prefetch' ) ); ?></p>
 							</div>
 							<button type="button" class="button button-secondary dc-swp-ssga4-test-btn">
-								<?php echo esc_html( __( '🧪 Test Connection', 'dc-sw-prefetch' ) ); ?>
+								<?php echo esc_html__( '🧪 Test Connection', 'dc-sw-prefetch' ); ?>
 							</button>
 							<span class="dc-swp-ssga4-test-spinner spinner" style="float:none;margin-left:4px;display:none;"></span>
 							<span class="dc-swp-ssga4-test-result" style="margin-left:6px"></span>
@@ -935,12 +889,12 @@ function dc_swp_admin_page_html() {
 							data-saved-mid="<?php echo esc_attr( $ssga4_measurement_id ); ?>"
 							<?php echo 'detect' !== $ssga4_mode ? 'style="display:none"' : ''; ?>>
 							<button type="button" id="dc-swp-ssga4-detect-btn" class="button button-secondary">
-								<?php echo esc_html( __( 'Scan Website', 'dc-sw-prefetch' ) ); ?>
+								<?php echo esc_html__( 'Scan Website', 'dc-sw-prefetch' ); ?>
 							</button>
 							<span id="dc-swp-ssga4-detect-spinner" class="spinner" style="float:none;margin-left:4px;display:none;"></span>
 							<div id="dc-swp-ssga4-detect-result" style="margin-top:8px"></div>
 							<div id="dc-swp-ssga4-detect-secret-row" style="margin-top:12px;display:none">
-								<label style="display:block;margin-bottom:4px;font-weight:500"><?php echo esc_html( __( 'API Secret', 'dc-sw-prefetch' ) ); ?></label>
+								<label style="display:block;margin-bottom:4px;font-weight:500"><?php echo esc_html__( 'API Secret', 'dc-sw-prefetch' ); ?></label>
 								<input type="password" id="dc-swp-ssga4-secret-detect"
 									class="regular-text" style="font-family:monospace"
 									value="<?php echo esc_attr( $ssga4_api_secret ); ?>"
@@ -948,7 +902,7 @@ function dc_swp_admin_page_html() {
 									autocomplete="off">
 								<p class="description" style="margin-top:4px"><?php echo wp_kses_post( __( 'Create in GA4 Admin → Data Streams → Measurement Protocol API Secrets → Create. <a href="https://support.google.com/analytics/answer/9900444" target="_blank" rel="noopener">Instructions ↗</a>', 'dc-sw-prefetch' ) ); ?></p>
 								<button type="button" class="button button-secondary dc-swp-ssga4-test-btn" style="margin-top:8px">
-									<?php echo esc_html( __( '🧪 Test Connection', 'dc-sw-prefetch' ) ); ?>
+									<?php echo esc_html__( '🧪 Test Connection', 'dc-sw-prefetch' ); ?>
 								</button>
 								<span class="dc-swp-ssga4-test-spinner spinner" style="float:none;margin-left:4px;display:none;"></span>
 								<span class="dc-swp-ssga4-test-result" style="margin-left:6px"></span>
@@ -1005,7 +959,7 @@ function dc_swp_admin_page_html() {
 									<span id="dc-swp-ssga4-wizard-mid-status"></span>
 									<br>
 									<button type="button" id="dc-swp-ssga4-wizard-detect-btn" class="button button-secondary" style="margin-top:6px">
-										<?php echo esc_html( __( '🔍 Auto-Detect from Page', 'dc-sw-prefetch' ) ); ?>
+										<?php echo esc_html__( '🔍 Auto-Detect from Page', 'dc-sw-prefetch' ); ?>
 									</button>
 									<span id="dc-swp-ssga4-wizard-detect-spinner" class="spinner" style="float:none;margin-left:4px;display:none;"></span>
 								</div>
@@ -1023,30 +977,30 @@ function dc_swp_admin_page_html() {
 								<div style="margin:10px 0;padding:12px;background:#f9f9f9;border:1px solid #ddd;border-radius:4px">
 									<label style="display:block;margin-bottom:10px">
 										<input type="checkbox" id="dc-swp-ssga4-wizard-client-tag" <?php checked( $ga4_client_tag ); ?>>
-										<strong><?php echo esc_html( __( 'Install client-side gtag.js', 'dc-sw-prefetch' ) ); ?></strong>
-										<p class="description" style="margin:4px 0 0 24px"><?php echo esc_html( __( 'Injects the gtag.js snippet on the frontend. Skip if you use GTM or another analytics plugin.', 'dc-sw-prefetch' ) ); ?></p>
+										<strong><?php echo esc_html__( 'Install client-side gtag.js', 'dc-sw-prefetch' ); ?></strong>
+										<p class="description" style="margin:4px 0 0 24px"><?php echo esc_html__( 'Injects the gtag.js snippet on the frontend. Skip if you use GTM or another analytics plugin.', 'dc-sw-prefetch' ); ?></p>
 									</label>
 									<div id="dc-swp-ssga4-gtm-conflict" class="notice notice-warning inline" style="margin:0 0 10px 24px;padding:6px 10px;display:none">
-										<p style="margin:0"><?php echo esc_html( __( '⚠ GTM is already active. Enabling client-side gtag may cause duplicate tracking.', 'dc-sw-prefetch' ) ); ?></p>
+										<p style="margin:0"><?php echo esc_html__( '⚠ GTM is already active. Enabling client-side gtag may cause duplicate tracking.', 'dc-sw-prefetch' ); ?></p>
 									</div>
 									<label style="display:block;margin-bottom:10px">
 										<input type="checkbox" id="dc-swp-ssga4-wizard-exclude-logged" <?php checked( $ga4_exclude_logged ); ?>>
-										<strong><?php echo esc_html( __( 'Exclude logged-in users', 'dc-sw-prefetch' ) ); ?></strong>
-										<p class="description" style="margin:4px 0 0 24px"><?php echo esc_html( __( 'Skip tracking for WordPress admins and editors. Keeps your analytics clean.', 'dc-sw-prefetch' ) ); ?></p>
+										<strong><?php echo esc_html__( 'Exclude logged-in users', 'dc-sw-prefetch' ); ?></strong>
+										<p class="description" style="margin:4px 0 0 24px"><?php echo esc_html__( 'Skip tracking for WordPress admins and editors. Keeps your analytics clean.', 'dc-sw-prefetch' ); ?></p>
 									</label>
 									<label style="display:block">
 										<input type="checkbox" id="dc-swp-ssga4-wizard-server-events" checked disabled>
-										<strong><?php echo esc_html( __( 'Server-side WooCommerce events', 'dc-sw-prefetch' ) ); ?></strong>
-										<p class="description" style="margin:4px 0 0 24px"><?php echo esc_html( __( 'Always enabled -- this is the core feature of Server-Side GA4.', 'dc-sw-prefetch' ) ); ?></p>
+										<strong><?php echo esc_html__( 'Server-side WooCommerce events', 'dc-sw-prefetch' ); ?></strong>
+										<p class="description" style="margin:4px 0 0 24px"><?php echo esc_html__( 'Always enabled -- this is the core feature of Server-Side GA4.', 'dc-sw-prefetch' ); ?></p>
 									</label>
 								</div>
 								<?php endif; ?>
 								<?php if ( 5 === $_sn ) : ?>
 								<div id="dc-swp-ssga4-wizard-summary" style="margin:10px 0;padding:10px;background:#f0f7f0;border:1px solid #3cb034;border-radius:3px;display:none">
-									<strong><?php echo esc_html( __( 'GA4 Active', 'dc-sw-prefetch' ) ); ?>:</strong> <code id="dc-swp-ssga4-wizard-summary-mid"></code>
+									<strong><?php echo esc_html__( 'GA4 Active', 'dc-sw-prefetch' ); ?>:</strong> <code id="dc-swp-ssga4-wizard-summary-mid"></code>
 								</div>
 								<button type="button" class="button button-secondary dc-swp-ssga4-test-btn">
-									<?php echo esc_html( __( '🧪 Test Connection', 'dc-sw-prefetch' ) ); ?>
+									<?php echo esc_html__( '🧪 Test Connection', 'dc-sw-prefetch' ); ?>
 								</button>
 								<span class="dc-swp-ssga4-test-spinner spinner" style="float:none;margin-left:4px;display:none;"></span>
 								<span class="dc-swp-ssga4-test-result" style="margin-left:6px"></span>
@@ -1054,18 +1008,18 @@ function dc_swp_admin_page_html() {
 								<div class="dc-swp-wizard-nav">
 									<?php if ( $_sn > 1 ) : ?>
 									<button type="button" class="button dc-swp-ssga4-wizard-btn" data-dir="prev" data-step="<?php echo (int) $_sn; ?>">
-										<?php echo esc_html( __( '← Back', 'dc-sw-prefetch' ) ); ?>
+										<?php echo esc_html__( '← Back', 'dc-sw-prefetch' ); ?>
 									</button>
 									<?php endif; ?>
 									<?php if ( $_sn < 5 ) : ?>
 									<button type="button" class="button button-primary dc-swp-ssga4-wizard-btn"
 										data-dir="next" data-step="<?php echo (int) $_sn; ?>"
 										<?php echo ( 2 === $_sn || 3 === $_sn ) ? 'disabled' : ''; ?>>
-										<?php echo esc_html( __( 'Next →', 'dc-sw-prefetch' ) ); ?>
+										<?php echo esc_html__( 'Next →', 'dc-sw-prefetch' ); ?>
 									</button>
 									<?php else : ?>
 									<button type="button" class="button button-primary" id="dc-swp-ssga4-wizard-complete">
-										<?php echo esc_html( __( '✔ Complete Setup', 'dc-sw-prefetch' ) ); ?>
+										<?php echo esc_html__( '✔ Complete Setup', 'dc-sw-prefetch' ); ?>
 									</button>
 									<?php endif; ?>
 								</div>
@@ -1082,7 +1036,7 @@ function dc_swp_admin_page_html() {
 					</td>
 				</tr>
 				<tr valign="top" id="dc-swp-ssga4-events-row"<?php echo 'off' === $ssga4_mode ? ' style="display:none"' : ''; ?>>
-					<th scope="row"><?php echo esc_html( __( 'Server-Side Events', 'dc-sw-prefetch' ) ); ?></th>
+					<th scope="row"><?php echo esc_html__( 'Server-Side Events', 'dc-sw-prefetch' ); ?></th>
 					<td>
 						<input type="hidden" id="dc_swp_ssga4_events_json" name="dc_swp_ssga4_events_json" value="">
 						<div style="display:grid;grid-template-columns:repeat(3,auto);gap:4px 18px;max-width:520px">
@@ -1107,14 +1061,14 @@ function dc_swp_admin_page_html() {
 							</label>
 						<?php endforeach; ?>
 						</div>
-						<p class="description" style="margin-top:8px"><?php echo esc_html( __( 'Choose which WooCommerce events to send server-side. Revenue events (purchase, refund) are always recommended.', 'dc-sw-prefetch' ) ); ?></p>
+						<p class="description" style="margin-top:8px"><?php echo esc_html__( 'Choose which WooCommerce events to send server-side. Revenue events (purchase, refund) are always recommended.', 'dc-sw-prefetch' ); ?></p>
 					</td>
 				</tr>
 				<tr valign="top" id="dc-swp-ssga4-endpoint-row"<?php echo 'off' === $ssga4_mode ? ' style="display:none"' : ''; ?>>
-					<th scope="row"><?php echo esc_html( __( 'Endpoint', 'dc-sw-prefetch' ) ); ?></th>
+					<th scope="row"><?php echo esc_html__( 'Endpoint', 'dc-sw-prefetch' ); ?></th>
 					<td>
 						<code><?php echo esc_html( $_ssga4_endpoint ); ?></code>
-						<p class="description"><?php echo esc_html( __( 'Auto-detected from WordPress timezone. European timezones use the EU endpoint.', 'dc-sw-prefetch' ) ); ?></p>
+						<p class="description"><?php echo esc_html__( 'Auto-detected from WordPress timezone. European timezones use the EU endpoint.', 'dc-sw-prefetch' ); ?></p>
 					</td>
 				</tr>
 			</table>
@@ -1125,16 +1079,16 @@ function dc_swp_admin_page_html() {
 		<div id="tab-meta" class="dc-swp-tab-panel">
 			<!-- -- Meta Conversions API (CAPI) ---------------------------------- -->
 			<fieldset class="dc-swp-fieldset">
-			<legend><?php echo esc_html( __( 'Server-Side Meta CAPI Events', 'dc-sw-prefetch' ) ); ?></legend>
+			<legend><?php echo esc_html__( 'Server-Side Meta CAPI Events', 'dc-sw-prefetch' ); ?></legend>
 			<p><?php echo wp_kses_post( __( 'Sends WooCommerce ecommerce events directly from the server to Meta via the Conversions API -- independent of browser consent and ad-blockers. Works alongside your client-side Meta Pixel for deduplication. <strong>Requires a Meta Pixel ID and a System User access token.</strong>', 'dc-sw-prefetch' ) ); ?></p>
 			<?php if ( ! class_exists( 'WooCommerce' ) ) : ?>
 				<div class="notice notice-warning inline" style="margin:8px 0;padding:8px 12px">
-					<p><?php echo esc_html( __( '⚠ WooCommerce is not active. Server-Side Meta CAPI Events require WooCommerce.', 'dc-sw-prefetch' ) ); ?></p>
+					<p><?php echo esc_html__( '⚠ WooCommerce is not active. Server-Side Meta CAPI Events require WooCommerce.', 'dc-sw-prefetch' ); ?></p>
 				</div>
 			<?php endif; ?>
 			<table class="form-table">
 				<tr valign="top">
-					<th scope="row"><?php echo esc_html( __( 'CAPI Setup', 'dc-sw-prefetch' ) ); ?></th>
+					<th scope="row"><?php echo esc_html__( 'CAPI Setup', 'dc-sw-prefetch' ); ?></th>
 					<td>
 						<!-- Hidden fields -- JS syncs from active panel -->
 						<input type="hidden" name="dc_swp_capi_pixel_id" id="dc_swp_capi_pixel_field"
@@ -1164,7 +1118,7 @@ function dc_swp_admin_page_html() {
 						<!-- Panel: own -->
 						<div id="dc-swp-capi-panel-own" class="dc-swp-capi-panel" <?php echo 'own' !== $capi_mode ? 'style="display:none"' : ''; ?>>
 							<div style="margin-bottom:12px">
-								<label style="display:block;margin-bottom:4px;font-weight:500"><?php echo esc_html( __( 'Pixel ID', 'dc-sw-prefetch' ) ); ?></label>
+								<label style="display:block;margin-bottom:4px;font-weight:500"><?php echo esc_html__( 'Pixel ID', 'dc-sw-prefetch' ); ?></label>
 								<input type="text" id="dc-swp-capi-pixel-own"
 									class="regular-text" style="font-family:monospace"
 									value="<?php echo esc_attr( $capi_pixel_id ); ?>"
@@ -1172,7 +1126,7 @@ function dc_swp_admin_page_html() {
 								<span id="dc-swp-capi-pixel-own-status"></span>
 							</div>
 							<div style="margin-bottom:12px">
-								<label style="display:block;margin-bottom:4px;font-weight:500"><?php echo esc_html( __( 'Access Token', 'dc-sw-prefetch' ) ); ?></label>
+								<label style="display:block;margin-bottom:4px;font-weight:500"><?php echo esc_html__( 'Access Token', 'dc-sw-prefetch' ); ?></label>
 								<input type="password" id="dc-swp-capi-token-own"
 									class="regular-text" style="font-family:monospace"
 									value="<?php echo esc_attr( $capi_access_token ); ?>"
@@ -1183,11 +1137,11 @@ function dc_swp_admin_page_html() {
 							<label style="display:block;margin-bottom:12px">
 								<input type="checkbox" id="dc-swp-capi-exclude-own"
 									<?php checked( $capi_exclude_logged ); ?>>
-								<strong><?php echo esc_html( __( 'Exclude logged-in users', 'dc-sw-prefetch' ) ); ?></strong>
-								<p class="description" style="margin-top:2px;margin-left:24px"><?php echo esc_html( __( 'Skip server-side events for WordPress admins and editors.', 'dc-sw-prefetch' ) ); ?></p>
+								<strong><?php echo esc_html__( 'Exclude logged-in users', 'dc-sw-prefetch' ); ?></strong>
+								<p class="description" style="margin-top:2px;margin-left:24px"><?php echo esc_html__( 'Skip server-side events for WordPress admins and editors.', 'dc-sw-prefetch' ); ?></p>
 							</label>
 							<button type="button" class="button button-secondary dc-swp-capi-test-btn">
-								<?php echo esc_html( __( '🧪 Test Connection', 'dc-sw-prefetch' ) ); ?>
+								<?php echo esc_html__( '🧪 Test Connection', 'dc-sw-prefetch' ); ?>
 							</button>
 							<span class="dc-swp-capi-test-spinner spinner" style="float:none;margin-left:4px;display:none;"></span>
 							<span class="dc-swp-capi-test-result" style="margin-left:6px"></span>
@@ -1198,24 +1152,24 @@ function dc_swp_admin_page_html() {
 							data-saved-pixel="<?php echo esc_attr( $capi_pixel_id ); ?>"
 							<?php echo 'detect' !== $capi_mode ? 'style="display:none"' : ''; ?>>
 							<button type="button" id="dc-swp-capi-detect-btn" class="button button-secondary">
-								<?php echo esc_html( __( 'Scan Website', 'dc-sw-prefetch' ) ); ?>
+								<?php echo esc_html__( 'Scan Website', 'dc-sw-prefetch' ); ?>
 							</button>
 							<span id="dc-swp-capi-detect-spinner" class="spinner" style="float:none;margin-left:4px;display:none;"></span>
 							<div id="dc-swp-capi-detect-result" style="margin-top:8px"></div>
 							<div id="dc-swp-capi-detect-token-row" style="margin-top:12px;display:none">
-								<label style="display:block;margin-bottom:4px;font-weight:500"><?php echo esc_html( __( 'Access Token', 'dc-sw-prefetch' ) ); ?></label>
+								<label style="display:block;margin-bottom:4px;font-weight:500"><?php echo esc_html__( 'Access Token', 'dc-sw-prefetch' ); ?></label>
 								<input type="password" id="dc-swp-capi-token-detect"
 									class="regular-text" style="font-family:monospace"
 									value="<?php echo esc_attr( $capi_access_token ); ?>"
 									placeholder="<?php echo esc_attr( __( 'Paste your System User access token', 'dc-sw-prefetch' ) ); ?>"
 									autocomplete="off">
 								<button type="button" class="button button-secondary dc-swp-capi-test-btn" style="margin-top:8px">
-									<?php echo esc_html( __( '🧪 Test Connection', 'dc-sw-prefetch' ) ); ?>
+									<?php echo esc_html__( '🧪 Test Connection', 'dc-sw-prefetch' ); ?>
 								</button>
 								<span class="dc-swp-capi-test-spinner spinner" style="float:none;margin-left:4px;display:none;"></span>
 								<span class="dc-swp-capi-test-result" style="margin-left:6px"></span>
 							</div>
-							<p class="description" style="margin-top:8px"><?php echo esc_html( __( 'Scans your homepage for an existing Meta Pixel and extracts the Pixel ID. You still need to paste your Access Token.', 'dc-sw-prefetch' ) ); ?></p>
+							<p class="description" style="margin-top:8px"><?php echo esc_html__( 'Scans your homepage for an existing Meta Pixel and extracts the Pixel ID. You still need to paste your Access Token.', 'dc-sw-prefetch' ); ?></p>
 						</div>
 
 						<!-- Panel: managed (Getting Started wizard) -->
@@ -1230,8 +1184,8 @@ function dc_swp_admin_page_html() {
 
 							<!-- Step 1: Create a Dataset -->
 							<div class="dc-swp-wizard-step dc-swp-capi-wizard-step" id="dc-swp-capi-wizard-step-1">
-								<h4 style="margin:0 0 8px 0;font-size:13px"><?php echo esc_html( __( 'Step 1 -- Create a Meta Dataset', 'dc-sw-prefetch' ) ); ?></h4>
-								<p style="margin:0 0 10px"><?php echo esc_html( __( 'A Dataset is Meta\'s server-side data receiver. You need one to connect this plugin to your Meta account.', 'dc-sw-prefetch' ) ); ?></p>
+								<h4 style="margin:0 0 8px 0;font-size:13px"><?php echo esc_html__( 'Step 1 -- Create a Meta Dataset', 'dc-sw-prefetch' ); ?></h4>
+								<p style="margin:0 0 10px"><?php echo esc_html__( 'A Dataset is Meta\'s server-side data receiver. You need one to connect this plugin to your Meta account.', 'dc-sw-prefetch' ); ?></p>
 								<ol style="margin:0 0 10px 18px">
 									<li><?php echo wp_kses_post( __( 'Go to <strong>Meta Events Manager</strong> &rarr; <strong>Connect Data Sources</strong>', 'dc-sw-prefetch' ) ); ?></li>
 									<li><?php echo wp_kses_post( __( 'Select <strong>Web</strong> &rarr; <strong>Conversions API</strong>', 'dc-sw-prefetch' ) ); ?></li>
@@ -1239,7 +1193,7 @@ function dc_swp_admin_page_html() {
 									<li><?php echo wp_kses_post( __( 'Copy the <strong>Pixel ID</strong> (a 15&ndash;16 digit number) shown after creation', 'dc-sw-prefetch' ) ); ?></li>
 								</ol>
 								<p class="description" style="margin-bottom:10px"><?php echo wp_kses_post( __( '<strong>You do not need Meta\'s &ldquo;Setup Events&rdquo; wizard</strong> &mdash; our plugin handles all event configuration here.', 'dc-sw-prefetch' ) ); ?></p>
-								<label style="display:block;margin-bottom:4px;font-weight:500"><?php echo esc_html( __( 'Pixel ID', 'dc-sw-prefetch' ) ); ?></label>
+								<label style="display:block;margin-bottom:4px;font-weight:500"><?php echo esc_html__( 'Pixel ID', 'dc-sw-prefetch' ); ?></label>
 								<input type="text" id="dc-swp-capi-wizard-pixel"
 									class="regular-text" style="font-family:monospace"
 									value="<?php echo esc_attr( $capi_pixel_id ); ?>"
@@ -1248,22 +1202,22 @@ function dc_swp_admin_page_html() {
 								<div class="dc-swp-wizard-nav">
 									<button type="button" class="button button-primary dc-swp-capi-wizard-btn"
 										data-dir="next" data-step="1" disabled>
-										<?php echo esc_html( __( 'Next', 'dc-sw-prefetch' ) ); ?> &rarr;
+										<?php echo esc_html__( 'Next', 'dc-sw-prefetch' ); ?> &rarr;
 									</button>
 								</div>
 							</div>
 
 							<!-- Step 2: Generate System User Token -->
 							<div class="dc-swp-wizard-step dc-swp-capi-wizard-step" id="dc-swp-capi-wizard-step-2">
-								<h4 style="margin:0 0 8px 0;font-size:13px"><?php echo esc_html( __( 'Step 2 -- Generate a System User Token', 'dc-sw-prefetch' ) ); ?></h4>
-								<p style="margin:0 0 10px"><?php echo esc_html( __( 'This token authorises our server to send events to your Dataset. It must be a System User token, not a personal account token.', 'dc-sw-prefetch' ) ); ?></p>
+								<h4 style="margin:0 0 8px 0;font-size:13px"><?php echo esc_html__( 'Step 2 -- Generate a System User Token', 'dc-sw-prefetch' ); ?></h4>
+								<p style="margin:0 0 10px"><?php echo esc_html__( 'This token authorises our server to send events to your Dataset. It must be a System User token, not a personal account token.', 'dc-sw-prefetch' ); ?></p>
 								<ol style="margin:0 0 10px 18px">
 									<li><?php echo wp_kses_post( __( 'Go to <strong>Meta Business Suite</strong> &rarr; <strong>Business Settings</strong> &rarr; <strong>System Users</strong>', 'dc-sw-prefetch' ) ); ?></li>
 									<li><?php echo wp_kses_post( __( 'Click <strong>Add</strong> and create a System User with <em>Employee</em> role', 'dc-sw-prefetch' ) ); ?></li>
 									<li><?php echo wp_kses_post( __( 'Click <strong>Add Assets</strong> &rarr; assign your new Dataset with <strong>Standard</strong> access', 'dc-sw-prefetch' ) ); ?></li>
 									<li><?php echo wp_kses_post( __( 'Click <strong>Generate New Token</strong>, enable <strong>ads_management</strong> permission, and copy the token', 'dc-sw-prefetch' ) ); ?></li>
 								</ol>
-								<label style="display:block;margin-bottom:4px;font-weight:500"><?php echo esc_html( __( 'Access Token', 'dc-sw-prefetch' ) ); ?></label>
+								<label style="display:block;margin-bottom:4px;font-weight:500"><?php echo esc_html__( 'Access Token', 'dc-sw-prefetch' ); ?></label>
 								<input type="password" id="dc-swp-capi-wizard-token"
 									class="regular-text" style="font-family:monospace"
 									value="<?php echo esc_attr( $capi_access_token ); ?>"
@@ -1271,49 +1225,49 @@ function dc_swp_admin_page_html() {
 									autocomplete="off">
 								<div class="dc-swp-wizard-nav">
 									<button type="button" class="button dc-swp-capi-wizard-btn" data-dir="prev" data-step="2">
-										&larr; <?php echo esc_html( __( 'Back', 'dc-sw-prefetch' ) ); ?>
+										&larr; <?php echo esc_html__( 'Back', 'dc-sw-prefetch' ); ?>
 									</button>
 									<button type="button" class="button button-primary dc-swp-capi-wizard-btn"
 										data-dir="next" data-step="2" disabled>
-										<?php echo esc_html( __( 'Next', 'dc-sw-prefetch' ) ); ?> &rarr;
+										<?php echo esc_html__( 'Next', 'dc-sw-prefetch' ); ?> &rarr;
 									</button>
 								</div>
 							</div>
 
 							<!-- Step 3: Verify Connection -->
 							<div class="dc-swp-wizard-step dc-swp-capi-wizard-step" id="dc-swp-capi-wizard-step-3">
-								<h4 style="margin:0 0 8px 0;font-size:13px"><?php echo esc_html( __( 'Step 3 -- Verify the Connection', 'dc-sw-prefetch' ) ); ?></h4>
+								<h4 style="margin:0 0 8px 0;font-size:13px"><?php echo esc_html__( 'Step 3 -- Verify the Connection', 'dc-sw-prefetch' ); ?></h4>
 								<p style="margin:0 0 10px"><?php echo wp_kses_post( __( 'Send a test event to confirm your credentials are working. Open <strong>Meta Events Manager &rarr; Test Events</strong> to watch it arrive in real time.', 'dc-sw-prefetch' ) ); ?></p>
 								<div style="margin-bottom:12px">
 									<label style="display:block;margin-bottom:4px;font-weight:500">
-										<?php echo esc_html( __( 'Test Event Code', 'dc-sw-prefetch' ) ); ?>
-										<span style="font-weight:400;color:#777"><?php echo esc_html( __( '(optional)', 'dc-sw-prefetch' ) ); ?></span>
+										<?php echo esc_html__( 'Test Event Code', 'dc-sw-prefetch' ); ?>
+										<span style="font-weight:400;color:#777"><?php echo esc_html__( '(optional)', 'dc-sw-prefetch' ); ?></span>
 									</label>
 									<input type="text" id="dc-swp-capi-wizard-tec"
 										class="regular-text" style="font-family:monospace;max-width:200px"
 										value="<?php echo esc_attr( $capi_test_event_code ); ?>"
 										placeholder="TEST12345">
-									<p class="description"><?php echo esc_html( __( 'Found in Meta Events Manager > Test Events. Leave empty to skip the live test view.', 'dc-sw-prefetch' ) ); ?></p>
+									<p class="description"><?php echo esc_html__( 'Found in Meta Events Manager > Test Events. Leave empty to skip the live test view.', 'dc-sw-prefetch' ); ?></p>
 								</div>
 								<button type="button" id="dc-swp-capi-wizard-test-btn" class="button button-secondary">
-									<?php echo esc_html( __( 'Test Connection', 'dc-sw-prefetch' ) ); ?>
+									<?php echo esc_html__( 'Test Connection', 'dc-sw-prefetch' ); ?>
 								</button>
 								<span id="dc-swp-capi-wizard-test-spinner" class="spinner" style="float:none;margin-left:4px;display:none"></span>
 								<span id="dc-swp-capi-wizard-test-result" style="margin-left:6px"></span>
 								<div class="dc-swp-wizard-nav" style="margin-top:14px">
 									<button type="button" class="button dc-swp-capi-wizard-btn" data-dir="prev" data-step="3">
-										&larr; <?php echo esc_html( __( 'Back', 'dc-sw-prefetch' ) ); ?>
+										&larr; <?php echo esc_html__( 'Back', 'dc-sw-prefetch' ); ?>
 									</button>
 									<button type="button" class="button button-primary dc-swp-capi-wizard-btn" data-dir="next" data-step="3">
-										<?php echo esc_html( __( 'Next', 'dc-sw-prefetch' ) ); ?> &rarr;
+										<?php echo esc_html__( 'Next', 'dc-sw-prefetch' ); ?> &rarr;
 									</button>
 								</div>
 							</div>
 
 							<!-- Step 4: Select Events -->
 							<div class="dc-swp-wizard-step dc-swp-capi-wizard-step" id="dc-swp-capi-wizard-step-4">
-								<h4 style="margin:0 0 8px 0;font-size:13px"><?php echo esc_html( __( 'Step 4 -- Select Events to Track', 'dc-sw-prefetch' ) ); ?></h4>
-								<p style="margin:0 0 10px"><?php echo esc_html( __( 'Choose which WooCommerce actions to send to Meta. No additional Dataset configuration needed -- our plugin handles all event setup.', 'dc-sw-prefetch' ) ); ?></p>
+								<h4 style="margin:0 0 8px 0;font-size:13px"><?php echo esc_html__( 'Step 4 -- Select Events to Track', 'dc-sw-prefetch' ); ?></h4>
+								<p style="margin:0 0 10px"><?php echo esc_html__( 'Choose which WooCommerce actions to send to Meta. No additional Dataset configuration needed -- our plugin handles all event setup.', 'dc-sw-prefetch' ); ?></p>
 								<table style="border-collapse:collapse;width:100%;margin:0 0 10px">
 									<colgroup>
 										<col style="width:24px">
@@ -1366,38 +1320,38 @@ function dc_swp_admin_page_html() {
 										</tr>
 									<?php endforeach; ?>
 								</table>
-								<p class="description"><?php echo esc_html( __( 'Events marked "requires marketing consent" are automatically blocked by the WP Consent API when the visitor has not consented. Purchase always fires on a legitimate-interest basis.', 'dc-sw-prefetch' ) ); ?></p>
+								<p class="description"><?php echo esc_html__( 'Events marked "requires marketing consent" are automatically blocked by the WP Consent API when the visitor has not consented. Purchase always fires on a legitimate-interest basis.', 'dc-sw-prefetch' ); ?></p>
 								<div class="dc-swp-wizard-nav">
 									<button type="button" class="button dc-swp-capi-wizard-btn" data-dir="prev" data-step="4">
-										&larr; <?php echo esc_html( __( 'Back', 'dc-sw-prefetch' ) ); ?>
+										&larr; <?php echo esc_html__( 'Back', 'dc-sw-prefetch' ); ?>
 									</button>
 									<button type="button" class="button button-primary dc-swp-capi-wizard-btn" data-dir="next" data-step="4">
-										<?php echo esc_html( __( 'Next', 'dc-sw-prefetch' ) ); ?> &rarr;
+										<?php echo esc_html__( 'Next', 'dc-sw-prefetch' ); ?> &rarr;
 									</button>
 								</div>
 							</div>
 
 							<!-- Step 5: Finalise -->
 							<div class="dc-swp-wizard-step dc-swp-capi-wizard-step" id="dc-swp-capi-wizard-step-5">
-								<h4 style="margin:0 0 8px 0;font-size:13px"><?php echo esc_html( __( 'Step 5 -- Finalise Setup', 'dc-sw-prefetch' ) ); ?></h4>
+								<h4 style="margin:0 0 8px 0;font-size:13px"><?php echo esc_html__( 'Step 5 -- Finalise Setup', 'dc-sw-prefetch' ); ?></h4>
 								<div id="dc-swp-capi-wizard-summary"
 									style="background:#f0f6fc;border:1px solid #c3d4e4;border-radius:3px;padding:10px 14px;margin-bottom:14px;font-size:13px"></div>
 								<label style="display:block;margin-bottom:10px">
 									<input type="checkbox" id="dc-swp-capi-wizard-pii" <?php checked( $capi_send_pii ); ?>>
-									<strong><?php echo esc_html( __( 'Send hashed customer details (email, phone, name, address)', 'dc-sw-prefetch' ) ); ?></strong>
+									<strong><?php echo esc_html__( 'Send hashed customer details (email, phone, name, address)', 'dc-sw-prefetch' ); ?></strong>
 									<p class="description" style="margin-top:2px;margin-left:24px"><?php echo wp_kses_post( __( 'All fields are SHA-256 hashed before sending. Improves match rate significantly. <strong>Only enable if your privacy policy discloses server-to-server data sharing with Meta.</strong>', 'dc-sw-prefetch' ) ); ?></p>
 								</label>
 								<label style="display:block;margin-bottom:14px">
 									<input type="checkbox" id="dc-swp-capi-wizard-exclude" <?php checked( $capi_exclude_logged ); ?>>
-									<strong><?php echo esc_html( __( 'Exclude logged-in users', 'dc-sw-prefetch' ) ); ?></strong>
-									<p class="description" style="margin-top:2px;margin-left:24px"><?php echo esc_html( __( 'Skip server-side events for WordPress admins and editors.', 'dc-sw-prefetch' ) ); ?></p>
+									<strong><?php echo esc_html__( 'Exclude logged-in users', 'dc-sw-prefetch' ); ?></strong>
+									<p class="description" style="margin-top:2px;margin-left:24px"><?php echo esc_html__( 'Skip server-side events for WordPress admins and editors.', 'dc-sw-prefetch' ); ?></p>
 								</label>
 								<div class="dc-swp-wizard-nav">
 									<button type="button" class="button dc-swp-capi-wizard-btn" data-dir="prev" data-step="5">
-										&larr; <?php echo esc_html( __( 'Back', 'dc-sw-prefetch' ) ); ?>
+										&larr; <?php echo esc_html__( 'Back', 'dc-sw-prefetch' ); ?>
 									</button>
 									<button type="button" class="button button-primary" id="dc-swp-capi-wizard-complete">
-										<?php echo esc_html( __( 'Complete Setup', 'dc-sw-prefetch' ) ); ?>
+										<?php echo esc_html__( 'Complete Setup', 'dc-sw-prefetch' ); ?>
 									</button>
 								</div>
 							</div>
@@ -1407,11 +1361,11 @@ function dc_swp_admin_page_html() {
 
 				<!-- Send PII toggle (visible whenever CAPI is not off) -->
 				<tr valign="top" id="dc-swp-capi-pii-row"<?php echo 'off' === $capi_mode ? ' style="display:none"' : ''; ?>>
-					<th scope="row"><?php echo esc_html( __( 'Hashed PII', 'dc-sw-prefetch' ) ); ?></th>
+					<th scope="row"><?php echo esc_html__( 'Hashed PII', 'dc-sw-prefetch' ); ?></th>
 					<td>
 						<label>
 							<input type="checkbox" name="dc_swp_capi_send_pii" value="yes" <?php checked( $capi_send_pii ); ?>>
-							<strong><?php echo esc_html( __( 'Send hashed customer details (email, phone, name, address)', 'dc-sw-prefetch' ) ); ?></strong>
+							<strong><?php echo esc_html__( 'Send hashed customer details (email, phone, name, address)', 'dc-sw-prefetch' ); ?></strong>
 						</label>
 						<p class="description" style="margin-top:4px"><?php echo wp_kses_post( __( 'All fields are SHA-256 hashed before sending. Improves match rate significantly. <strong>Only enable if your privacy policy discloses server-to-server data sharing with Meta.</strong>', 'dc-sw-prefetch' ) ); ?></p>
 					</td>
@@ -1419,19 +1373,19 @@ function dc_swp_admin_page_html() {
 
 				<!-- Test Event Code (visible in own mode) -->
 				<tr valign="top" id="dc-swp-capi-tec-row"<?php echo 'own' !== $capi_mode ? ' style="display:none"' : ''; ?>>
-					<th scope="row"><?php echo esc_html( __( 'Test Event Code', 'dc-sw-prefetch' ) ); ?></th>
+					<th scope="row"><?php echo esc_html__( 'Test Event Code', 'dc-sw-prefetch' ); ?></th>
 					<td>
 						<input type="text" name="dc_swp_capi_test_event_code" id="dc-swp-capi-tec-field"
 							class="regular-text" style="font-family:monospace"
 							value="<?php echo esc_attr( $capi_test_event_code ); ?>"
 							placeholder="TEST12345">
-						<p class="description"><?php echo esc_html( __( 'Found in Meta Events Manager → Test Events. Leave empty for production.', 'dc-sw-prefetch' ) ); ?></p>
+						<p class="description"><?php echo esc_html__( 'Found in Meta Events Manager → Test Events. Leave empty for production.', 'dc-sw-prefetch' ); ?></p>
 					</td>
 				</tr>
 
 				<!-- Events checkboxes -->
 				<tr valign="top" id="dc-swp-capi-events-row"<?php echo 'off' === $capi_mode ? ' style="display:none"' : ''; ?>>
-					<th scope="row"><?php echo esc_html( __( 'Server-Side Events', 'dc-sw-prefetch' ) ); ?></th>
+					<th scope="row"><?php echo esc_html__( 'Server-Side Events', 'dc-sw-prefetch' ); ?></th>
 					<td>
 						<input type="hidden" id="dc_swp_capi_events_json" name="dc_swp_capi_events_json" value="">
 						<div style="display:grid;grid-template-columns:repeat(3,auto);gap:4px 18px;max-width:520px">
@@ -1452,7 +1406,7 @@ function dc_swp_admin_page_html() {
 							</label>
 						<?php endforeach; ?>
 						</div>
-						<p class="description" style="margin-top:8px"><?php echo esc_html( __( 'Purchase and InitiateCheckout are recommended for revenue attribution. AddToCart and ViewContent require marketing consent. When Meta Pixel LDU is enabled, CAPI payloads automatically include data_processing_options to match the client-side Pixel state.', 'dc-sw-prefetch' ) ); ?></p>
+						<p class="description" style="margin-top:8px"><?php echo esc_html__( 'Purchase and InitiateCheckout are recommended for revenue attribution. AddToCart and ViewContent require marketing consent. When Meta Pixel LDU is enabled, CAPI payloads automatically include data_processing_options to match the client-side Pixel state.', 'dc-sw-prefetch' ); ?></p>
 					</td>
 				</tr>
 			</table>
@@ -1464,23 +1418,23 @@ function dc_swp_admin_page_html() {
 			<fieldset class="dc-swp-fieldset">
 			<table class="form-table">
 				<tr valign="top">
-					<th scope="row"><?php echo esc_html( __( 'Partytown Health Monitor', 'dc-sw-prefetch' ) ); ?></th>
+					<th scope="row"><?php echo esc_html__( 'Partytown Health Monitor', 'dc-sw-prefetch' ); ?></th>
 					<td>
 						<label class="pwa-toggle">
 							<input type="checkbox" name="dc_swp_health_monitor" value="yes" <?php checked( $health_monitor, true ); ?>>
 							<span class="pwa-slider"></span>
 						</label>
-						<p class="description"><?php echo esc_html( __( 'Detects services that fail silently inside the Partytown worker (no network traffic observed within 15 seconds) and surfaces an admin notice. Disable if you experience false positives.', 'dc-sw-prefetch' ) ); ?></p>
+						<p class="description"><?php echo esc_html__( 'Detects services that fail silently inside the Partytown worker (no network traffic observed within 15 seconds) and surfaces an admin notice. Disable if you experience false positives.', 'dc-sw-prefetch' ); ?></p>
 					</td>
 				</tr>
 				<tr valign="top">
-					<th scope="row"><?php echo esc_html( __( 'Performance Metrics', 'dc-sw-prefetch' ) ); ?></th>
+					<th scope="row"><?php echo esc_html__( 'Performance Metrics', 'dc-sw-prefetch' ); ?></th>
 					<td>
 						<label class="pwa-toggle">
 							<input type="checkbox" name="dc_swp_perf_monitor" value="yes" <?php checked( $perf_monitor, true ); ?>>
 							<span class="pwa-slider"></span>
 						</label>
-						<p class="description"><?php echo esc_html( __( 'Collects anonymous TBT (Total Blocking Time) and INP (Interaction to Next Paint) measurements from real visitors and shows rolling averages + P75 percentiles in the admin -- giving tangible proof of Partytown\'s main-thread offloading benefit.', 'dc-sw-prefetch' ) ); ?></p>
+						<p class="description"><?php echo esc_html__( 'Collects anonymous TBT (Total Blocking Time) and INP (Interaction to Next Paint) measurements from real visitors and shows rolling averages + P75 percentiles in the admin -- giving tangible proof of Partytown\'s main-thread offloading benefit.', 'dc-sw-prefetch' ); ?></p>
 					</td>
 				</tr>
 			</table>
@@ -1488,9 +1442,9 @@ function dc_swp_admin_page_html() {
 
 			<!-- -- Performance Dashboard ---------------------------------------- -->
 			<fieldset class="dc-swp-fieldset">
-			<legend><?php echo esc_html( __( 'Performance Dashboard', 'dc-sw-prefetch' ) ); ?></legend>
+			<legend><?php echo esc_html__( 'Performance Dashboard', 'dc-sw-prefetch' ); ?></legend>
 		<?php if ( ! is_array( $perf_metrics ) || empty( $perf_metrics['samples'] ) ) : ?>
-			<p class="description"><?php echo esc_html( __( 'No performance data yet. Enable Performance Metrics and wait for visitor activity.', 'dc-sw-prefetch' ) ); ?></p>
+			<p class="description"><?php echo esc_html__( 'No performance data yet. Enable Performance Metrics and wait for visitor activity.', 'dc-sw-prefetch' ); ?></p>
 		<?php else : ?>
 			<?php
 			$_tbt_avg    = (float) ( $perf_metrics['tbt_avg'] ?? 0 );
@@ -1507,7 +1461,7 @@ function dc_swp_admin_page_html() {
 			?>
 			<table class="form-table">
 				<tr>
-					<th scope="row"><?php echo esc_html( __( 'Total Blocking Time (TBT)', 'dc-sw-prefetch' ) ); ?></th>
+					<th scope="row"><?php echo esc_html__( 'Total Blocking Time (TBT)', 'dc-sw-prefetch' ); ?></th>
 					<td>
 						<p>Avg: <strong><?php echo esc_html( number_format( $_tbt_avg, 1 ) ); ?> ms</strong> &nbsp; P75: <strong><?php echo esc_html( number_format( $_tbt_p75, 1 ) ); ?> ms</strong></p>
 						<div style="background:#dcdcde;border-radius:3px;height:10px;width:300px;margin-bottom:4px">
@@ -1517,7 +1471,7 @@ function dc_swp_admin_page_html() {
 					</td>
 				</tr>
 				<tr>
-					<th scope="row"><?php echo esc_html( __( 'Interaction to Next Paint (INP)', 'dc-sw-prefetch' ) ); ?></th>
+					<th scope="row"><?php echo esc_html__( 'Interaction to Next Paint (INP)', 'dc-sw-prefetch' ); ?></th>
 					<td>
 						<p>Avg: <strong><?php echo esc_html( number_format( $_inp_avg, 1 ) ); ?> ms</strong> &nbsp; P75: <strong><?php echo esc_html( number_format( $_inp_p75, 1 ) ); ?> ms</strong></p>
 						<div style="background:#dcdcde;border-radius:3px;height:10px;width:300px;margin-bottom:4px">
@@ -1527,11 +1481,11 @@ function dc_swp_admin_page_html() {
 					</td>
 				</tr>
 				<tr>
-					<th scope="row"><?php echo esc_html( __( 'Samples collected', 'dc-sw-prefetch' ) ); ?></th>
+					<th scope="row"><?php echo esc_html__( 'Samples collected', 'dc-sw-prefetch' ); ?></th>
 					<td>
 						<strong><?php echo (int) $_perf_count; ?></strong>
 						<?php if ( '' !== $_last_upd ) : ?>
-							&nbsp;-- <?php echo esc_html( __( 'Last updated', 'dc-sw-prefetch' ) ); ?>: <code><?php echo esc_html( $_last_upd ); ?></code>
+							&nbsp;-- <?php echo esc_html__( 'Last updated', 'dc-sw-prefetch' ); ?>: <code><?php echo esc_html( $_last_upd ); ?></code>
 						<?php endif; ?>
 					</td>
 				</tr>
@@ -1539,7 +1493,7 @@ function dc_swp_admin_page_html() {
 					<th scope="row"></th>
 					<td>
 						<button type="button" id="dc-swp-perf-reset-btn" class="button button-secondary">
-							<?php echo esc_html( __( 'Reset Metrics', 'dc-sw-prefetch' ) ); ?>
+							<?php echo esc_html__( 'Reset Metrics', 'dc-sw-prefetch' ); ?>
 						</button>
 						<span id="dc-swp-perf-reset-spinner" class="spinner" style="float:none;margin-left:4px;display:none;"></span>
 						<span id="dc-swp-perf-reset-result" style="margin-left:6px;font-weight:600"></span>
@@ -1555,7 +1509,7 @@ function dc_swp_admin_page_html() {
 			<fieldset class="dc-swp-fieldset">
 			<table class="form-table">
 				<tr valign="top"<?php if ( ! $sw_enabled ) echo ' class="dc-swp-row-disabled"'; ?>>
-					<th scope="row"><?php echo esc_html( __( 'Partytown Debug Mode', 'dc-sw-prefetch' ) ); ?></th>
+					<th scope="row"><?php echo esc_html__( 'Partytown Debug Mode', 'dc-sw-prefetch' ); ?></th>
 					<td>
 						<label class="pwa-toggle">
 							<input type="checkbox" name="dc_swp_debug_mode" value="yes" <?php checked( $debug_mode && $sw_enabled, true ); ?><?php if ( ! $sw_enabled ) echo ' disabled'; ?>>
@@ -1568,28 +1522,28 @@ function dc_swp_admin_page_html() {
 			</fieldset>
 
 			<fieldset class="dc-swp-fieldset">
-			<legend><?php echo esc_html( __( 'Benefits', 'dc-sw-prefetch' ) ); ?></legend>
+			<legend><?php echo esc_html__( 'Benefits', 'dc-sw-prefetch' ); ?></legend>
 			<ul style="list-style: disc; margin-left: 20px;">
-				<li>✅ <?php echo esc_html( __( 'Analytics scripts run in a Web Worker -- unlike async, they never execute on the browser main thread', 'dc-sw-prefetch' ) ); ?></li>
-				<li>✅ <?php echo esc_html( __( 'Viewport prefetch pre-loads product links automatically', 'dc-sw-prefetch' ) ); ?></li>
-				<li>✅ <?php echo esc_html( __( 'Pagination next-page link prefetched 2 s ahead', 'dc-sw-prefetch' ) ); ?></li>
-				<li>✅ <?php echo esc_html( __( 'Bots and crawlers never receive Partytown (clean HTML)', 'dc-sw-prefetch' ) ); ?></li>
-				<li>✅ <?php echo esc_html( __( 'Automatic updates via GitHub Actions workflow', 'dc-sw-prefetch' ) ); ?></li>
-				<li>✅ <?php echo esc_html( __( 'WP emoji scripts removed -- saves a DNS lookup and ~76 KB', 'dc-sw-prefetch' ) ); ?></li>
-				<li>✅ <?php echo esc_html( __( 'Third-party scripts auto-detected and offloaded to Partytown in one click', 'dc-sw-prefetch' ) ); ?></li>
-				<li>✅ <?php echo esc_html( __( 'Consent-aware: optional Consent Gate blocks scripts (text/plain) until consent is granted via the WP Consent API', 'dc-sw-prefetch' ) ); ?></li>
+				<li>✅ <?php echo esc_html__( 'Analytics scripts run in a Web Worker -- unlike async, they never execute on the browser main thread', 'dc-sw-prefetch' ); ?></li>
+				<li>✅ <?php echo esc_html__( 'Viewport prefetch pre-loads product links automatically', 'dc-sw-prefetch' ); ?></li>
+				<li>✅ <?php echo esc_html__( 'Pagination next-page link prefetched 2 s ahead', 'dc-sw-prefetch' ); ?></li>
+				<li>✅ <?php echo esc_html__( 'Bots and crawlers never receive Partytown (clean HTML)', 'dc-sw-prefetch' ); ?></li>
+				<li>✅ <?php echo esc_html__( 'Automatic updates via GitHub Actions workflow', 'dc-sw-prefetch' ); ?></li>
+				<li>✅ <?php echo esc_html__( 'WP emoji scripts removed -- saves a DNS lookup and ~76 KB', 'dc-sw-prefetch' ); ?></li>
+				<li>✅ <?php echo esc_html__( 'Third-party scripts auto-detected and offloaded to Partytown in one click', 'dc-sw-prefetch' ); ?></li>
+				<li>✅ <?php echo esc_html__( 'Consent-aware: optional Consent Gate blocks scripts (text/plain) until consent is granted via the WP Consent API', 'dc-sw-prefetch' ); ?></li>
 			</ul>
 			</fieldset>
 
 			<fieldset class="dc-swp-fieldset">
-			<legend><?php echo esc_html( __( 'Footer Credit', 'dc-sw-prefetch' ) ); ?></legend>
+			<legend><?php echo esc_html__( 'Footer Credit', 'dc-sw-prefetch' ); ?></legend>
 			<table class="form-table">
 				<tr valign="top">
-					<th scope="row"><?php echo esc_html( __( 'Footer Credit', 'dc-sw-prefetch' ) ); ?></th>
+					<th scope="row"><?php echo esc_html__( 'Footer Credit', 'dc-sw-prefetch' ); ?></th>
 					<td>
 						<label>
 							<input type="checkbox" name="dc_swp_footer_credit" value="yes" <?php checked( $footer_credit, true ); ?>>
-							<?php echo esc_html( __( 'Show some love and support development by adding a small link in the footer', 'dc-sw-prefetch' ) ); ?>
+							<?php echo esc_html__( 'Show some love and support development by adding a small link in the footer', 'dc-sw-prefetch' ); ?>
 						</label>
 						<p class="description"><?php echo wp_kses_post( __( 'Inserts a discreet <a href="https://www.dampcig.dk" target="_blank">Dampcig.dk</a> link in the footer by linking the copyright symbol ©.', 'dc-sw-prefetch' ) ); ?></p>
 					</td>
@@ -1704,7 +1658,7 @@ function dc_swp_admin_health_notice(): void {
 	}
 	$hosts_html = implode( ', ', array_map( 'esc_html', $issues ) );
 	echo '<div class="notice notice-warning is-dismissible"><p>'
-		. esc_html( __( '⚠ Partytown Health Monitor: These hosts produced no observable network traffic. They may be failing inside the Partytown worker:', 'dc-sw-prefetch' ) )
+		. esc_html__( '⚠ Partytown Health Monitor: These hosts produced no observable network traffic. They may be failing inside the Partytown worker:', 'dc-sw-prefetch' )
 		. ' <strong>' . $hosts_html . '</strong>'  // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $hosts_html built exclusively from esc_html()-escaped values; implode does not introduce new HTML.
 		. '</p></div>' . "\n";
 }
@@ -2077,7 +2031,7 @@ function dc_swp_ajax_test_capi() {
 		wp_send_json_error( 'Missing pixel_id or access_token' );
 	}
 
-	$url = 'https://graph.facebook.com/v20.0/' . rawurlencode( $pixel_id ) . '/events?access_token=' . rawurlencode( $access_token );
+	$url = 'https://graph.facebook.com/v20.0/' . rawurlencode( $pixel_id ) . '/events';
 
 	$payload = array(
 		'data' => array(
@@ -2102,7 +2056,10 @@ function dc_swp_ajax_test_capi() {
 		$url,
 		array(
 			'timeout' => 10,
-			'headers' => array( 'Content-Type' => 'application/json' ),
+			'headers' => array(
+				'Content-Type'  => 'application/json',
+				'Authorization' => 'Bearer ' . $access_token,
+			),
 			'body'    => wp_json_encode( $payload ),
 		)
 	);

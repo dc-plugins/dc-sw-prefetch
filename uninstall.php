@@ -48,6 +48,14 @@ function dc_swp_uninstall() {
 		'dc_swp_health_monitor',
 		'dc_swp_perf_monitor',
 		'dc_swp_exclusion_patterns',
+		// CAPI options (v2.4.0+).
+		'dc_swp_capi_mode',
+		'dc_swp_capi_pixel_id',
+		'dc_swp_capi_access_token',
+		'dc_swp_capi_test_event_code',
+		'dc_swp_capi_events',
+		'dc_swp_capi_exclude_logged_in',
+		'dc_swp_capi_send_pii',
 		// Legacy names (pre-1.6.0) -- remove if migration never ran.
 		'dampcig_pwa_sw_enabled',
 		'dampcig_pwa_footer_credit',
