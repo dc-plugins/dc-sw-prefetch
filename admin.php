@@ -1236,7 +1236,7 @@ function dc_swp_admin_page_html() {
 						<?php
 						$_capi_modes = array(
 							'off'     => __( 'Disabled -- no server-side Meta CAPI events', 'dc-sw-prefetch' ),
-							'own'     => __( 'Enter Credentials -- I have my Pixel ID and Access Token', 'dc-sw-prefetch' ),
+							'own'     => __( 'Enter Credentials -- I have my Pixel ID and System User Access Token', 'dc-sw-prefetch' ),
 							'detect'  => __( 'Auto-Detect -- find Meta Pixel ID in page source', 'dc-sw-prefetch' ),
 							'managed' => __( 'Getting Started -- step-by-step CAPI configuration', 'dc-sw-prefetch' ),
 						);
@@ -1261,7 +1261,7 @@ function dc_swp_admin_page_html() {
 								<span id="dc-swp-capi-pixel-own-status"></span>
 							</div>
 							<div style="margin-bottom:12px">
-								<label style="display:block;margin-bottom:4px;font-weight:500"><?php echo esc_html__( 'Access Token', 'dc-sw-prefetch' ); ?></label>
+								<label style="display:block;margin-bottom:4px;font-weight:500"><?php echo esc_html__( 'System User Access Token', 'dc-sw-prefetch' ); ?></label>
 								<input type="password" id="dc-swp-capi-token-own"
 									class="regular-text" style="font-family:monospace"
 									value="<?php echo esc_attr( $capi_access_token ); ?>"
@@ -1292,7 +1292,7 @@ function dc_swp_admin_page_html() {
 							<span id="dc-swp-capi-detect-spinner" class="spinner" style="float:none;margin-left:4px;display:none;"></span>
 							<div id="dc-swp-capi-detect-result" style="margin-top:8px"></div>
 							<div id="dc-swp-capi-detect-token-row" style="margin-top:12px;display:none">
-								<label style="display:block;margin-bottom:4px;font-weight:500"><?php echo esc_html__( 'Access Token', 'dc-sw-prefetch' ); ?></label>
+								<label style="display:block;margin-bottom:4px;font-weight:500"><?php echo esc_html__( 'System User Access Token', 'dc-sw-prefetch' ); ?></label>
 								<input type="password" id="dc-swp-capi-token-detect"
 									class="regular-text" style="font-family:monospace"
 									value="<?php echo esc_attr( $capi_access_token ); ?>"
@@ -1304,7 +1304,7 @@ function dc_swp_admin_page_html() {
 								<span class="dc-swp-capi-test-spinner spinner" style="float:none;margin-left:4px;display:none;"></span>
 								<span class="dc-swp-capi-test-result" style="margin-left:6px"></span>
 							</div>
-							<p class="description" style="margin-top:8px"><?php echo esc_html__( 'Scans your homepage for an existing Meta Pixel and extracts the Pixel ID. You still need to paste your Access Token.', 'dc-sw-prefetch' ); ?></p>
+							<p class="description" style="margin-top:8px"><?php echo esc_html__( 'Scans your homepage for an existing Meta Pixel and extracts the Pixel ID. You still need to paste your System User Access Token.', 'dc-sw-prefetch' ); ?></p>
 						</div>
 
 						<!-- Panel: managed (Getting Started wizard) -->
@@ -1355,7 +1355,7 @@ function dc_swp_admin_page_html() {
 									<li><?php echo wp_kses_post( __( 'Click <strong>Add Assets</strong> &rarr; assign your new Dataset with <strong>Standard</strong> access', 'dc-sw-prefetch' ) ); ?></li>
 									<li><?php echo wp_kses_post( __( 'Click <strong>Generate New Token</strong>, enable <strong>ads_management</strong> permission, and copy the token', 'dc-sw-prefetch' ) ); ?></li>
 								</ol>
-								<label style="display:block;margin-bottom:4px;font-weight:500"><?php echo esc_html__( 'Access Token', 'dc-sw-prefetch' ); ?></label>
+								<label style="display:block;margin-bottom:4px;font-weight:500"><?php echo esc_html__( 'System User Access Token', 'dc-sw-prefetch' ); ?></label>
 								<input type="password" id="dc-swp-capi-wizard-token"
 									class="regular-text" style="font-family:monospace"
 									value="<?php echo esc_attr( $capi_access_token ); ?>"
@@ -1993,10 +1993,10 @@ function dc_swp_admin_page_html() {
 				'detected'             => __( 'Detected', 'dc-sw-prefetch' ),
 				'active'               => __( 'Auto-detected and active', 'dc-sw-prefetch' ),
 				'testSuccess'          => __( '✔ Connection OK -- Meta accepted the test event.', 'dc-sw-prefetch' ),
-				'testFail'             => __( '⚠ Connection failed -- check Pixel ID and Access Token.', 'dc-sw-prefetch' ),
+				'testFail'             => __( '⚠ Connection failed -- check Pixel ID and System User Access Token.', 'dc-sw-prefetch' ),
 				'events'               => $capi_events,
 				'wizardPixelRequired'  => __( 'Enter a valid 15–16 digit Pixel ID to continue.', 'dc-sw-prefetch' ),
-				'wizardTokenRequired'  => __( 'Paste your Access Token to continue.', 'dc-sw-prefetch' ),
+				'wizardTokenRequired'  => __( 'Paste your System User Access Token to continue.', 'dc-sw-prefetch' ),
 				'wizardSummaryDataset' => __( 'Dataset', 'dc-sw-prefetch' ),
 				'wizardSummaryEvents'  => __( 'Events', 'dc-sw-prefetch' ),
 				'wizardSummaryConn'    => __( 'Connection', 'dc-sw-prefetch' ),
