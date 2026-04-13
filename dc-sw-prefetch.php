@@ -387,6 +387,7 @@ define( 'DC_SWP_VERSION', '2.5.1' );
 
 require_once plugin_dir_path( __FILE__ ) . 'admin.php';
 require_once plugin_dir_path( __FILE__ ) . 'capi.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/attribution.php';
 
 
 // ============================================================
@@ -3151,9 +3152,10 @@ function dc_swp_ssga4_build_cart_items(): array {
  * @param string               $event_name Event name (e.g. 'purchase').
  * @param array<string, mixed> $params     Event parameters.
  * @param bool                 $blocking   Whether to wait for the response (true for purchase/refund).
+ * @param array<string, mixed> $top        Optional top-level payload overrides merged before sending (e.g. user_data, consent).
  * @return bool True on success or non-blocking dispatch, false on failure.
  */
-function dc_swp_ssga4_send( string $event_name, array $params = array(), bool $blocking = false ): bool {
+function dc_swp_ssga4_send( string $event_name, array $params = array(), bool $blocking = false, array $top = array() ): bool {
 	$cfg            = dc_swp_ssga4_get_config();
 	$measurement_id = $cfg['measurement_id'];
 	$api_secret     = $cfg['api_secret'];
@@ -3192,6 +3194,11 @@ function dc_swp_ssga4_send( string $event_name, array $params = array(), bool $b
 			),
 		),
 	);
+
+	if ( ! empty( $top ) ) {
+		// Merge top-level payload overrides (e.g. user_data, consent for Enhanced Conversions).
+		$payload = array_merge( $payload, $top );
+	}
 
 	$response = wp_remote_post(
 		$url,
@@ -3242,6 +3249,50 @@ if ( class_exists( 'WooCommerce' ) ) {
 	// ============================================================
 
 	/**
+	 * Build the user_data object for GA4 MP Enhanced Conversions.
+	 *
+	 * Hashes billing PII from the WooCommerce order using SHA-256 per Google's
+	 * Enhanced Conversions specification. Returns an empty array when no
+	 * hashable data is available so callers can guard with empty().
+	 *
+	 * @since 2.6.0
+	 * @param \WC_Order $order WooCommerce order.
+	 * @return array<string, mixed> GA4 MP user_data object.
+	 */
+	function dc_swp_ga4_build_enhanced_user_data( \WC_Order $order ): array {
+		$user_data = array();
+
+		$email = $order->get_billing_email();
+		if ( ! empty( $email ) && is_email( $email ) ) {
+			$user_data['sha256_email_address'] = array( hash( 'sha256', strtolower( trim( $email ) ) ) );
+		}
+
+		$phone = $order->get_billing_phone();
+		if ( ! empty( $phone ) ) {
+			// Strip all non-digit chars except a leading + (E.164 normalisation).
+			$phone_clean = preg_replace( '/(?!^\+)[^\d]/', '', $phone );
+			if ( '' !== $phone_clean ) {
+				$user_data['sha256_phone_number'] = array( hash( 'sha256', $phone_clean ) );
+			}
+		}
+
+		$first = $order->get_billing_first_name();
+		$last  = $order->get_billing_last_name();
+		if ( ! empty( $first ) || ! empty( $last ) ) {
+			$addr = array();
+			if ( ! empty( $first ) ) {
+				$addr['sha256_first_name'] = hash( 'sha256', strtolower( trim( $first ) ) );
+			}
+			if ( ! empty( $last ) ) {
+				$addr['sha256_last_name'] = hash( 'sha256', strtolower( trim( $last ) ) );
+			}
+			$user_data['address'] = array( $addr );
+		}
+
+		return $user_data;
+	}
+
+	/**
 	 * SSGA4: purchase event -- fires on thank-you page.
 	 *
 	 * Uses _dc_swp_ga4_purchase_tracked meta to prevent double-firing.
@@ -3280,7 +3331,23 @@ if ( class_exists( 'WooCommerce' ) ) {
 			$params['coupon'] = implode( ',', $coupon_codes );
 		}
 
-		if ( dc_swp_ssga4_send( 'purchase', $params, true ) ) {
+		// Build Enhanced Conversions top-level payload when enabled.
+		$_ec_top = array();
+		if ( 'yes' === get_option( 'dc_swp_ga4_enhanced_conv', 'no' ) ) {
+			$_ec_data = dc_swp_ga4_build_enhanced_user_data( $order );
+			if ( ! empty( $_ec_data ) ) {
+				$_ec_top = array(
+					'user_data' => $_ec_data,
+					// Grant ad_user_data matching for hashed PII; personalisation stays denied.
+					'consent'   => array(
+						'ad_user_data'       => 'UNSPECIFIED',
+						'ad_personalization' => 'DENIED',
+					),
+				);
+			}
+		}
+
+		if ( dc_swp_ssga4_send( 'purchase', $params, true, $_ec_top ) ) {
 			$order->update_meta_data( '_dc_swp_ga4_purchase_tracked', '1' );
 			$order->save();
 		}

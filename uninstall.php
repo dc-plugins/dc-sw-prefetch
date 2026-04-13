@@ -56,6 +56,10 @@ function dc_swp_uninstall() {
 		'dc_swp_capi_events',
 		'dc_swp_capi_exclude_logged_in',
 		'dc_swp_capi_send_pii',
+		// Attribution & Enhanced Conversions (v2.6.0+).
+		'dc_swp_attr_enabled',
+		'dc_swp_attr_model',
+		'dc_swp_ga4_enhanced_conv',
 		// Legacy names (pre-1.6.0) -- remove if migration never ran.
 		'dampcig_pwa_sw_enabled',
 		'dampcig_pwa_footer_credit',

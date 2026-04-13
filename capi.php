@@ -135,6 +135,14 @@ function dc_swp_capi_get_fbc(): string {
 	if ( ! empty( $fbclid ) ) {
 		return 'fb.1.' . time() . '.' . $fbclid;
 	}
+	// Fallback: synthesise fbc from the stored attribution cookie (captured on
+	// the landing page, so fbclid is available even on the thank-you page).
+	if ( function_exists( 'dc_swp_attr_get_fbc' ) ) {
+		$attr_fbc = dc_swp_attr_get_fbc();
+		if ( '' !== $attr_fbc ) {
+			return $attr_fbc;
+		}
+	}
 	return '';
 }
 

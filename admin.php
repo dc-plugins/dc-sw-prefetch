@@ -368,6 +368,12 @@ function dc_swp_admin_page_html() {
 			}
 		}
 		update_option( 'dc_swp_capi_events', wp_json_encode( $_capi_events_clean ) );
+		// -- UTM & Click ID Attribution ------------------------------------
+		update_option( 'dc_swp_attr_enabled', isset( $_POST['dc_swp_attr_enabled'] ) ? 'yes' : 'no' );
+		$_attr_model_raw = sanitize_key( wp_unslash( $_POST['dc_swp_attr_model'] ?? 'first' ) );
+		update_option( 'dc_swp_attr_model', in_array( $_attr_model_raw, array( 'first', 'last' ), true ) ? $_attr_model_raw : 'first' );
+		// -- Google Ads Enhanced Conversions --------------------------------
+		update_option( 'dc_swp_ga4_enhanced_conv', isset( $_POST['dc_swp_ga4_enhanced_conv'] ) ? 'yes' : 'no' );
 		update_option( 'dc_swp_resource_hints', isset( $_POST['dc_swp_resource_hints'] ) ? 'yes' : 'no' );
 		update_option( 'dc_swp_health_monitor', isset( $_POST['dc_swp_health_monitor'] ) ? 'yes' : 'no' );
 		update_option( 'dc_swp_perf_monitor', isset( $_POST['dc_swp_perf_monitor'] ) ? 'yes' : 'no' );
@@ -409,6 +415,9 @@ function dc_swp_admin_page_html() {
 	$ssga4_api_secret     = get_option( 'dc_swp_ssga4_api_secret', '' );
 	$ga4_client_tag       = get_option( 'dc_swp_ga4_client_tag', 'no' ) === 'yes';
 	$ga4_exclude_logged   = get_option( 'dc_swp_ga4_exclude_logged_in', 'yes' ) === 'yes';
+	$attr_enabled         = get_option( 'dc_swp_attr_enabled', 'no' ) === 'yes';
+	$attr_model           = get_option( 'dc_swp_attr_model', 'first' );
+	$ga4_enhanced_conv    = get_option( 'dc_swp_ga4_enhanced_conv', 'no' ) === 'yes';
 	$ssga4_events_raw     = json_decode( get_option( 'dc_swp_ssga4_events', '' ), true );
 	$ssga4_events_default = array(
 		'purchase'          => true,
@@ -1075,6 +1084,52 @@ function dc_swp_admin_page_html() {
 				</tr>
 			</table>
 			</fieldset>
+
+			<fieldset style="margin-top:20px">
+			<legend style="font-weight:600;font-size:14px"><?php esc_html_e( 'UTM &amp; Click ID Attribution', 'dc-sw-prefetch' ); ?></legend>
+			<table class="form-table" role="presentation">
+				<tr valign="top">
+					<th scope="row"><?php esc_html_e( 'Attribution Cookie', 'dc-sw-prefetch' ); ?></th>
+					<td>
+						<label>
+							<input type="checkbox" name="dc_swp_attr_enabled" value="yes"<?php checked( $attr_enabled ); ?>>
+							<?php esc_html_e( 'Capture UTM parameters and click IDs from landing page URL', 'dc-sw-prefetch' ); ?>
+						</label>
+						<p class="description"><?php echo wp_kses_post( __( 'Stores <code>utm_source</code>, <code>utm_medium</code>, <code>utm_campaign</code>, <code>gclid</code>, <code>fbclid</code>, <code>ttclid</code>, and <code>msclkid</code> in a 30-day first-party cookie. Server-side events (CAPI, GA4) read this cookie on later pages — such as the thank-you page — where the original click parameter is no longer in the URL.', 'dc-sw-prefetch' ) ); ?></p>
+					</td>
+				</tr>
+				<tr valign="top">
+					<th scope="row"><?php esc_html_e( 'Attribution Model', 'dc-sw-prefetch' ); ?></th>
+					<td>
+						<label style="display:block;margin-bottom:6px">
+							<input type="radio" name="dc_swp_attr_model" value="first"<?php checked( $attr_model, 'first' ); ?>>
+							<?php esc_html_e( 'First-touch (recommended) — records the original traffic source, never overwritten', 'dc-sw-prefetch' ); ?>
+						</label>
+						<label style="display:block">
+							<input type="radio" name="dc_swp_attr_model" value="last"<?php checked( $attr_model, 'last' ); ?>>
+							<?php esc_html_e( 'Last-touch — always updated to the most recent click ID or UTM source', 'dc-sw-prefetch' ); ?>
+						</label>
+					</td>
+				</tr>
+			</table>
+			</fieldset>
+
+			<fieldset style="margin-top:20px">
+			<legend style="font-weight:600;font-size:14px"><?php esc_html_e( 'Google Ads Enhanced Conversions', 'dc-sw-prefetch' ); ?></legend>
+			<table class="form-table" role="presentation">
+				<tr valign="top">
+					<th scope="row"><?php esc_html_e( 'Enhanced Conversions', 'dc-sw-prefetch' ); ?></th>
+					<td>
+						<label>
+							<input type="checkbox" name="dc_swp_ga4_enhanced_conv" value="yes"<?php checked( $ga4_enhanced_conv ); ?>>
+							<?php esc_html_e( 'Attach hashed customer data to server-side purchase events', 'dc-sw-prefetch' ); ?>
+						</label>
+						<p class="description"><?php echo wp_kses_post( __( 'Adds hashed billing email, phone number, and name to GA4 Measurement Protocol <code>purchase</code> events. Google Ads uses this hashed data to improve conversion matching when cookies are restricted or unavailable. Requires a <strong>Google Analytics &#8594; Google Ads account link</strong> in GA4 Admin &#8594; Product links. Only enable if your privacy policy covers sending customer data to Google.', 'dc-sw-prefetch' ) ); ?></p>
+					</td>
+				</tr>
+			</table>
+			</fieldset>
+
 		</div><!-- /tab-analytics -->
 
 		<!-- ===== TAB 3: META ADS ===== -->
