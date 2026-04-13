@@ -178,6 +178,13 @@ function dc_swp_enqueue_admin_assets( $hook ) {
     /* -- Partytown-dependent rows ---------------------------------------------- */
     .dc-swp-row-disabled { opacity:0.45; }
     .dc-swp-row-disabled .pwa-toggle { pointer-events:none; }
+    /* -- Donation section ------------------------------------------------------ */
+    .dc-swp-donate-wrap { max-width:560px; }
+    .dc-swp-donate-speech { margin:8px 0 16px; color:#50575e; line-height:1.65; }
+    .dc-swp-donate-row { display:flex; align-items:flex-start; gap:28px; flex-wrap:wrap; margin:10px 0 0; }
+    .dc-swp-donate-qr img { display:block; border:3px solid #dcdcde; border-radius:4px; }
+    .dc-swp-donate-qr .description { margin-top:6px; text-align:center; }
+    .dc-swp-donate-actions { display:flex; flex-direction:column; gap:10px; justify-content:center; }
     "
 	);
 	wp_enqueue_style( 'dc-swp-admin' );
@@ -1572,6 +1579,56 @@ function dc_swp_admin_page_html() {
 					</td>
 				</tr>
 			</table>
+			</fieldset>
+
+			</fieldset>
+
+			<fieldset class="dc-swp-fieldset">
+			<legend><?php esc_html_e( 'Support Development', 'dc-sw-prefetch' ); ?></legend>
+			<div class="dc-swp-donate-wrap">
+				<p class="dc-swp-donate-speech">
+					<?php
+					echo wp_kses_post(
+						__(
+							'<strong>This plugin is free — and always will be.</strong> Building and maintaining it takes real time: fixing edge cases, keeping pace with WordPress updates, testing every WooCommerce release, and answering support questions. If it saved you an hour, spared you a headache, or just quietly made your store faster — please consider buying me a coffee or a treat for my dog. Every donation, no matter the size, keeps the motivation going and the updates coming. Thank you! 🐾',
+							'dc-sw-prefetch'
+						)
+					);
+					?>
+				</p>
+				<div class="dc-swp-donate-row">
+					<div class="dc-swp-donate-qr">
+						<img
+							src="<?php echo esc_url( plugins_url( 'assets/img/paypal-qr.png', __FILE__ ) ); ?>"
+							alt="<?php esc_attr_e( 'Scan to donate via PayPal', 'dc-sw-prefetch' ); ?>"
+							width="150"
+							height="150"
+						>
+						<p class="description"><?php esc_html_e( 'Scan with your phone camera', 'dc-sw-prefetch' ); ?></p>
+					</div>
+					<div class="dc-swp-donate-actions">
+						<p><?php esc_html_e( 'Or click the button below:', 'dc-sw-prefetch' ); ?></p>
+						<a
+							href="<?php echo esc_url( 'https://www.paypal.com/donate?business=X2H3AGW3278BA&no_recurring=0&item_name=Support+my+development+of+free+to+use%2C+feature+rich+WooCommerce+Plugins.+Please+buy+me+a+coffee+or+treats+for+my+dog.&currency_code=DKK' ); ?>"
+							target="_blank"
+							rel="noopener noreferrer"
+						><img
+								src="<?php echo esc_url( 'https://www.paypalobjects.com/en_US/i/btn/btn_donate_LG.gif' ); ?>"
+								alt="<?php esc_attr_e( 'Donate with PayPal button', 'dc-sw-prefetch' ); ?>"
+								width="92"
+								height="26"
+							></a>
+						<?php // PayPal tracking pixel — standard with all PayPal donate buttons. ?>
+						<img
+							alt=""
+							src="<?php echo esc_url( 'https://www.paypal.com/en_DK/i/scr/pixel.gif' ); ?>"
+							width="1"
+							height="1"
+							style="display:none"
+						>
+					</div>
+				</div>
+			</div>
 			</fieldset>
 
 		</div><!-- /tab-advanced -->
