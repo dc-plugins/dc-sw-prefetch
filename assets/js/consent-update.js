@@ -23,20 +23,19 @@
 	 * functional and security_storage are always 'granted' (set in the stub).
 	 */
 	const categoryMap = {
-		marketing:   [ 'ad_storage', 'ad_user_data', 'ad_personalization' ],
-		statistics:  [ 'analytics_storage' ],
-		preferences: [ 'personalization_storage' ],
+		marketing:              [ 'ad_storage', 'ad_user_data', 'ad_personalization' ],
+		statistics:             [ 'analytics_storage' ],
+		'statistics-anonymous': [ 'analytics_storage' ], // anonymised stats → same GA4 signal.
+		preferences:            [ 'personalization_storage' ],
 	};
 
 	/** Track last known consent state per category to detect changes. */
 	const lastConsentState = {
-		marketing:   null,
-		statistics:  null,
-		preferences: null,
+		marketing:              null,
+		statistics:             null,
+		'statistics-anonymous': null,
+		preferences:            null,
 	};
-
-	/** Track whether any consent has been granted (user accepted something). */
-	let anyConsentGranted = false;
 
 	/** Track last known Meta Consent Mode state ('grant'|'revoke'|null). */
 	let lastMetaConsent = null;
@@ -107,6 +106,27 @@
 	}
 
 	/**
+	 * Apply TikTok Pixel consent state when marketing consent changes.
+	 *
+	 * TikTok Pixel exposes holdConsent/revokeConsent/grantConsent on the ttq
+	 * stub. When marketing consent is absent, revokeConsent() holds event firing.
+	 * When consent is granted, grantConsent() releases held events.
+	 *
+	 * @param {boolean} hasConsent Whether marketing consent was granted.
+	 */
+	function updateTikTokConsent( hasConsent ) {
+		if ( typeof window.ttq === 'undefined' ||
+		     typeof window.ttq.grantConsent !== 'function' ) {
+			return;
+		}
+		if ( hasConsent ) {
+			window.ttq.grantConsent();
+		} else {
+			window.ttq.revokeConsent();
+		}
+	}
+
+	/**
 	 * Read current consent state via wp_has_consent() and push GCM v2 updates
 	 * only for categories that have changed since last check.
 	 *
@@ -125,15 +145,12 @@
 			if ( lastConsentState[ category ] !== value ) {
 				lastConsentState[ category ] = value;
 				updateGcm( category, value );
-
-				if ( hasConsent ) {
-					anyConsentGranted = true;
-				}
 			}
 
-			// Sync Meta Pixel consent whenever marketing state is evaluated.
+			// Sync pixel consent signals whenever marketing state is evaluated.
 			if ( category === 'marketing' ) {
 				updateMetaConsent( hasConsent );
+				updateTikTokConsent( hasConsent );
 			}
 		} );
 
@@ -160,13 +177,9 @@
 			const apiAvailable = applyCurrentConsent();
 
 			// Stop conditions:
-			// 1. User has granted consent (mission accomplished)
-			// 2. We've been polling for 30 seconds (give up gracefully)
-			// 3. API not available after 5 attempts (WP Consent API not installed)
-			if ( anyConsentGranted ) {
-				return; // Success - user granted consent.
-			}
-
+			// 1. We've been polling for 30 seconds (give up gracefully).
+			// 2. WP Consent API not available after 5 attempts (not installed).
+			// Subsequent consent changes are caught by the event listener + fallback interval.
 			const elapsed = Date.now() - startTime;
 			if ( elapsed >= maxDuration ) {
 				return; // Timeout - stop polling.
@@ -212,15 +225,13 @@
 			if ( lastConsentState[ category ] !== value ) {
 				lastConsentState[ category ] = value;
 				updateGcm( category, value );
-				if ( value === 'allow' ) {
-					anyConsentGranted = true;
-				}
 			}
 		} );
 
-		// Sync Meta Pixel if the marketing category changed.
+		// Sync pixel consent signals if the marketing category changed.
 		if ( 'marketing' in changed ) {
 			updateMetaConsent( changed.marketing === 'allow' );
+			updateTikTokConsent( changed.marketing === 'allow' );
 		}
 	} );
 

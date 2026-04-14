@@ -68,6 +68,9 @@ function dc_swp_intg_hubspot(): void {
 	if ( empty( $portal_id ) || ! dc_swp_intg_can_inject() ) {
 		return;
 	}
+	if ( ! dc_swp_has_consent_for( 'marketing' ) ) {
+		return;
+	}
 
 	$nonce_attr = dc_swp_intg_nonce_attr();
 	$src        = esc_url( 'https://js.hs-scripts.com/' . $portal_id . '.js' );
@@ -93,6 +96,9 @@ add_action( 'wp_head', 'dc_swp_intg_hubspot', 8 );
 function dc_swp_intg_klaviyo(): void {
 	$site_id = sanitize_text_field( get_option( 'dc_swp_klaviyo_site_id', '' ) );
 	if ( empty( $site_id ) || ! dc_swp_intg_can_inject() ) {
+		return;
+	}
+	if ( ! dc_swp_has_consent_for( 'marketing' ) ) {
 		return;
 	}
 
@@ -121,6 +127,9 @@ add_action( 'wp_head', 'dc_swp_intg_klaviyo', 8 );
 function dc_swp_intg_mixpanel(): void {
 	$token = sanitize_text_field( get_option( 'dc_swp_mixpanel_token', '' ) );
 	if ( empty( $token ) || ! dc_swp_intg_can_inject() ) {
+		return;
+	}
+	if ( ! dc_swp_has_consent_for( 'statistics' ) ) {
 		return;
 	}
 
@@ -174,6 +183,9 @@ function dc_swp_intg_fullstory(): void {
 	if ( empty( $org_id ) || ! dc_swp_intg_can_inject() ) {
 		return;
 	}
+	if ( ! dc_swp_has_consent_for( 'statistics' ) ) {
+		return;
+	}
 
 	$nonce_attr = dc_swp_intg_nonce_attr();
 	$safe_org   = esc_js( $org_id );
@@ -219,6 +231,9 @@ function dc_swp_intg_intercom(): void {
 	if ( empty( $app_id ) || ! dc_swp_intg_can_inject() ) {
 		return;
 	}
+	if ( ! dc_swp_has_consent_for( 'functional' ) ) {
+		return;
+	}
 
 	$nonce_attr = dc_swp_intg_nonce_attr();
 	$safe_id    = esc_js( $app_id );
@@ -253,6 +268,12 @@ add_action( 'wp_head', 'dc_swp_intg_intercom', 8 );
 function dc_swp_intg_tiktok(): void {
 	$pixel_id = sanitize_text_field( get_option( 'dc_swp_tt_pixel_id', '' ) );
 	if ( empty( $pixel_id ) || ! dc_swp_intg_can_inject() ) {
+		return;
+	}
+	// TikTok Pixel is GCMv2-aware: always load when GCM consent mode is active
+	// so TikTok can read ad_storage/ad_user_data signals and self-restrict.
+	// When GCM mode is off, gate on explicit marketing consent like any other pixel.
+	if ( 'yes' !== get_option( 'dc_swp_consent_mode', 'no' ) && ! dc_swp_has_consent_for( 'marketing' ) ) {
 		return;
 	}
 
