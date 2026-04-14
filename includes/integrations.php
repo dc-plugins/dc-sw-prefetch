@@ -241,6 +241,46 @@ function dc_swp_intg_intercom(): void {
 add_action( 'wp_head', 'dc_swp_intg_intercom', 8 );
 
 // ============================================================
+// TIKTOK PIXEL
+// ============================================================
+
+/**
+ * Inject the TikTok Pixel base code as type="text/partytown".
+ *
+ * @since 3.0.1
+ * @return void
+ */
+function dc_swp_intg_tiktok(): void {
+	$pixel_id = sanitize_text_field( get_option( 'dc_swp_tt_pixel_id', '' ) );
+	if ( empty( $pixel_id ) || ! dc_swp_intg_can_inject() ) {
+		return;
+	}
+
+	$nonce_attr = dc_swp_intg_nonce_attr();
+	$safe_id    = esc_js( $pixel_id );
+
+	$js = '!function(w,d,t){w.TiktokAnalyticsObject=t;var ttq=w[t]=w[t]||[];' .
+		'ttq.methods=["page","track","trackSku","trackWithDeduplication","identify",' .
+		'"instances","debug","on","off","once","ready","alias","group",' .
+		'"enableCookie","disableCookie","holdConsent","revokeConsent","grantConsent"],' .
+		'ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}};' .
+		'for(var i=0;i<ttq.methods.length;i++)ttq.setAndDefer(ttq,ttq.methods[i]);' .
+		'ttq.instance=function(t){for(var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n]);return e},' .
+		'ttq.load=function(e,n){var r="https://analytics.tiktok.com/i18n/pixel/events.js";' .
+		'ttq._i=ttq._i||{},ttq._i[e]=[],ttq._i[e]._u=r,ttq._t=ttq._t||{},ttq._t[e]=+new Date,' .
+		'ttq._o=ttq._o||{},ttq._o[e]=n||{};' .
+		'n=document.createElement("script");n.type="text/javascript",n.async=!0,' .
+		'n.src=r+"?sdkid="+e+"&lib="+t;' .
+		'var a=document.getElementsByTagName("script")[0];a.parentNode.insertBefore(n,a)};' .
+		"ttq.load('" . $safe_id . "');ttq.page()}" .
+		"(window,document,'ttq');";
+
+	// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $js is a static string; pixel ID is esc_js-escaped; nonce is pre-escaped via esc_attr.
+	echo '<script type="text/partytown"' . $nonce_attr . '>' . $js . "</script>\n";
+}
+add_action( 'wp_head', 'dc_swp_intg_tiktok', 8 );
+
+// ============================================================
 // PROXY HOST REGISTRATION
 // ============================================================
 
@@ -283,6 +323,10 @@ function dc_swp_intg_extra_proxy_hosts( array $hosts ): array {
 		$hosts[] = 'widget.intercom.io';
 		$hosts[] = 'js.intercomcdn.com';
 		$hosts[] = 'api-iam.intercom.io';
+	}
+
+	if ( '' !== get_option( 'dc_swp_tt_pixel_id', '' ) ) {
+		$hosts[] = 'analytics.tiktok.com';
 	}
 
 	return $hosts;

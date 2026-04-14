@@ -337,6 +337,7 @@ function dc_swp_admin_page_html() {
 		update_option( 'dc_swp_mixpanel_token', sanitize_text_field( wp_unslash( $_POST['dc_swp_mixpanel_token'] ?? '' ) ) );
 		update_option( 'dc_swp_fullstory_org_id', sanitize_text_field( wp_unslash( $_POST['dc_swp_fullstory_org_id'] ?? '' ) ) );
 		update_option( 'dc_swp_intercom_app_id', sanitize_text_field( wp_unslash( $_POST['dc_swp_intercom_app_id'] ?? '' ) ) );
+		update_option( 'dc_swp_tt_pixel_id', preg_replace( '/[^A-Z0-9]/i', '', sanitize_text_field( wp_unslash( $_POST['dc_swp_tt_pixel_id'] ?? '' ) ) ) );
 		update_option( 'dc_swp_resource_hints', isset( $_POST['dc_swp_resource_hints'] ) ? 'yes' : 'no' );
 		update_option( 'dc_swp_health_monitor', isset( $_POST['dc_swp_health_monitor'] ) ? 'yes' : 'no' );
 		update_option( 'dc_swp_perf_monitor', isset( $_POST['dc_swp_perf_monitor'] ) ? 'yes' : 'no' );
@@ -371,6 +372,7 @@ function dc_swp_admin_page_html() {
 	$mixpanel_token    = get_option( 'dc_swp_mixpanel_token', '' );
 	$fullstory_org_id  = get_option( 'dc_swp_fullstory_org_id', '' );
 	$intercom_app_id   = get_option( 'dc_swp_intercom_app_id', '' );
+	$tt_pixel_id       = get_option( 'dc_swp_tt_pixel_id', '' );
 	// Inline script blocks -- decode JSON; auto-migrate legacy plain-text format.
 	$inline_scripts_raw   = get_option( 'dc_swp_inline_scripts', '' );
 	$inline_script_blocks = array();
@@ -778,7 +780,7 @@ function dc_swp_admin_page_html() {
 		<!-- ===== TAB 5: INTEGRATIONS ===== -->
 		<div id="tab-integrations" class="dc-swp-tab-panel">
 
-			<p><?php echo wp_kses_post( __( 'Enter a service ID to auto-inject its tracking snippet as <code>type="text/partytown"</code> — running it inside a web worker and adding its CDN domains to the Partytown proxy automatically. Leave blank to disable. All five services are confirmed in the <a href="https://partytown.qwik.dev/common-services/" target="_blank" rel="noopener">Partytown Common Services guide</a>.', 'dc-sw-prefetch' ) ); ?></p>
+			<p><?php echo wp_kses_post( __( 'Enter a service ID to auto-inject its tracking snippet as <code>type="text/partytown"</code> — running it inside a web worker and adding its CDN domains to the Partytown proxy automatically. Leave blank to disable. All six services are confirmed in the <a href="https://partytown.qwik.dev/common-services/" target="_blank" rel="noopener">Partytown Common Services guide</a>.', 'dc-sw-prefetch' ) ); ?></p>
 
 			<!-- -- HubSpot ------------------------------------------------------- -->
 			<fieldset class="dc-swp-fieldset">
@@ -850,6 +852,21 @@ function dc_swp_admin_page_html() {
 						<input type="text" name="dc_swp_intercom_app_id" value="<?php echo esc_attr( $intercom_app_id ); ?>"
 							placeholder="abc12345" style="width:200px;font-family:monospace">
 						<p class="description"><?php echo wp_kses_post( __( 'Found in Intercom &#8594; Settings &#8594; Installation &#8594; Your App ID. Injects the Intercom loader + boot call as a Partytown script. Leave blank to disable.', 'dc-sw-prefetch' ) ); ?></p>
+					</td>
+				</tr>
+			</table>
+			</fieldset>
+
+			<!-- -- TikTok Pixel -------------------------------------------------- -->
+			<fieldset class="dc-swp-fieldset">
+			<legend><?php esc_html_e( 'TikTok Pixel', 'dc-sw-prefetch' ); ?></legend>
+			<table class="form-table">
+				<tr valign="top">
+					<th scope="row"><?php esc_html_e( 'Pixel ID', 'dc-sw-prefetch' ); ?></th>
+					<td>
+						<input type="text" name="dc_swp_tt_pixel_id" value="<?php echo esc_attr( $tt_pixel_id ); ?>"
+							placeholder="ABCDEFGH1234567890" style="width:260px;font-family:monospace">
+						<p class="description"><?php echo wp_kses_post( __( 'Found in TikTok Ads Manager &#8594; Assets &#8594; Events &#8594; Web Events &#8594; Pixel. Injects the TikTok base code as <code>type="text/partytown"</code> — offloading the Pixel to a web worker. <code>ttq.track</code>, <code>ttq.page</code>, and <code>ttq.load</code> are forwarded automatically. Leave blank to disable.', 'dc-sw-prefetch' ) ); ?></p>
 					</td>
 				</tr>
 			</table>
