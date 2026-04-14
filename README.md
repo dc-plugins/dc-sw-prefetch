@@ -52,6 +52,14 @@ The optional **Consent Gate** delegates consent decisions to the [WP Consent API
 - The Script List default category is configurable in the admin settings.
 - Any CMP that integrates with the WP Consent API is automatically supported — no per-CMP cookie reading code is required.
 
+### Known limitations
+
+**Full-page caching + Meta Pixel consent**
+The `fbq("consent","revoke"/"grant")` and LDU stubs are injected by PHP at request time. If a full-page cache plugin (WP Rocket, Nginx FastCGI, static HTML) serves a cached page without invoking PHP, the stub is baked in with the consent state of whoever filled the cache — not the current visitor's. Use per-visitor cache keys, fragment caching, or disable full-page caching for logged-out visitors.
+
+**Meta Pixel with Gate OFF and LDU OFF**
+If both the Meta LDU toggle and the Consent Gate are disabled, Meta Pixel fires with no `fbq("consent",...)` call. Meta receives data without any explicit consent declaration from this plugin. Enable Meta LDU, the Consent Gate, or both to emit meaningful consent signals.
+
 ---
 
 ## How Partytown works

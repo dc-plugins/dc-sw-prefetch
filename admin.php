@@ -1007,6 +1007,14 @@ function dc_swp_admin_page_html() {
 			</fieldset>
 
 			<fieldset class="dc-swp-fieldset">
+			<legend><?php echo esc_html__( 'Known Limitations', 'dc-sw-prefetch' ); ?></legend>
+			<ul style="list-style: disc; margin-left: 20px;">
+				<li>&#9888; <?php echo wp_kses_post( __( '<strong>Full-page caching + Meta Pixel consent:</strong> The Meta Pixel LDU / <code>fbq("consent","revoke")</code> stub is injected by PHP at request time. If a full-page cache plugin (WP Rocket, Nginx FastCGI, static HTML export) serves a cached page without invoking PHP, the consent stub reflects the state of whoever filled the cache — not the current visitor\'s actual consent. Use per-visitor cache keys or disable full-page caching for logged-out visitors.', 'dc-sw-prefetch' ) ); ?></li>
+				<li>&#9888; <?php echo wp_kses_post( __( '<strong>Meta Pixel with no LDU and no Consent Gate:</strong> If both the <em>Meta LDU</em> toggle and the <em>Consent Gate</em> are disabled, Meta Pixel fires with no <code>fbq("consent",...)</code> signal. Meta receives data without any explicit consent declaration from this plugin. Enable Meta LDU, the Consent Gate, or both to emit meaningful consent signals.', 'dc-sw-prefetch' ) ); ?></li>
+			</ul>
+			</fieldset>
+
+			<fieldset class="dc-swp-fieldset">
 			<legend><?php echo esc_html__( 'Footer Credit', 'dc-sw-prefetch' ); ?></legend>
 			<table class="form-table">
 				<tr valign="top">

@@ -100,6 +100,13 @@ No. Partytown is disabled on cart, checkout, and account pages.
 = Will scripts load before the user gives consent? =
 When the **Consent Gate** is enabled, no. Scripts are output as `type="text/plain"` (browser-blocked) until consent is granted via the WP Consent API. When the Consent Gate is disabled (default), scripts load unconditionally.
 
+= Are there limitations with Meta Pixel consent and full-page caching? =
+Two inherent limitations apply to Meta Pixel consent handling:
+
+**Full-page caching:** The `fbq("consent","revoke"/"grant")` and LDU stubs are injected by PHP at request time. If a full-page cache plugin (WP Rocket, Nginx FastCGI, static HTML export) serves a cached page without invoking PHP, the stub is baked in with the consent state of whoever triggered the cache fill -- not the current visitor's actual consent state. Use per-visitor cache keys, fragment caching, or disable full-page caching for logged-out visitors to avoid serving stale consent state.
+
+**No LDU and no Consent Gate:** If both the Meta LDU toggle and the Consent Gate are disabled, the Meta Pixel fires with no `fbq("consent",...)` signal. Meta receives data without any explicit consent declaration from this plugin. Enable Meta LDU, the Consent Gate, or both to emit meaningful consent signals.
+
 = Which consent plugins are supported? =
 Any CMP (Consent Management Platform) that integrates with the [WP Consent API](https://wordpress.org/plugins/wp-consent-api/) is automatically supported. This includes Complianz, Cookiebot, CookieYes, Borlabs Cookie, and many others.
 
