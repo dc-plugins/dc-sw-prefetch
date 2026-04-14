@@ -184,6 +184,7 @@ The administrator may freely add other services through the Partytown Script Lis
 * Removed: UTM/click-ID attribution cookie (was used only by CAPI and TikTok Events API).
 * Feature: GTM wizard now enforces GTM-only container IDs (rejects G- GA4 IDs at step 2).
 * Feature: GCMv2 toggle is hard-gated behind a valid GTM Container ID — misconfiguration prevented at the admin level.
+* Feature: Partytown now runs on WooCommerce cart, checkout, and account pages via the Service Worker bridge (Atomics bridge auto-disabled) — analytics scripts can capture ecommerce events without breaking payment gateways.
 
 = 2.5.1 =
 * Fix: CAPI access token moved from URL query string to Authorization: Bearer header (prevents credential appearing in server access logs).

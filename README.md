@@ -2,7 +2,7 @@
 
 > Offload third-party scripts to a Web Worker via Partytown + consent-aware loading.
 
-![Version](https://img.shields.io/badge/version-2.3.1-blue)
+![Version](https://img.shields.io/badge/version-3.0.0-blue)
 ![WordPress](https://img.shields.io/badge/WordPress-6.8%2B-21759b)
 ![PHP](https://img.shields.io/badge/PHP-8.0%2B-777bb4)
 ![WooCommerce](https://img.shields.io/badge/WooCommerce-10.4%2B-96588a)
@@ -195,6 +195,7 @@ The administrator may configure additional services via the Partytown Script Lis
 - Removed: UTM/click-ID attribution cookie (was only consumed by CAPI and TikTok Events API).
 - Feature: GTM wizard now enforces GTM-only container IDs (rejects G- GA4 IDs at step 2).
 - Feature: GCMv2 toggle hard-gated behind a valid GTM Container ID.
+- Feature: Partytown now runs on WooCommerce cart, checkout, and account pages via the Service Worker bridge (Atomics bridge auto-disabled) — analytics scripts can capture ecommerce events without breaking payment gateways.
 
 ### 1.9.0
 - Feature: **Consent Gate (WP Consent API)** — optional admin toggle that delegates consent decisions to the WP Consent API standard. When enabled, scripts are output as `type="text/plain"` with `data-wp-consent-category` until consent is granted. A client-side listener (`consent-gate.js`) dynamically unblocks scripts by swapping `text/plain` to `text/partytown`. When disabled (default), all scripts load unconditionally — no breaking change for existing installs.
