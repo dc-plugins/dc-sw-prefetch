@@ -24,6 +24,17 @@ if ( window.crossOriginIsolated ) {
 	}
 }
 
+// Safe-page guard: on WooCommerce cart, checkout, and account pages, force-disable
+// the Atomics bridge by removing SharedArrayBuffer. COI headers are already suppressed
+// server-side, but this JS override is a belt-and-suspenders guarantee — Partytown
+// falls back to the Service Worker bridge, which has zero impact on payment iframes.
+if ( dcSwpPartytownData.isSafePage ) {
+	try {
+		Object.defineProperty( window, 'SharedArrayBuffer', { value: undefined, configurable: false } );
+		Object.defineProperty( window, 'crossOriginIsolated', { value: false, configurable: false } );
+	} catch { /* property may be non-configurable in some engines */ }
+}
+
 // Set Partytown config from PHP-injected data (lib, debug, forward, nonce, etc.).
 window.partytown = dcSwpPartytownData.config;
 

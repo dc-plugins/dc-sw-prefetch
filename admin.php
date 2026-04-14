@@ -532,7 +532,7 @@ function dc_swp_admin_page_html() {
 							>
 							<span class="pwa-slider"></span>
 						</label>
-						<p class="description"><?php echo wp_kses_post( __( 'Sends <code>Cross-Origin-Opener-Policy: same-origin</code> and <code>Cross-Origin-Embedder-Policy: credentialless</code> on public pages. Enables <code>crossOriginIsolated</code> in the browser so Partytown switches to the faster Atomics bridge instead of the sync-XHR bridge. Skipped for bots, logged-in users and checkout. All cross-origin iframes are automatically given the <code>credentialless</code> attribute so they can load under COEP -- regardless of the exclusion list. <strong>Test in staging first -- can break OAuth popups or other cross-origin iframes.</strong>', 'dc-sw-prefetch' ) ); ?></p>
+						<p class="description"><?php echo wp_kses_post( __( 'Sends <code>Cross-Origin-Opener-Policy: same-origin</code> and <code>Cross-Origin-Embedder-Policy: credentialless</code> on public pages. Enables <code>crossOriginIsolated</code> in the browser so Partytown switches to the faster Atomics bridge instead of the sync-XHR bridge. Skipped for bots, logged-in users and WooCommerce transactional pages (cart, checkout, account) -- on those pages Partytown falls back to the Service Worker bridge automatically so analytics scripts still fire without affecting payment gateways. All cross-origin iframes are automatically given the <code>credentialless</code> attribute so they can load under COEP -- regardless of the exclusion list. <strong>Test in staging first -- can break OAuth popups or other cross-origin iframes.</strong>', 'dc-sw-prefetch' ) ); ?></p>
 					</td>
 				</tr>
 				<tr valign="top">
@@ -1002,7 +1002,7 @@ function dc_swp_admin_page_html() {
 				<li>&#x2705; <?php echo esc_html__( 'Six pre-configured Partytown integrations: HubSpot, Klaviyo, Mixpanel, FullStory, Intercom, TikTok Pixel -- enter an ID and the snippet is auto-injected', 'dc-sw-prefetch' ); ?></li>
 				<li>&#x2705; <?php echo esc_html__( 'GTM managed injection with GCMv2 pre-configuration and step-by-step setup wizard', 'dc-sw-prefetch' ); ?></li>
 				<li>&#x2705; <?php echo esc_html__( 'Early Resource Hints -- preconnect and dns-prefetch links auto-emitted for all configured third-party hosts', 'dc-sw-prefetch' ); ?></li>
-				<li>&#x2705; <?php echo esc_html__( 'Cart, checkout, and account pages are always skipped -- Partytown never interferes with WooCommerce critical flows', 'dc-sw-prefetch' ); ?></li>
+				<li>&#x2705; <?php echo esc_html__( 'Cart, checkout, and account pages use the Service Worker bridge (Atomics auto-disabled) -- analytics scripts still fire without breaking payment gateways', 'dc-sw-prefetch' ); ?></li>
 				<li>&#x2705; <?php echo esc_html__( 'Bots and crawlers never receive Partytown scripts -- clean, unmodified HTML for search engines', 'dc-sw-prefetch' ); ?></li>
 				<li>&#x2705; <?php echo esc_html__( 'Third-party scripts auto-detected in one click via homepage scan', 'dc-sw-prefetch' ); ?></li>
 				<li>&#x2705; <?php echo esc_html__( 'Partytown library stays current via automated weekly GitHub Actions workflow', 'dc-sw-prefetch' ); ?></li>

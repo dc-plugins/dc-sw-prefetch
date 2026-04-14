@@ -33,7 +33,7 @@ function dc_swp_intg_can_inject(): bool {
 	if ( 'yes' !== get_option( 'dc_swp_sw_enabled', 'yes' ) ) {
 		return false;
 	}
-	if ( dc_swp_is_safe_page() || dc_swp_is_excluded_url() ) {
+	if ( dc_swp_is_excluded_url() ) {
 		return false;
 	}
 	return true;

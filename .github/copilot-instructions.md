@@ -44,7 +44,7 @@ languages/           — .pot template + da_DK .po/.mo translations
 ## Key Patterns
 
 - **Bot detection** (`dc_swp_is_bot_request()`): runs before any JS is emitted; bots receive no service worker or prefetch code.
-- **Safe pages**: Partytown and prefetch JS are skipped on cart, checkout, and account pages (`dc_swp_is_safe_page()`).
+- **Safe pages**: On WooCommerce cart, checkout, and account pages (`dc_swp_is_safe_page()`), COI headers are suppressed and `SharedArrayBuffer` is overridden in JS so the Atomics bridge never activates. Partytown itself still loads via the Service Worker bridge -- analytics scripts can fire on transactional pages without breaking payment gateway iframes.
 - **Partytown endpoint**: served by WordPress via a rewrite rule + query var; PHP streams the vendored JS files directly.
 - **Admin settings** are stored as individual named options (e.g. `dc_swp_sw_enabled`, `dc_swp_inline_scripts`) via `get_option` / `update_option`. There is no single serialised bag option.
 - **Inline script blocks** (`dc_swp_inline_scripts`): JSON-encoded array of `{ id, label, code, enabled, force_partytown }` objects. The `code` field is sanitized via `dc_swp_sanitize_js_code()` at save time and output raw inside `<script>` tags (capability-gated to `manage_options`). Do not use `wp_kses()` on this field — it mangles JS operators.

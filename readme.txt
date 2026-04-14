@@ -31,7 +31,7 @@ Officially tested compatible services: **Google Tag Manager** (GA4), **Facebook 
 * **Vendored lib** -- Partytown's `lib/` files are bundled in `assets/partytown/`; no npm or build step needed on the server.
 * **Automatic Partytown updates** -- a weekly GitHub Actions workflow detects new Partytown releases and opens a PR with the updated vendor files.
 * **Bot detection** -- bots never receive Partytown JS, keeping crawl budget clean.
-* **Cart/checkout safe** -- Partytown is skipped on cart, checkout, and account pages.
+* **Cart/checkout safe** -- on WooCommerce cart, checkout, and account pages the Atomics bridge is auto-disabled; Partytown falls back to the Service Worker bridge so analytics scripts still fire without breaking payment gateways.
 * **Admin UI** -- toggle Partytown, see the vendored Partytown version at a glance.
 * **Bilingual** -- EN/DA auto-detection.
 * **Optional footer credit** -- easily disabled.
@@ -95,7 +95,7 @@ The optional Consent Gate delegates consent decisions to the [WP Consent API](ht
 Yes. Partytown is in beta. While it works well for the [officially tested services](https://partytown.qwik.dev/common-services/), some scripts may not be compatible -- particularly those that rely on APIs not yet proxied by Partytown, use synchronous `document.write()`, or require persistent event listeners on the main thread. Test in staging before enabling on production. See the [Partytown trade-offs page](https://partytown.qwik.dev/trade-offs) for a full list of known limitations.
 
 = Will this interfere with WooCommerce cart/checkout? =
-No. Partytown is disabled on cart, checkout, and account pages.
+No. On cart, checkout, and account pages, the Atomics bridge is automatically disabled and Partytown falls back to the Service Worker bridge. Payment gateway iframes are never affected. Analytics and marketing scripts still fire normally on these pages.
 
 = Will scripts load before the user gives consent? =
 When the **Consent Gate** is enabled, no. Scripts are output as `type="text/plain"` (browser-blocked) until consent is granted via the WP Consent API. When the Consent Gate is disabled (default), scripts load unconditionally.

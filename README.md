@@ -95,7 +95,7 @@ Page request (PHP)
 - **GCM v2 per-service gate** — GCM v2-aware services always run in the worker and self-restrict; Meta Pixel uses LDU
 - **Consent Architecture panel** — collapsible admin panel shows GCM v2-aware services and Meta LDU badges (shields.io SVGs + offline CSS fallback)
 - **Bot-safe** — bots receive no Partytown JS (clean HTML for crawlers)
-- **Cart/checkout safe** — Partytown disabled on cart, checkout, and account pages
+- **Cart/checkout safe** — Partytown uses the Service Worker bridge on cart, checkout, and account pages (Atomics bridge auto-disabled); analytics scripts still fire without breaking payment gateways
 - **Bilingual admin** — English default, Danish auto-detected from WP locale
 - **Weekly auto-updates** — GitHub Actions workflow opens a PR when a new Partytown release is detected
 

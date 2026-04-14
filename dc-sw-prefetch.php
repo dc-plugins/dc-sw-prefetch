@@ -781,7 +781,7 @@ function dc_swp_should_skip_consent_scripts(): bool {
 	if ( get_option( 'dc_swp_gtm_mode', 'off' ) === 'off' ) {
 		return true;
 	}
-	return dc_swp_is_safe_page();
+	return false;
 }
 
 add_action( 'wp_head', 'dc_swp_inject_consent_mode_default', 1 );
@@ -917,9 +917,6 @@ function dc_swp_enqueue_consent_gate_script() {
 		return;
 	}
 	if ( ! dc_swp_is_consent_gate_enabled() ) {
-		return;
-	}
-	if ( dc_swp_is_safe_page() ) {
 		return;
 	}
 
@@ -1075,9 +1072,6 @@ function dc_swp_inject_gtm_head() {
 	if ( empty( $tag_id ) || ! dc_swp_is_valid_gtm_id( $tag_id ) ) {
 		return;
 	}
-	if ( dc_swp_is_safe_page() ) {
-		return;
-	}
 	if ( dc_swp_is_excluded_url() ) {
 		return;
 	}
@@ -1137,9 +1131,6 @@ function dc_swp_inject_gtm_body() {
 	if ( empty( $tag_id ) || 0 !== stripos( $tag_id, 'GTM-' ) || ! dc_swp_is_valid_gtm_id( $tag_id ) ) {
 		return;
 	}
-	if ( dc_swp_is_safe_page() ) {
-		return;
-	}
 	// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- tag ID regex-validated; esc_attr applied; static HTML template.
 	echo '<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=' . esc_attr( $tag_id ) . '" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>' . "\n";
 }
@@ -1184,9 +1175,6 @@ function dc_swp_inject_meta_ldu_default() {
 		return;
 	}
 	if ( get_option( 'dc_swp_sw_enabled', 'yes' ) !== 'yes' ) {
-		return;
-	}
-	if ( dc_swp_is_safe_page() ) {
 		return;
 	}
 
@@ -1441,6 +1429,7 @@ function dc_swp_partytown_config() {
 			'pathRewrites'      => $path_rewrites,
 			'proxyUrl'          => home_url( '/~partytown-proxy' ),
 			'proxyAllowedHosts' => dc_swp_get_proxy_allowed_hosts(),
+			'isSafePage'        => dc_swp_is_safe_page(),
 		)
 	);
 	wp_enqueue_script( 'dc-swp-partytown-config' );
@@ -2115,9 +2104,6 @@ function dc_swp_inject_resource_hints(): void {
 	if ( get_option( 'dc_swp_resource_hints', 'yes' ) !== 'yes' ) {
 		return;
 	}
-	if ( dc_swp_is_safe_page() ) {
-		return;
-	}
 	if ( dc_swp_is_excluded_url() ) {
 		return;
 	}
@@ -2158,9 +2144,6 @@ function dc_swp_enqueue_health_monitor(): void {
 		return;
 	}
 	if ( get_option( 'dc_swp_health_monitor', 'yes' ) !== 'yes' ) {
-		return;
-	}
-	if ( dc_swp_is_safe_page() ) {
 		return;
 	}
 	if ( empty( dc_swp_get_partytown_patterns() ) ) {
@@ -2446,9 +2429,14 @@ function dc_swp_get_exclusion_patterns(): array {
 /**
  * Return true when the current page is a WooCommerce transactional page.
  *
- * Partytown and resource-hint injection are suppressed on cart, checkout, and
- * account pages to avoid interfering with payment flows or session-sensitive
- * content. Result is static-memoised so the check runs only once per request.
+ * Used to suppress Cross-Origin Isolation (COI) headers on cart, checkout,
+ * and account pages -- the Atomics bridge is disabled here so that payment
+ * gateway iframes are never broken. Partytown itself still loads on these
+ * pages via the Service Worker bridge. Also passed to the client-side config
+ * (dcSwpPartytownData.isSafePage) so partytown-config.js can override
+ * SharedArrayBuffer as a belt-and-suspenders guarantee.
+ *
+ * Result is static-memoised so the check runs only once per request.
  *
  * @since 2.0.0
  * @return bool
@@ -2906,10 +2894,6 @@ function dc_swp_output_inline_scripts() {
 		return;
 	}
 	if ( is_admin() ) {
-		return;
-	}
-	// Skip cart, checkout, and account pages.
-	if ( dc_swp_is_safe_page() ) {
 		return;
 	}
 
