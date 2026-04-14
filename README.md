@@ -197,6 +197,60 @@ The administrator may configure additional services via the Partytown Script Lis
 - Feature: GCMv2 toggle hard-gated behind a valid GTM Container ID.
 - Feature: Partytown now runs on WooCommerce cart, checkout, and account pages via the Service Worker bridge (Atomics bridge auto-disabled) — analytics scripts can capture ecommerce events without breaking payment gateways.
 
+### 2.5.1
+- Fix: CAPI access token moved from URL query string to `Authorization: Bearer` header (prevents credential appearing in server access logs).
+- Fix: CAPI inline event-ID script now uses `wp_add_inline_script()` + `wp_inline_script_attributes` nonce filter instead of a raw echo.
+- Fix: Uninstall now deletes all seven CAPI options, including the stored access token.
+- Fix: `DC_SWP_VERSION` constant moved before `require_once` calls so included files can safely reference it at module level.
+- Fix: Admin footer translatable string no longer embeds raw HTML inside `__()` — markup and URL are escaped separately.
+- Fix: `$_SERVER['REMOTE_ADDR']` and `HTTP_USER_AGENT` now use `sanitize_text_field( wp_unslash() )` consistently.
+- Fix: Removed `register_setting()` / `admin_init` hook — the custom save handler already sanitizes all fields inline; double-sanitization eliminated.
+- Fix: Lone `if` inside `else` block at Meta LDU injection converted to `elseif`.
+- Chore: ABSPATH guards and file doc comments added to all five `includes/` stub files.
+- Chore: 129x `esc_html( __() )` calls replaced with `esc_html__()` shorthand.
+- Chore: Four `list()` destructuring calls replaced with short `[]` syntax.
+- Chore: `phpcbf` applied — 35 auto-fixable PHPCS violations resolved.
+- Chore: ESLint — `var` replaced with `const`/`let` in tab and PT-deps IIFEs; history and `dcSwpMeta` globals reconciled.
+
+### 2.5.0
+- Feature: **CAPI Getting Started wizard** — 5-step guided setup (Dataset creation, System User token, connection test, event selection, finalise) replaces the need for Meta's own Dataset Setup Events guide.
+- Feature: **Meta Pixel Consent Mode** — `fbq('consent','grant'/'revoke')` now fires per-visitor based on WP Consent API marketing consent, replacing the unconditional LDU stub.
+- Feature: **Consent-aware LDU** — consented visitors receive `fbq('dataProcessingOptions',[])` (unrestricted), non-consented visitors receive LDU; legacy unconditional behaviour preserved when WP Consent API is absent.
+- Feature: **Meta consent-change reactivity** — `consent-update.js` now handles `wp_listen_for_consent_change` for Meta Pixel (`fbq` consent + LDU) alongside existing GCM v2 updates.
+- Feature: **CAPI LDU parity** — Graph API payloads now include `data_processing_options` mirroring the client-side Pixel LDU state.
+
+### 2.4.0
+- Feature: **Server-Side Meta Conversions API (CAPI)** — sends WooCommerce events (Purchase, InitiateCheckout, AddToCart, ViewContent, AddPaymentInfo) directly from PHP to the Meta Graph API.
+- Feature: Hashed PII support (email, phone, name, address) — SHA-256 normalised per Meta spec, gated by a dedicated toggle.
+- Feature: `_fbp` / `_fbc` cookie forwarding and `?fbclid=` synthesis for improved match rate.
+- Feature: Client-side deduplication bridge — `window.dcSwpCapiEventIds` JSON blob lets the Meta Pixel send matching `eventID` values.
+- Feature: Test Event Code support for validating events in Meta Events Manager without polluting production data.
+- Feature: Auto-detect mode scans homepage source for an existing `fbq('init', ...)` Pixel ID.
+
+### 2.3.5
+- Fix: GCM v2 consent scripts now load after WP Consent API (proper script dependency).
+- Fix: Consent polling now tracks actual state changes, not just API availability.
+- Fix: Replace Unicode characters (box-drawing, ellipsis, em-dash) with ASCII equivalents for encoding safety.
+- Chore: Add ESLint globals for browser APIs and WP Consent API functions.
+
+### 2.3.1
+- Removed: Legacy fallback cache headers function (out of scope for a script-offloading plugin).
+- Removed: Architecture info section from admin UI.
+- Cleanup: Removed orphaned translation strings and W3TC-specific documentation.
+- Docs: Tightened readme text, simplified External Services section.
+
+### 2.3.0
+- Feature: **Early Resource Hints** — auto-injects `<link rel="preconnect">` and `<link rel="dns-prefetch">` for all configured third-party hosts in `<head>`. Controlled by the new "Early Resource Hints" toggle (on by default).
+- Feature: **Partytown Health Monitor** — uses `PerformanceObserver` to detect services that fail silently inside the worker. Surfaces an admin notice. Controlled by the new "Partytown Health Monitor" toggle (on by default).
+- Feature: **Performance Metrics Dashboard** — collects anonymous TBT and INP measurements from real visitors. Stores rolling averages and P75 percentiles. Admin dashboard shows CSS progress bars with reset button.
+- Feature: **Per-Page Script Exclusion Patterns** — new "Advanced" section textarea allows admins to define URL patterns (supports `*` wildcard) where Partytown is completely skipped.
+
+### 2.0.0
+- Feature: **Server-Side GA4 (SSGA4)** — sends WooCommerce ecommerce events directly to GA4 via Measurement Protocol, independent of browser consent and ad-blockers.
+- Feature: **Safe pages** — Partytown and prefetch JS skipped on cart, checkout, and account pages to avoid interfering with payment flows.
+- Feature: **Partytown Debug Mode** admin toggle — loads unminified build with all seven log flags.
+- Fix: Add `Cross-Origin-Resource-Policy` and `Cross-Origin-Embedder-Policy` headers to `/~partytown/` file responses (required for debug build's `partytown-ww-atomics.js`).
+
 ### 1.9.0
 - Feature: **Consent Gate (WP Consent API)** — optional admin toggle that delegates consent decisions to the WP Consent API standard. When enabled, scripts are output as `type="text/plain"` with `data-wp-consent-category` until consent is granted. A client-side listener (`consent-gate.js`) dynamically unblocks scripts by swapping `text/plain` to `text/partytown`. When disabled (default), all scripts load unconditionally — no breaking change for existing installs.
 - Feature: Per-script **consent category** — each inline script block can be assigned a WP Consent API category (marketing, statistics, statistics-anonymous, functional, preferences). The Script List uses a configurable default category.
