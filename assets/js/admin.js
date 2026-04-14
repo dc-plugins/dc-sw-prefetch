@@ -503,17 +503,37 @@ jQuery( function ( $ ) {
 
 // -- Google Tag Management -- panel switcher + wizard -------------------------
 ( function ( $ ) {
-	const GTM_REGEX = /^(GTM-[A-Z0-9]{4,10}|G-[A-Z0-9]{6,}|UA-\d{4,}-\d+)$/i;
-	const gtmStr    = ( dcSwpAdminData.gtm || {} );
+	const GTM_REGEX      = /^(GTM-[A-Z0-9]{4,10}|G-[A-Z0-9]{6,}|UA-\d{4,}-\d+)$/i;
+	const GTM_ONLY_REGEX = /^GTM-[A-Z0-9]{4,10}$/i;
+	const gtmStr         = ( dcSwpAdminData.gtm || {} );
 
 	/** Sync the hidden form field that actually gets submitted. */
 	function syncId( val ) {
 		$( '#dc_swp_gtm_id_field' ).val( val );
+		updateGcmGate();
 	}
 
-	/** Validate and return true for acceptable tag IDs. */
+	/** Validate GTM or GA4 IDs (used in the "own" panel). */
 	function validId( val ) {
 		return GTM_REGEX.test( ( val || '' ).trim() );
+	}
+
+	/** Validate GTM Container IDs only (GTM-XXXXX) -- used in the wizard. */
+	function validGtmOnly( val ) {
+		return GTM_ONLY_REGEX.test( ( val || '' ).trim() );
+	}
+
+	/** Enable/disable the GCM v2 toggle based on whether a GTM ID is actually saved. */
+	function updateGcmGate() {
+		const mode    = $( 'input[name="dc_swp_gtm_mode"]:checked' ).val() || 'off';
+		const hasId   = !! $( '#dc_swp_gtm_id_field' ).val().trim();
+		const active  = 'off' !== mode && hasId;
+		const $toggle = $( 'input[name="dc_swp_consent_mode"]' );
+		if ( ! active ) {
+			$toggle.prop( 'checked', false );
+		}
+		$toggle.prop( 'disabled', ! active );
+		$( '#dc-swp-gcm-prereq' ).toggle( 'off' !== mode && ! hasId );
 	}
 
 	/** Show the panel matching the active mode; hide the rest. */
@@ -555,13 +575,25 @@ jQuery( function ( $ ) {
 		}
 	}
 
-	// If returning to managed mode with a stored ID, re-validate step 2.
+	// If returning to managed mode with a stored GTM ID, show badge + re-enable step 2.
 	if ( 'managed' === initMode ) {
 		const storedId = $( '#dc-swp-gtm-wizard-id' ).val().trim();
-		if ( validId( storedId ) ) {
+		if ( validGtmOnly( storedId ) ) {
 			$( '#dc-swp-wizard-step2-next' ).prop( 'disabled', false );
+			const safeId = $( '<span>' ).text( storedId.toUpperCase() ).html();
+			$( '#dc-swp-gtm-panel-managed' ).prepend(
+				'<div id="dc-swp-gtm-managed-badge" style="margin-bottom:12px">' +
+				'<span style="display:inline-block;background:#3cb034;color:#fff;font-family:monospace;' +
+				'font-weight:700;font-size:13px;padding:4px 12px;border-radius:3px">' +
+				'\u2714 ' + safeId + '</span>' +
+				'<span style="color:#3cb034;font-size:12px;margin-left:8px">' +
+				( gtmStr.active || 'Active' ) + '</span>' +
+				'</div>'
+			);
 		}
 	}
+
+	updateGcmGate();
 
 	// -- Mode radio change ---------------------------------------------------
 	$( 'input[name="dc_swp_gtm_mode"]' ).on( 'change', function () {
@@ -584,6 +616,7 @@ jQuery( function ( $ ) {
 				ownEl.val( wizVal2 ).trigger( 'input' );
 			}
 		}
+		updateGcmGate();
 	} );
 
 	// -- Own mode: live validation -------------------------------------------
@@ -668,7 +701,7 @@ jQuery( function ( $ ) {
 	// -- Wizard: ID validation in step 2 ------------------------------------
 	$( '#dc-swp-gtm-wizard-id' ).on( 'input', function () {
 		const val     = $( this ).val().trim();
-		const valid   = validId( val );
+		const valid   = validGtmOnly( val );
 		const $status = $( '#dc-swp-gtm-wizard-status' );
 		$( '#dc-swp-wizard-step2-next' ).prop( 'disabled', ! valid );
 		if ( ! val ) { $status.hide(); return; }
@@ -692,11 +725,12 @@ jQuery( function ( $ ) {
 	// -- Wizard: complete ----------------------------------------------------
 	$( '#dc-swp-wizard-complete' ).on( 'click', function () {
 		const id = $( '#dc-swp-gtm-wizard-id' ).val().trim();
-		if ( validId( id ) ) {
+		if ( validGtmOnly( id ) ) {
 			syncId( id.toUpperCase() );
 			$( '#dc-swp-wizard-summary-id' ).text( id.toUpperCase() );
 			$( '#dc-swp-wizard-summary' ).show();
 			$( this ).text( gtmStr.saved || '\u2714 Saved' ).prop( 'disabled', true );
+			$( 'form.pwa-cache-settings' ).submit();
 		}
 	} );
 } )( jQuery );
@@ -784,318 +818,6 @@ jQuery( function ( $ ) {
 	} );
 } )( jQuery );
 
-// -- Server-Side GA4 (SSGA4) -- mode-based setup, wizard, detect, test --------
-( function ( $ ) {
-	const ssga4 = dcSwpAdminData.ssga4 || {};
-	const MID_REGEX = /^G-[A-Z0-9]{6,}$/i;
-
-	/** Sync hidden form fields from active panel inputs. */
-	function syncSsga4Credentials() {
-		const mode = $( 'input[name="dc_swp_ssga4_mode"]:checked' ).val() || 'off';
-		let mid = '', secret = '';
-		if ( 'own' === mode ) {
-			mid    = $( '#dc-swp-ssga4-mid-own' ).val().trim();
-			secret = $( '#dc-swp-ssga4-secret-own' ).val().trim();
-		} else if ( 'detect' === mode ) {
-			mid    = $( '#dc-swp-ssga4-panel-detect' ).data( 'detected-mid' ) || $( '#dc-swp-ssga4-panel-detect' ).data( 'saved-mid' ) || '';
-			secret = $( '#dc-swp-ssga4-secret-detect' ).val().trim();
-		} else if ( 'managed' === mode ) {
-			mid    = $( '#dc-swp-ssga4-wizard-mid' ).val().trim();
-			secret = $( '#dc-swp-ssga4-wizard-secret' ).val().trim();
-		}
-		$( '#dc_swp_ssga4_mid_field' ).val( mid );
-		$( '#dc_swp_ssga4_secret_field' ).val( secret );
-	}
-
-	/** Get credentials from whichever panel has them. */
-	function getSsga4Credentials() {
-		const mode = $( 'input[name="dc_swp_ssga4_mode"]:checked' ).val() || 'off';
-		if ( 'own' === mode ) {
-			return {
-				mid: $( '#dc-swp-ssga4-mid-own' ).val().trim(),
-				secret: $( '#dc-swp-ssga4-secret-own' ).val().trim(),
-			};
-		} else if ( 'detect' === mode ) {
-			return {
-				mid: $( '#dc-swp-ssga4-panel-detect' ).data( 'detected-mid' ) || $( '#dc-swp-ssga4-panel-detect' ).data( 'saved-mid' ) || '',
-				secret: $( '#dc-swp-ssga4-secret-detect' ).val().trim(),
-			};
-		} else if ( 'managed' === mode ) {
-			return {
-				mid: $( '#dc-swp-ssga4-wizard-mid' ).val().trim(),
-				secret: $( '#dc-swp-ssga4-wizard-secret' ).val().trim(),
-			};
-		}
-		return { mid: '', secret: '' };
-	}
-
-	/** Validate measurement ID format. */
-	function validMid( val ) {
-		return MID_REGEX.test( ( val || '' ).trim() );
-	}
-
-	/** Show the panel matching the active mode; hide others. */
-	function showSsga4Panel( mode ) {
-		$( '.dc-swp-ssga4-panel' ).hide();
-		if ( 'off' !== mode ) {
-			$( '#dc-swp-ssga4-panel-' + mode ).show();
-		}
-		$( '#dc-swp-ssga4-events-row, #dc-swp-ssga4-endpoint-row' ).toggle( 'off' !== mode );
-	}
-
-	// -- Wizard step navigation (5 steps) ----------------------------------------
-	function goToSsga4Step( step ) {
-		$( '.dc-swp-ssga4-wizard-step' ).removeClass( 'dc-swp-active' ).hide();
-		$( '#dc-swp-ssga4-wizard-step-' + step ).addClass( 'dc-swp-active' ).show();
-		$( '.dc-swp-ssga4-steps .dc-swp-step-dot' ).each( function () {
-			const s = parseInt( $( this ).data( 'step' ), 10 );
-			$( this )
-				.toggleClass( 'active', s === step )
-				.toggleClass( 'done', s < step );
-		} );
-	}
-
-	/** Check if GTM mode is active (own/managed/detect with ID). */
-	function isGtmActive() {
-		const gtmMode = $( 'input[name="dc_swp_gtm_mode"]:checked' ).val() || 'off';
-		if ( 'off' === gtmMode ) return false;
-		const gtmId = $( '#dc_swp_gtm_id_field' ).val().trim();
-		return !!gtmId;
-	}
-
-	/** Show/hide GTM conflict warning in wizard step 4. */
-	function checkGtmConflict() {
-		const clientTag = $( '#dc-swp-ssga4-wizard-client-tag' ).is( ':checked' );
-		$( '#dc-swp-ssga4-gtm-conflict' ).toggle( clientTag && isGtmActive() );
-	}
-
-	// -- Init --------------------------------------------------------------------
-	const initMode = $( 'input[name="dc_swp_ssga4_mode"]:checked' ).val() || 'off';
-	showSsga4Panel( initMode );
-	goToSsga4Step( 1 );
-
-	// If returning to detect mode with a saved MID, show it.
-	if ( 'detect' === initMode ) {
-		const savedMid = $( '#dc-swp-ssga4-panel-detect' ).data( 'saved-mid' );
-		if ( savedMid ) {
-			$( '#dc-swp-ssga4-panel-detect' ).data( 'detected-mid', savedMid );
-			$( '#dc-swp-ssga4-detect-result' ).html(
-				'<p style="color:#3cb034;font-weight:600">\u2714 <code>' +
-				$( '<span>' ).text( savedMid ).html() + '</code> \u2014 ' +
-				( ssga4.active || 'Auto-detected and active' ) + '</p>'
-			);
-			$( '#dc-swp-ssga4-detect-secret-row' ).show();
-		}
-	}
-
-	// If returning to managed mode, validate step 2/3 buttons.
-	if ( 'managed' === initMode ) {
-		const storedMid = $( '#dc-swp-ssga4-wizard-mid' ).val().trim();
-		const storedSecret = $( '#dc-swp-ssga4-wizard-secret' ).val().trim();
-		if ( validMid( storedMid ) ) {
-			$( '#dc-swp-ssga4-wizard-step-2 .dc-swp-ssga4-wizard-btn[data-dir="next"]' ).prop( 'disabled', false );
-		}
-		if ( storedSecret ) {
-			$( '#dc-swp-ssga4-wizard-step-3 .dc-swp-ssga4-wizard-btn[data-dir="next"]' ).prop( 'disabled', false );
-		}
-		checkGtmConflict();
-	}
-
-	// -- Mode radio change -------------------------------------------------------
-	$( 'input[name="dc_swp_ssga4_mode"]' ).on( 'change', function () {
-		const mode = $( this ).val();
-		showSsga4Panel( mode );
-
-		// Cross-fill credentials when switching modes.
-		if ( 'managed' === mode ) {
-			// Copy from own panel if wizard is empty.
-			const ownMid = $( '#dc-swp-ssga4-mid-own' ).val().trim();
-			const ownSecret = $( '#dc-swp-ssga4-secret-own' ).val().trim();
-			if ( ! $( '#dc-swp-ssga4-wizard-mid' ).val().trim() && ownMid ) {
-				$( '#dc-swp-ssga4-wizard-mid' ).val( ownMid ).trigger( 'input' );
-			}
-			if ( ! $( '#dc-swp-ssga4-wizard-secret' ).val().trim() && ownSecret ) {
-				$( '#dc-swp-ssga4-wizard-secret' ).val( ownSecret ).trigger( 'input' );
-			}
-			checkGtmConflict();
-		}
-		if ( 'own' === mode ) {
-			// Copy from wizard if own is empty.
-			const wizMid = $( '#dc-swp-ssga4-wizard-mid' ).val().trim();
-			const wizSecret = $( '#dc-swp-ssga4-wizard-secret' ).val().trim();
-			if ( ! $( '#dc-swp-ssga4-mid-own' ).val().trim() && wizMid ) {
-				$( '#dc-swp-ssga4-mid-own' ).val( wizMid ).trigger( 'input' );
-			}
-			if ( ! $( '#dc-swp-ssga4-secret-own' ).val().trim() && wizSecret ) {
-				$( '#dc-swp-ssga4-secret-own' ).val( wizSecret );
-			}
-		}
-	} );
-
-	// -- Own mode: live validation -----------------------------------------------
-	$( '#dc-swp-ssga4-mid-own' ).on( 'input', function () {
-		const val = $( this ).val().trim();
-		const $status = $( '#dc-swp-ssga4-mid-own-status' );
-		if ( ! val ) { $status.hide(); return; }
-		if ( validMid( val ) ) {
-			$status.text( '\u2714' ).css( 'color', '#00a32a' ).show();
-		} else {
-			$status.text( '\u26a0' ).css( 'color', '#d63638' ).show();
-		}
-	} ).trigger( 'input' );
-
-	// -- Detect mode: scan button ------------------------------------------------
-	$( '#dc-swp-ssga4-detect-btn' ).on( 'click', function () {
-		const $btn = $( this );
-		const $spin = $( '#dc-swp-ssga4-detect-spinner' );
-		const $res = $( '#dc-swp-ssga4-detect-result' );
-		$btn.prop( 'disabled', true );
-		$spin.css( 'display', 'inline-block' );
-		$res.empty();
-
-		$.post( ajaxurl, { action: 'dc_swp_detect_ga4_mid', nonce: dcSwpAdminData.nonce }, function ( r ) {
-			$btn.prop( 'disabled', false );
-			$spin.hide();
-			if ( r.success && r.data && r.data.id ) {
-				const mid = r.data.id;
-				$( '#dc-swp-ssga4-panel-detect' ).data( 'detected-mid', mid );
-				$res.html(
-					'<p style="color:#3cb034;font-weight:600">\u2714 ' +
-					( ssga4.detected || 'Detected' ) + ': <code>' +
-					$( '<span>' ).text( mid ).html() + '</code></p>'
-				);
-				$( '#dc-swp-ssga4-detect-secret-row' ).show();
-			} else {
-				$res.html( '<p style="color:#787c82"><em>' +
-					$( '<span>' ).text( ssga4.detectNone || 'No GA4 Measurement ID detected.' ).html() +
-					'</em></p>' );
-			}
-		} ).fail( function () { $btn.prop( 'disabled', false ); $spin.hide(); } );
-	} );
-
-	// -- Wizard step 2: MID validation -------------------------------------------
-	$( '#dc-swp-ssga4-wizard-mid' ).on( 'input', function () {
-		const val = $( this ).val().trim();
-		const valid = validMid( val );
-		const $status = $( '#dc-swp-ssga4-wizard-mid-status' );
-		$( '#dc-swp-ssga4-wizard-step-2 .dc-swp-ssga4-wizard-btn[data-dir="next"]' ).prop( 'disabled', ! valid );
-		if ( ! val ) { $status.hide(); return; }
-		if ( valid ) {
-			$status.text( '\u2714' ).css( 'color', '#00a32a' ).show();
-		} else {
-			$status.text( '\u26a0' ).css( 'color', '#d63638' ).show();
-		}
-	} ).trigger( 'input' );
-
-	// -- Wizard step 2: Auto-detect button ---------------------------------------
-	$( '#dc-swp-ssga4-wizard-detect-btn' ).on( 'click', function () {
-		const $btn = $( this );
-		const $spin = $( '#dc-swp-ssga4-wizard-detect-spinner' );
-		$btn.prop( 'disabled', true );
-		$spin.css( 'display', 'inline-block' );
-
-		$.post( ajaxurl, { action: 'dc_swp_detect_ga4_mid', nonce: dcSwpAdminData.nonce }, function ( r ) {
-			$btn.prop( 'disabled', false );
-			$spin.hide();
-			if ( r.success && r.data && r.data.id ) {
-				$( '#dc-swp-ssga4-wizard-mid' ).val( r.data.id ).trigger( 'input' );
-			}
-		} ).fail( function () { $btn.prop( 'disabled', false ); $spin.hide(); } );
-	} );
-
-	// -- Wizard step 3: API Secret validation ------------------------------------
-	$( '#dc-swp-ssga4-wizard-secret' ).on( 'input', function () {
-		const val = $( this ).val().trim();
-		$( '#dc-swp-ssga4-wizard-step-3 .dc-swp-ssga4-wizard-btn[data-dir="next"]' ).prop( 'disabled', ! val );
-	} ).trigger( 'input' );
-
-	// -- Wizard step 4: GTM conflict check ---------------------------------------
-	$( '#dc-swp-ssga4-wizard-client-tag' ).on( 'change', checkGtmConflict );
-	$( 'input[name="dc_swp_gtm_mode"]' ).on( 'change', function () {
-		setTimeout( checkGtmConflict, 50 );
-	} );
-
-	// -- Wizard: next / prev navigation ------------------------------------------
-	$( document ).on( 'click', '.dc-swp-ssga4-wizard-btn', function () {
-		const dir = $( this ).data( 'dir' );
-		const step = parseInt( $( this ).data( 'step' ), 10 );
-		goToSsga4Step( 'next' === dir ? step + 1 : step - 1 );
-	} );
-
-	// -- Wizard: complete --------------------------------------------------------
-	$( '#dc-swp-ssga4-wizard-complete' ).on( 'click', function () {
-		const mid = $( '#dc-swp-ssga4-wizard-mid' ).val().trim();
-		const secret = $( '#dc-swp-ssga4-wizard-secret' ).val().trim();
-		if ( validMid( mid ) && secret ) {
-			$( '#dc-swp-ssga4-wizard-summary-mid' ).text( mid );
-			$( '#dc-swp-ssga4-wizard-summary' ).show();
-			$( this ).text( ssga4.saved || '\u2714 Saved' ).prop( 'disabled', true );
-			syncSsga4Credentials();
-		}
-	} );
-
-	// -- Test connection buttons (shared handler) --------------------------------
-	$( document ).on( 'click', '.dc-swp-ssga4-test-btn', function () {
-		const $btn = $( this );
-		const $spinner = $btn.siblings( '.dc-swp-ssga4-test-spinner' );
-		const $result = $btn.siblings( '.dc-swp-ssga4-test-result' );
-		const creds = getSsga4Credentials();
-
-		if ( ! creds.mid || ! creds.secret ) {
-			$result.html( '<span style="color:#d63638">\u26a0 Enter Measurement ID &amp; API Secret first.</span>' );
-			return;
-		}
-
-		$btn.prop( 'disabled', true );
-		$spinner.css( 'display', 'inline-block' );
-		$result.empty();
-
-		$.post( ajaxurl, {
-			action: 'dc_swp_test_ssga4',
-			nonce: dcSwpAdminData.nonce,
-			measurement_id: creds.mid,
-			api_secret: creds.secret,
-		}, function ( r ) {
-			$btn.prop( 'disabled', false );
-			$spinner.hide();
-			if ( r.success && r.data && r.data.valid ) {
-				$result.html( '<span style="color:#00a32a;font-weight:600">\u2714 ' +
-					$( '<span>' ).text( ssga4.testSuccess || 'Connection successful!' ).html() +
-					'</span>' );
-			} else {
-				let msg = ssga4.testFail || 'Connection failed.';
-				if ( r.data && r.data.messages && r.data.messages.length ) {
-					msg += ' -- ' + r.data.messages.map( function ( m ) { return m.description || m.validationCode; } ).join( '; ' );
-				}
-				$result.html( '<span style="color:#d63638">\u2718 ' +
-					$( '<span>' ).text( msg ).html() +
-					'</span>' );
-			}
-		} ).fail( function () {
-			$btn.prop( 'disabled', false );
-			$spinner.hide();
-			$result.html( '<span style="color:#d63638">\u2718 Request failed.</span>' );
-		} );
-	} );
-
-	// -- Form submit: sync all hidden fields -------------------------------------
-	$( 'form.pwa-cache-settings' ).on( 'submit', function () {
-		// Sync credentials.
-		syncSsga4Credentials();
-
-		// Sync wizard config options.
-		$( '#dc_swp_ga4_client_tag_field' ).val( $( '#dc-swp-ssga4-wizard-client-tag' ).is( ':checked' ) ? 'yes' : 'no' );
-		$( '#dc_swp_ga4_exclude_logged_field' ).val( $( '#dc-swp-ssga4-wizard-exclude-logged' ).is( ':checked' ) ? 'yes' : 'no' );
-
-		// Sync events checkboxes to hidden JSON field.
-		const events = {};
-		$( '.dc-swp-ssga4-event-cb' ).each( function () {
-			events[ $( this ).data( 'event' ) ] = $( this ).is( ':checked' );
-		} );
-		$( '#dc_swp_ssga4_events_json' ).val( JSON.stringify( events ) );
-	} );
-} )( jQuery );
-
 // -- Performance Metrics reset button ----------------------------------------
 ( function ( $ ) {
 	const perf = ( dcSwpAdminData.perf ) || {};
@@ -1122,317 +844,6 @@ jQuery( function ( $ ) {
 			$btn.prop( 'disabled', false );
 			$result.html( '<span style="color:#d63638">\u2718 Request failed.</span>' );
 		} );
-	} );
-} )( jQuery );
-
-// -- Meta CAPI -----------------------------------------------------------------
-( function ( $ ) {
-	const capi = dcSwpAdminData.capi || {};
-
-	/** Sync credential hidden fields from whichever panel is active. */
-	function syncCapiFields() {
-		const mode = $( 'input[name="dc_swp_capi_mode"]:checked' ).val() || 'off';
-		let pixel = '', token = '', exclude = 'yes';
-		if ( 'own' === mode ) {
-			pixel   = $( '#dc-swp-capi-pixel-own' ).val().trim();
-			token   = $( '#dc-swp-capi-token-own' ).val().trim();
-			exclude = $( '#dc-swp-capi-exclude-own' ).is( ':checked' ) ? 'yes' : 'no';
-		} else if ( 'detect' === mode ) {
-			pixel = $( '#dc-swp-capi-panel-detect' ).data( 'detected-pixel' ) || $( '#dc-swp-capi-panel-detect' ).data( 'saved-pixel' ) || '';
-			token = $( '#dc-swp-capi-token-detect' ).val().trim();
-		} else if ( 'managed' === mode ) {
-			pixel   = $( '#dc-swp-capi-wizard-pixel' ).val().trim();
-			token   = $( '#dc-swp-capi-wizard-token' ).val().trim();
-			exclude = $( '#dc-swp-capi-wizard-exclude' ).is( ':checked' ) ? 'yes' : 'no';
-			// Sync wizard TEC and PII into their named form fields.
-			$( '#dc-swp-capi-tec-field' ).val( $( '#dc-swp-capi-wizard-tec' ).val().trim() );
-			$( 'input[name="dc_swp_capi_send_pii"]' ).prop( 'checked', $( '#dc-swp-capi-wizard-pii' ).is( ':checked' ) );
-			// Sync wizard event checkboxes to the named form checkboxes.
-			$( '.dc-swp-capi-wizard-event-cb' ).each( function () {
-				$( '.dc-swp-capi-event-cb[data-event="' + $( this ).data( 'event' ) + '"]' ).prop( 'checked', $( this ).is( ':checked' ) );
-			} );
-		}
-		$( '#dc_swp_capi_pixel_field' ).val( pixel );
-		$( '#dc_swp_capi_token_field' ).val( token );
-		$( '#dc_swp_capi_exclude_field' ).val( exclude );
-	}
-
-	/** Get pixel + token for whichever panel is currently active. */
-	function getCapiCredentials() {
-		const mode = $( 'input[name="dc_swp_capi_mode"]:checked' ).val() || 'off';
-		if ( 'own' === mode ) {
-			return {
-				pixel_id:     $( '#dc-swp-capi-pixel-own' ).val().trim(),
-				access_token: $( '#dc-swp-capi-token-own' ).val().trim(),
-				tec:          $( '#dc-swp-capi-tec-field' ).val().trim(),
-			};
-		}
-		if ( 'managed' === mode ) {
-			return {
-				pixel_id:     $( '#dc-swp-capi-wizard-pixel' ).val().trim(),
-				access_token: $( '#dc-swp-capi-wizard-token' ).val().trim(),
-				tec:          $( '#dc-swp-capi-wizard-tec' ).val().trim(),
-			};
-		}
-		return {
-			pixel_id:     $( '#dc-swp-capi-panel-detect' ).data( 'detected-pixel' ) || $( '#dc-swp-capi-panel-detect' ).data( 'saved-pixel' ) || '',
-			access_token: $( '#dc-swp-capi-token-detect' ).val().trim(),
-			tec:          '',
-		};
-	}
-
-	/** Show/hide panels and dependent rows when mode radio changes. */
-	function updateCapiMode( mode ) {
-		$( '.dc-swp-capi-panel' ).hide();
-		if ( 'off' !== mode ) {
-			$( '#dc-swp-capi-panel-' + mode ).show();
-		}
-		// Wizard (managed) owns its own events/PII UI inside the steps.
-		$( '#dc-swp-capi-events-row, #dc-swp-capi-pii-row' ).toggle( 'off' !== mode && 'managed' !== mode );
-		$( '#dc-swp-capi-tec-row' ).toggle( 'own' === mode );
-		if ( 'managed' === mode ) {
-			goToCapiStep( 1 );
-		}
-	}
-
-	// Initialise on page load.
-	const initCapiMode = $( 'input[name="dc_swp_capi_mode"]:checked' ).val() || 'off';
-	updateCapiMode( initCapiMode );
-
-	// Restore saved pixel in detect mode.
-	if ( 'detect' === initCapiMode ) {
-		const savedPixel = $( '#dc-swp-capi-panel-detect' ).data( 'saved-pixel' );
-		if ( savedPixel ) {
-			$( '#dc-swp-capi-panel-detect' ).data( 'detected-pixel', savedPixel );
-			$( '#dc-swp-capi-detect-result' ).html(
-				'<p style="color:#3cb034"><strong>' + $( '<span>' ).text( capi.active || 'Auto-detected and active' ).html() + ':</strong> <code>' + $( '<span>' ).text( savedPixel ).html() + '</code></p>'
-			);
-			$( '#dc-swp-capi-detect-token-row' ).show();
-		}
-	}
-
-	$( 'input[name="dc_swp_capi_mode"]' ).on( 'change', function () {
-		updateCapiMode( $( this ).val() );
-	} );
-
-	// -- Wizard functions (managed mode) -----------------------------------------
-
-	/** Return true when val is a 15-16 digit numeric Pixel ID. */
-	function validCapiPixel( val ) {
-		return /^\d{15,16}$/.test( val );
-	}
-
-	/** Navigate the CAPI Getting Started wizard to a specific step. */
-	function goToCapiStep( step ) {
-		$( '.dc-swp-capi-wizard-step' ).removeClass( 'dc-swp-active' ).hide();
-		$( '#dc-swp-capi-wizard-step-' + step ).addClass( 'dc-swp-active' ).show();
-		$( '.dc-swp-capi-steps .dc-swp-step-dot' ).each( function () {
-			const s = parseInt( $( this ).data( 'step' ), 10 );
-			$( this )
-				.toggleClass( 'active', s === step )
-				.toggleClass( 'done', s < step );
-		} );
-		if ( 5 === step ) {
-			updateCapiWizardSummary();
-		}
-	}
-
-	/** Refresh the step-5 summary block from current wizard inputs. */
-	function updateCapiWizardSummary() {
-		const pixel  = $( '#dc-swp-capi-wizard-pixel' ).val().trim();
-		const events = [];
-		$( '.dc-swp-capi-wizard-event-cb:checked' ).each( function () {
-			events.push( $( this ).data( 'event' ) );
-		} );
-		const pixelDisplay = pixel
-			? '\u2026' + $( '<span>' ).text( pixel.slice( -4 ) ).html()
-			: '<em>(not set)</em>';
-		const evList  = events.length ? $( '<span>' ).text( events.join( ', ' ) ).html() : '<em>' + ( capi.wizardNoneSelected || 'None selected' ) + '</em>';
-		const testMsg = $( '#dc-swp-capi-wizard-test-result' ).text().trim() || ( capi.wizardConnNotTested || 'Not tested yet' );
-		$( '#dc-swp-capi-wizard-summary' ).html(
-			'<strong>' + ( capi.wizardSummaryDataset || 'Dataset' ) + ':</strong> Pixel ID ending in <code>' + pixelDisplay + '</code><br>' +
-			'<strong>' + ( capi.wizardSummaryEvents  || 'Events'  ) + ':</strong> ' + evList + '<br>' +
-			'<strong>' + ( capi.wizardSummaryConn    || 'Connection' ) + ':</strong> ' + $( '<span>' ).text( testMsg ).html()
-		);
-	}
-
-	// Re-validate wizard inputs when returning to managed mode.
-	if ( 'managed' === initCapiMode ) {
-		if ( validCapiPixel( $( '#dc-swp-capi-wizard-pixel' ).val().trim() ) ) {
-			$( '#dc-swp-capi-wizard-step-1 .dc-swp-capi-wizard-btn[data-dir="next"]' ).prop( 'disabled', false );
-		}
-		if ( $( '#dc-swp-capi-wizard-token' ).val().trim() ) {
-			$( '#dc-swp-capi-wizard-step-2 .dc-swp-capi-wizard-btn[data-dir="next"]' ).prop( 'disabled', false );
-		}
-	}
-
-	// Pixel ID live validation in wizard step 1.
-	$( '#dc-swp-capi-wizard-pixel' ).on( 'input', function () {
-		const val   = $( this ).val().trim();
-		const valid = validCapiPixel( val );
-		const $st   = $( '#dc-swp-capi-wizard-pixel-status' );
-		$st.text( val ? ( valid ? '\u2714 Valid Pixel ID' : '\u26a0 Expected 15\u201316 digits' ) : '' )
-			.css( 'color', valid ? '#3cb034' : '#d63638' );
-		$( '#dc-swp-capi-wizard-step-1 .dc-swp-capi-wizard-btn[data-dir="next"]' ).prop( 'disabled', ! valid );
-	} );
-
-	// Access Token input — enable Next on step 2.
-	$( '#dc-swp-capi-wizard-token' ).on( 'input', function () {
-		$( '#dc-swp-capi-wizard-step-2 .dc-swp-capi-wizard-btn[data-dir="next"]' ).prop( 'disabled', ! $( this ).val().trim() );
-	} );
-
-	// Wizard Next / Back navigation.
-	$( document ).on( 'click', '.dc-swp-capi-wizard-btn', function () {
-		const dir  = $( this ).data( 'dir' );
-		const step = parseInt( $( this ).data( 'step' ), 10 );
-		goToCapiStep( 'next' === dir ? step + 1 : step - 1 );
-	} );
-
-	// Test Connection inside the wizard (step 3).
-	$( '#dc-swp-capi-wizard-test-btn' ).on( 'click', function () {
-		const $spin   = $( '#dc-swp-capi-wizard-test-spinner' );
-		const $result = $( '#dc-swp-capi-wizard-test-result' );
-		const pixel   = $( '#dc-swp-capi-wizard-pixel' ).val().trim();
-		const token   = $( '#dc-swp-capi-wizard-token' ).val().trim();
-		const tec     = $( '#dc-swp-capi-wizard-tec' ).val().trim();
-
-		if ( ! pixel || ! token ) {
-			$result.html( '<span style="color:#d63638">\u26a0 Complete steps 1 and 2 first.</span>' );
-			return;
-		}
-
-		$( this ).prop( 'disabled', true );
-		$spin.show();
-		$result.text( '' );
-
-		$.post(
-			ajaxurl,
-			{
-				action:          'dc_swp_test_capi',
-				nonce:           dcSwpAdminData.nonce,
-				pixel_id:        pixel,
-				access_token:    token,
-				test_event_code: tec,
-			},
-			function ( r ) {
-				$spin.hide();
-				$( '#dc-swp-capi-wizard-test-btn' ).prop( 'disabled', false );
-				if ( r.success && r.data && r.data.valid ) {
-					$result.html( '<span style="color:#3cb034">' + $( '<span>' ).text( capi.testSuccess || '\u2714 Connection OK -- Meta accepted the test event.' ).html() + '</span>' );
-				} else {
-					const errMsg = r.data && r.data.error ? r.data.error : ( capi.testFail || '\u26a0 Connection failed.' );
-					$result.html( '<span style="color:#d63638">' + $( '<span>' ).text( errMsg ).html() + '</span>' );
-				}
-			}
-		).fail( function () {
-			$spin.hide();
-			$( '#dc-swp-capi-wizard-test-btn' ).prop( 'disabled', false );
-			$result.html( '<span style="color:#d63638">\u2718 Request failed.</span>' );
-		} );
-	} );
-
-	// Complete Setup — triggers the standard form submit, which calls syncCapiFields()
-	// (syncing all wizard inputs) and serialises events JSON before posting.
-	$( '#dc-swp-capi-wizard-complete' ).on( 'click', function () {
-		$( '.pwa-cache-settings' ).submit();
-	} );
-	$( '#dc-swp-capi-pixel-own' ).on( 'input', function () {
-		const val     = $( this ).val().trim();
-		const valid   = /^\d{15,16}$/.test( val );
-		const $status = $( '#dc-swp-capi-pixel-own-status' );
-		if ( val ) {
-			$status
-				.text( valid ? '\u2714 Valid Pixel ID' : '\u26a0 Expected 15-16 digit number' )
-				.css( 'color', valid ? '#3cb034' : '#d63638' )
-				.css( 'margin-left', '8px' );
-		} else {
-			$status.text( '' );
-		}
-	} );
-
-	// Scan Website button (detect mode).
-	$( '#dc-swp-capi-detect-btn' ).on( 'click', function () {
-		const $spin = $( '#dc-swp-capi-detect-spinner' );
-		const $res  = $( '#dc-swp-capi-detect-result' );
-		$spin.show();
-		$res.html( '' );
-		$.post( ajaxurl, { action: 'dc_swp_detect_capi_pixel', nonce: dcSwpAdminData.nonce }, function ( r ) {
-			$spin.hide();
-			if ( r.success && r.data && r.data.pixel_id ) {
-				const pid = r.data.pixel_id;
-				$( '#dc-swp-capi-panel-detect' ).data( 'detected-pixel', pid );
-				$res.html(
-					'<p style="color:#3cb034"><strong>' + $( '<span>' ).text( capi.detected || 'Detected' ).html() + ':</strong> <code>' + $( '<span>' ).text( pid ).html() + '</code></p>'
-				);
-				$( '#dc-swp-capi-detect-token-row' ).show();
-			} else {
-				$res.html( '<p style="color:#888">' + $( '<span>' ).text( capi.detectNone || 'No Meta Pixel found in page source.' ).html() + '</p>' );
-			}
-		} ).fail( function () {
-			$spin.hide();
-			$res.html( '<p style="color:#d63638">\u2718 Scan request failed.</p>' );
-		} );
-	} );
-
-	// Test Connection buttons (all panels share this class).
-	$( document ).on( 'click', '.dc-swp-capi-test-btn', function () {
-		const $btn     = $( this );
-		const $spinner = $btn.siblings( '.dc-swp-capi-test-spinner' );
-		const $result  = $btn.siblings( '.dc-swp-capi-test-result' );
-		const creds    = getCapiCredentials();
-
-		if ( ! creds.pixel_id || ! creds.access_token ) {
-			$result.html( '<span style="color:#d63638">\u26a0 Pixel ID and Access Token required.</span>' );
-			return;
-		}
-
-		$btn.prop( 'disabled', true );
-		$spinner.show();
-		$result.text( '' );
-
-		$.post(
-			ajaxurl,
-			{
-				action:          'dc_swp_test_capi',
-				nonce:           dcSwpAdminData.nonce,
-				pixel_id:        creds.pixel_id,
-				access_token:    creds.access_token,
-				test_event_code: creds.tec,
-			},
-			function ( r ) {
-				$spinner.hide();
-				$btn.prop( 'disabled', false );
-				if ( r.success && r.data && r.data.valid ) {
-					$result.html(
-						'<span style="color:#3cb034">' + $( '<span>' ).text( capi.testSuccess || '\u2714 Connection OK -- Meta accepted the test event.' ).html() + '</span>'
-					);
-				} else {
-					const errMsg = r.data && r.data.error ? r.data.error : ( capi.testFail || '\u26a0 Connection failed.' );
-					$result.html( '<span style="color:#d63638">' + $( '<span>' ).text( errMsg ).html() + '</span>' );
-				}
-			}
-		).fail( function () {
-			$spinner.hide();
-			$btn.prop( 'disabled', false );
-			$result.html( '<span style="color:#d63638">\u2718 Request failed.</span>' );
-		} );
-	} );
-
-	// Sync hidden fields and events JSON on form submit.
-	$( '.pwa-cache-settings' ).on( 'submit', function () {
-		syncCapiFields();
-
-		const capiEvents = {};
-		$( '.dc-swp-capi-event-cb' ).each( function () {
-			capiEvents[ $( this ).data( 'event' ) ] = $( this ).is( ':checked' );
-		} );
-		$( '#dc_swp_capi_events_json' ).val( JSON.stringify( capiEvents ) );
-
-		const ttEvents = {};
-		$( '.dc-swp-tt-event-cb' ).each( function () {
-			ttEvents[ $( this ).data( 'event' ) ] = $( this ).is( ':checked' );
-		} );
-		$( '#dc_swp_tt_events_json' ).val( JSON.stringify( ttEvents ) );
 	} );
 } )( jQuery );
 
