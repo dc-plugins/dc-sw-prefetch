@@ -2,7 +2,7 @@
 Contributors: lennilg
 Tags: thirdparty, performance, analytics, pagespeed, vitals
 Requires at least: 6.8
-Tested up to: 6.8
+Tested up to: 6.9
 Requires PHP: 8.0
 WC tested up to: 10.7.0
 Stable tag: 3.0.1

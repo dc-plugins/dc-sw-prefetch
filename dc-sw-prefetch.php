@@ -15,7 +15,7 @@
  * Domain Path:       /languages
  * Requires at least: 6.8
  * Requires PHP:      8.0
- * Tested up to:      6.8
+ * Tested up to:      6.9
  * WC tested up to:   10.7.0
  *
  * @package DC_Service_Worker_Proxy
