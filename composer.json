@@ -1,7 +1,17 @@
 {
     "require-dev": {
         "squizlabs/php_codesniffer": "^3.10",
-        "wp-coding-standards/wpcs": "^3.1"
+        "wp-coding-standards/wpcs": "^3.1",
+        "phpunit/phpunit": "^11"
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "DC_SW_Proxy\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "phpunit",
+        "test:coverage": "phpunit --coverage-text"
     },
     "config": {
         "allow-plugins": {

@@ -7,8 +7,11 @@ composer.json
 composer.lock
 eslint.config.mjs
 phpcs.xml
+phpunit.xml.dist
+.phpunit.cache
 README.md
 scripts
+tests
 vendor
 node_modules
 package.json

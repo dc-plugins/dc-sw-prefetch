@@ -1350,7 +1350,7 @@ function dc_swp_partytown_config() {
 	// dataLayer.push(), which is already forwarded. Forwarding 'gtag' separately is redundant.
 	// 'lintrk' (LinkedIn) and 'twq' (Twitter/X) are excluded -- not on the officially tested list.
 	$config = array(
-		'lib'     => '/~partytown/',
+		'lib'     => '/~partytown/' . ( $debug_mode ? 'debug/' : '' ),
 		'debug'   => $debug_mode,
 		// preserveBehavior:true on dataLayer.push ensures GTM and consent stacks
 		// also fire the original (main-thread) implementation, keeping tag-manager

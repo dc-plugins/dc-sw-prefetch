@@ -30,11 +30,17 @@ jobs:
             --exclude='.gitattributes' \
             --exclude='.distignore' \
             --exclude='phpcs.xml' \
+            --exclude='phpunit.xml.dist' \
+            --exclude='.phpunit.cache' \
             --exclude='composer.json' \
             --exclude='composer.lock' \
             --exclude='README.md' \
             --exclude='scripts' \
+            --exclude='tests' \
             --exclude='vendor' \
+            --exclude='node_modules' \
+            --exclude='package.json' \
+            --exclude='package-lock.json' \
             --exclude='eslint.config.mjs' \
             ./ ${{ vars.SSH_USER }}@${{ vars.SSH_HOST }}:${{ vars.DEPLOY_PATH }}dc-sw-prefetch/
 
@@ -46,21 +52,29 @@ jobs:
                    ${{ vars.DEPLOY_PATH }}dc-sw-prefetch/.gitignore \
                    ${{ vars.DEPLOY_PATH }}dc-sw-prefetch/.gitattributes \
                    ${{ vars.DEPLOY_PATH }}dc-sw-prefetch/phpcs.xml \
+                   ${{ vars.DEPLOY_PATH }}dc-sw-prefetch/phpunit.xml.dist \
                    ${{ vars.DEPLOY_PATH }}dc-sw-prefetch/composer.json \
                    ${{ vars.DEPLOY_PATH }}dc-sw-prefetch/composer.lock \
+                   ${{ vars.DEPLOY_PATH }}dc-sw-prefetch/package.json \
+                   ${{ vars.DEPLOY_PATH }}dc-sw-prefetch/package-lock.json \
                    ${{ vars.DEPLOY_PATH }}dc-sw-prefetch/README.md && \
              rm -f  ${{ vars.DEPLOY_PATH }}dc-sw-prefetch/eslint.config.mjs && \
              rm -rf ${{ vars.DEPLOY_PATH }}dc-sw-prefetch/.github \
+                    ${{ vars.DEPLOY_PATH }}dc-sw-prefetch/.phpunit.cache \
                     ${{ vars.DEPLOY_PATH }}dc-sw-prefetch/scripts \
-                    ${{ vars.DEPLOY_PATH }}dc-sw-prefetch/vendor"
+                    ${{ vars.DEPLOY_PATH }}dc-sw-prefetch/tests \
+                    ${{ vars.DEPLOY_PATH }}dc-sw-prefetch/vendor \
+                    ${{ vars.DEPLOY_PATH }}dc-sw-prefetch/node_modules"
 
       - name: Build wordpress.org ZIP
         run: |
           mkdir -p dist
           zip -r dist/dc-sw-prefetch.zip . \
             -x '*.git*' -x '.github/*' -x '.gitignore' -x '.gitattributes' \
-            -x '.distignore' -x 'phpcs.xml' -x 'composer.json' -x 'composer.lock' \
-            -x 'README.md' -x 'scripts/*' -x 'vendor/*' -x 'dist/*' -x 'eslint.config.mjs'
+            -x '.distignore' -x 'phpcs.xml' -x 'phpunit.xml.dist' -x '.phpunit.cache/*' \
+            -x 'composer.json' -x 'composer.lock' -x 'README.md' -x 'scripts/*' \
+            -x 'tests/*' -x 'vendor/*' -x 'node_modules/*' -x 'package.json' \
+            -x 'package-lock.json' -x 'dist/*' -x 'eslint.config.mjs'
 
       - name: Upload ZIP artifact
         uses: actions/upload-artifact@v4
