@@ -654,48 +654,16 @@ jQuery( function ( $ ) {
 				if ( r.success && r.data && r.data.id ) {
 					const safeId     = $( '<span>' ).text( r.data.id ).html();
 					const safeSource = $( '<span>' ).text( r.data.source || r.data.plugin || '' ).html();
-
-					// If googletagmanager.com is already in the Partytown Script List,
-					// auto-switch to detect mode -- the tag is already being offloaded.
-					const ptEntries   = dcSwpAdminData.scriptListEntries || [];
-					const alreadyInPt = ptEntries.some( function ( e ) {
-						return ( e.pattern || '' ).toLowerCase().indexOf( 'googletagmanager.com' ) !== -1;
-					} ) || $( '.dc-swp-sl-pattern' ).toArray().some( function ( el ) {
-						return ( el.value || '' ).toLowerCase().indexOf( 'googletagmanager.com' ) !== -1;
-					} );
-
-					if ( alreadyInPt ) {
-						$( 'input[name="dc_swp_gtm_mode"][value="detect"]' ).prop( 'checked', true ).trigger( 'change' );
-						syncId( r.data.id );
-						$res.html(
-							'<p style="color:#3cb034">\u2714 ' + ( gtmStr.detected || 'Detected' ) +
-							': <strong><code>' + safeId + '</code></strong> (' + safeSource + ')</p>' +
-							'<p style="color:#3cb034;font-size:12px">' +
-							( gtmStr.autoSwitched || '\u2714 Auto-Detect selected \u2014 tag is already in the Partytown Script List.' ) +
-							'</p>'
-						);
-					} else {
-						$res.html(
-							'<p style="color:#3cb034">\u2714 ' + ( gtmStr.detected || 'Detected' ) +
-							': <strong><code>' + safeId + '</code></strong> (' + safeSource + ')</p>' +
-							'<button type="button" class="button button-secondary" id="dc-swp-use-detected" data-id="' + safeId + '">' +
-							( gtmStr.use || 'Use This ID' ) + '</button>'
-						);
-					}
+					$res.html(
+						'<p style="color:#3cb034">\u2714 ' + ( gtmStr.detected || 'Detected' ) +
+						': <strong><code>' + safeId + '</code></strong> (' + safeSource + ') \u2014 ' +
+						( gtmStr.willBeUsed || 'will be re-detected on every Save Settings' ) + '</p>'
+					);
 				} else {
 					$res.html( '<p style="color:#787c82"><em>' + ( gtmStr.none || 'No tag detected.' ) + '</em></p>' );
 				}
 			}
 		).fail( function () { $btn.prop( 'disabled', false ); $spin.hide(); } );
-	} );
-
-	$( document ).on( 'click', '#dc-swp-use-detected', function () {
-		const id = $( this ).data( 'id' );
-		syncId( id );
-		const msg = '<span style="color:#3cb034;font-weight:600">\u2714 <code>' +
-			$( '<span>' ).text( id ).html() + '</code> \u2014 ' +
-			( gtmStr.willBeUsed || 'will be used on next save' ) + '</span>';
-		$( this ).replaceWith( msg );
 	} );
 
 	// -- Wizard: ID validation in step 2 ------------------------------------

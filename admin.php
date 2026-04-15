@@ -327,10 +327,17 @@ function dc_swp_admin_page_html() {
 		update_option( 'dc_swp_debug_mode', isset( $_POST['dc_swp_debug_mode'] ) ? 'yes' : 'no' );
 		$_valid_gtm_modes = array( 'off', 'own', 'detect', 'managed' );
 		$_gtm_mode_raw    = sanitize_text_field( wp_unslash( $_POST['dc_swp_gtm_mode'] ?? 'off' ) );
-		update_option( 'dc_swp_gtm_mode', in_array( $_gtm_mode_raw, $_valid_gtm_modes, true ) ? $_gtm_mode_raw : 'off' );
-		$_gtm_id_raw = sanitize_text_field( wp_unslash( $_POST['dc_swp_gtm_id'] ?? '' ) );
-		// Accept empty string (disables injection) or a valid tag ID format.
-		update_option( 'dc_swp_gtm_id', ( '' === $_gtm_id_raw || preg_match( '/^(GTM-[A-Z0-9]{4,10}|G-[A-Z0-9]{6,}|UA-\d{4,}-\d+)$/i', $_gtm_id_raw ) ) ? strtoupper( $_gtm_id_raw ) : '' );
+		$_gtm_mode        = in_array( $_gtm_mode_raw, $_valid_gtm_modes, true ) ? $_gtm_mode_raw : 'off';
+		update_option( 'dc_swp_gtm_mode', $_gtm_mode );
+		if ( 'detect' === $_gtm_mode ) {
+			// Re-scan on every save so the ID stays current if the upstream tag changes.
+			$_detected_gtm = dc_swp_detect_existing_gtm_id();
+			update_option( 'dc_swp_gtm_id', $_detected_gtm['id'] ?? '' );
+		} else {
+			$_gtm_id_raw = sanitize_text_field( wp_unslash( $_POST['dc_swp_gtm_id'] ?? '' ) );
+			// Accept empty string (disables injection) or a valid tag ID format.
+			update_option( 'dc_swp_gtm_id', ( '' === $_gtm_id_raw || preg_match( '/^(GTM-[A-Z0-9]{4,10}|G-[A-Z0-9]{6,}|UA-\d{4,}-\d+)$/i', $_gtm_id_raw ) ) ? strtoupper( $_gtm_id_raw ) : '' );
+		}
 		// Meta Pixel mode system.
 		$_valid_pixel_modes = array( 'off', 'own', 'detect', 'managed' );
 		$_pixel_mode_raw    = sanitize_key( wp_unslash( $_POST['dc_swp_pixel_mode'] ?? 'off' ) );
@@ -1271,15 +1278,13 @@ function dc_swp_admin_page_html() {
 			'consentGateEnabled' => $consent_gate,
 			'consentCategories'  => array( 'marketing', 'statistics', 'statistics-anonymous', 'functional', 'preferences' ),
 			'gtm'                => array(
-				'valid'        => __( '✔ Valid tag ID', 'dc-sw-prefetch' ),
-				'invalid'      => __( '⚠ Invalid format. Expected: GTM-XXXXXXX, G-XXXXXXXXXX, or UA-XXXXXX-X.', 'dc-sw-prefetch' ),
-				'detected'     => __( 'Detected', 'dc-sw-prefetch' ),
-				'use'          => __( 'Use This ID', 'dc-sw-prefetch' ),
-				'none'         => __( 'No active Google Tag found in page source.', 'dc-sw-prefetch' ),
-				'autoSwitched' => __( '\\u2714 Auto-Detect selected \\u2014 tag is already in the Partytown Script List.', 'dc-sw-prefetch' ),
-				'willBeUsed'   => __( 'will be used on next save', 'dc-sw-prefetch' ),
-				'active'       => __( 'Auto-detected and active', 'dc-sw-prefetch' ),
-				'saved'        => __( '✔ Saved', 'dc-sw-prefetch' ),
+				'valid'      => __( '✔ Valid tag ID', 'dc-sw-prefetch' ),
+				'invalid'    => __( '⚠ Invalid format. Expected: GTM-XXXXXXX, G-XXXXXXXXXX, or UA-XXXXXX-X.', 'dc-sw-prefetch' ),
+				'detected'   => __( 'Detected', 'dc-sw-prefetch' ),
+				'none'       => __( 'No active Google Tag found in page source.', 'dc-sw-prefetch' ),
+				'willBeUsed' => __( 'will be re-detected on every Save Settings', 'dc-sw-prefetch' ),
+				'active'     => __( 'Auto-detected and active', 'dc-sw-prefetch' ),
+				'saved'      => __( '✔ Saved', 'dc-sw-prefetch' ),
 			),
 			'pixel'              => array(
 				'valid'      => __( '✔ Valid Pixel ID', 'dc-sw-prefetch' ),
