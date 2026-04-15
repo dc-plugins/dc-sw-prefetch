@@ -1,6 +1,6 @@
 {
   "name": "dc-sw-prefetch",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "DC Script Worker Proxy \u2014 Partytown Web Worker proxy for third-party scripts.",
   "private": true,
   "vendored": {
@@ -14,9 +14,7 @@
     "url": "git+https://github.com/dc-plugins/dc-sw-prefetch.git"
   },
   "license": "GPL-2.0+",
-  "main": "index.js",
-  "keywords": [],
-  "author": "",
+  "author": "lennilg",
   "type": "commonjs",
   "bugs": {
     "url": "https://github.com/dc-plugins/dc-sw-prefetch/issues"

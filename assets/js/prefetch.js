@@ -22,7 +22,6 @@
 		link.href  = url;
 		link.as    = 'document';
 		document.head.appendChild( link );
-		console.log( '[DC SW Prefetch] Prefetching:', url );
 	}
 
 	function resolveProductLink( el ) {
@@ -41,9 +40,6 @@
 		let a = anchors.find( a => a.href.includes( productBase ) && ! bad( a.href ) );
 		// Fallback: first non-utility anchor inside the item.
 		if ( ! a ) a = anchors.find( a => ! bad( a.href ) );
-		if ( ! a ) {
-			console.debug( '[DC SW Prefetch] No link in item:', el, '| anchors found:', anchors.length, '| productBase:', productBase );
-		}
 		return a ? a.href : null;
 	}
 
@@ -59,11 +55,8 @@
 		'.products .product, ul.products li.product, .product-item, li.product, a.upsell-item[href]'
 	);
 	if ( ! items.length ) {
-		console.warn( '[DC SW Prefetch] No product items found in DOM' );
 		return;
 	}
-
-	console.log( '[DC SW Prefetch] Monitoring', items.length, 'products | productBase:', productBase );
 
 	if ( 'IntersectionObserver' in window ) {
 		const observer = new IntersectionObserver( ( entries ) => {

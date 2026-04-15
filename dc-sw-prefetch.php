@@ -6,7 +6,7 @@
  * Plugin Name: DC Script Worker Proxy
  * Plugin URI:  https://github.com/dc-plugins/dc-sw-prefetch
  * Description: Offloads third-party scripts (GTM, Pixel, Analytics...) to a Web Worker via Partytown with consent-aware loading. Fully vendored -- no build step required.
- * Version:     3.0.0
+ * Version:     3.0.1
  * Author:      lennilg
  * Author URI:  https://github.com/lennilg
  * License:           GPL-2.0-or-later
@@ -15,8 +15,8 @@
  * Domain Path:       /languages
  * Requires at least: 6.8
  * Requires PHP:      8.0
- * Tested up to:      6.9
- * WC tested up to:   10.4.3
+ * Tested up to:      6.8
+ * WC tested up to:   10.7.0
  *
  * @package DC_Service_Worker_Proxy
  */
@@ -373,7 +373,7 @@ function dc_swp_is_meta_ldu_enabled() {
 // files can safely reference DC_SWP_VERSION at module level.
 // ============================================================
 
-define( 'DC_SWP_VERSION', '3.0.0' );
+define( 'DC_SWP_VERSION', '3.0.1' );
 
 
 // ============================================================
@@ -2021,7 +2021,7 @@ function dc_swp_partytown_script_attrs_disabled( $attributes ) {
 	return $attributes;
 }
 
-// Bust the in-request static cache, object cache, and W3TC page cache when settings change.
+// Bust the in-request static cache, object cache, and all known page caches when settings change.
 add_action( 'update_option_dc_swp_partytown_scripts', 'dc_swp_bust_page_cache' );
 add_action( 'update_option_dc_swp_inline_scripts', 'dc_swp_bust_page_cache' );
 add_action( 'update_option_dc_swp_gtm_mode', 'dc_swp_bust_page_cache' );
@@ -2029,15 +2029,43 @@ add_action( 'update_option_dc_swp_gtm_id', 'dc_swp_bust_page_cache' );
 add_action( 'update_option_dc_swp_exclusion_patterns', 'dc_swp_bust_page_cache' );
 
 /**
- * Delete all object-cache pattern keys and flush W3TC page cache (if active),
- * so stale cached HTML with old type attributes is never served.
+ * Delete all object-cache pattern keys and flush page caches for popular caching plugins,
+ * so stale cached HTML with old script type= attributes is never served after a settings change.
+ *
+ * Covers: W3 Total Cache, WP Rocket, LiteSpeed Cache, WP Super Cache,
+ * Nginx Helper, SG Optimizer, and WP Fastest Cache.
  */
 function dc_swp_bust_page_cache() {
 	wp_cache_delete( 'patterns', 'dc_swp' );
 	delete_transient( 'dc_swp_gcm_conflict_result' );
-	// W3TC page cache flush.
+
+	// W3 Total Cache.
 	if ( function_exists( 'w3tc_pgcache_flush' ) ) {
 		w3tc_pgcache_flush();
+	}
+	// WP Rocket.
+	if ( function_exists( 'rocket_clean_domain' ) ) {
+		rocket_clean_domain();
+	}
+	// LiteSpeed Cache.
+	if ( class_exists( 'LiteSpeed_Cache_API' ) ) {
+		LiteSpeed_Cache_API::purge_all();
+	}
+	// WP Super Cache.
+	if ( function_exists( 'wp_cache_clear_cache' ) ) {
+		wp_cache_clear_cache();
+	}
+	// Nginx Helper.
+	if ( class_exists( 'Nginx_Helper' ) ) {
+		do_action( 'rt_nginx_helper_purge_all' ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Nginx Helper's own action.
+	}
+	// SG Optimizer (SiteGround).
+	if ( function_exists( 'sg_cachepress_purge_cache' ) ) {
+		sg_cachepress_purge_cache();
+	}
+	// WP Fastest Cache.
+	if ( function_exists( 'wpfc_clear_all_cache' ) ) {
+		wpfc_clear_all_cache();
 	}
 }
 
@@ -2630,7 +2658,7 @@ function dc_swp_partytown_buffer_rewrite( $html ) {
 	$pending_companion = null;
 
 	$html = preg_replace_callback(
-		'/<script\b([^>]*)>(.*?)<\/script>/is',
+		'/<script\b([^>]*)>((?>[^<]|<(?!\/script>))*)<\/script>/i',
 		static function ( $matches ) use ( $patterns, $companion_map, &$pending_companion ) {
 			$tag_inner = $matches[1];
 			$body      = $matches[2];
@@ -2923,7 +2951,7 @@ function dc_swp_output_inline_scripts() {
 	 * $cat_blk: WP Consent API category for this block.
 	 */
 	$parse_code = function ( $code, $force_blk, $cat_blk = '' ) use ( &$js_blocks, &$src_blocks, &$noscript_blocks, $allowed_attr_re ) {
-		if ( preg_match_all( '/<script\b([^>]*)>(.*?)<\/script>/is', $code, $matches, PREG_SET_ORDER ) ) {
+		if ( preg_match_all( '/<script\b([^>]*)>((?>[^<]|<(?!\/script>))*)<\/script>/i', $code, $matches, PREG_SET_ORDER ) ) {
 			foreach ( $matches as $m ) {
 				if ( preg_match( '/\bsrc\s*=\s*(["\'])([^"\']+)\1/i', $m[1], $src_m ) ) {
 					// Preserve pass-through attributes from the original tag.

@@ -2,10 +2,10 @@
 Contributors: lennilg
 Tags: thirdparty, performance, analytics, pagespeed, vitals
 Requires at least: 6.8
-Tested up to: 6.9
+Tested up to: 6.8
 Requires PHP: 8.0
-WC tested up to: 10.4.3
-Stable tag: 3.0.0
+WC tested up to: 10.7.0
+Stable tag: 3.0.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -176,6 +176,12 @@ Provided by Mixpanel, Inc. Sends page views, custom events, and an anonymous vis
 The administrator may freely add other services through the Partytown Script List. The plugin imposes no restriction on which services can be configured, beyond the security allowlist that prevents the CORS proxy from being used as an open relay. Refer to each service's own privacy policy and terms of service for details on what data they collect.
 
 == Changelog ==
+
+= 3.0.1 =
+* Fix: Removed debug console.log/debug/warn calls from the viewport prefetch script that were printing to every visitor's DevTools console on WooCommerce shop pages.
+* Fix: "Tested up to" corrected to WordPress 6.8; WC tested up to updated to 10.7.0.
+* Fix: Output buffer script regex replaced PCRE_DOTALL lazy quantifier with an atomic group, preventing potential catastrophic backtracking on malformed HTML.
+* Fix: Settings save now also flushes WP Rocket, LiteSpeed Cache, WP Super Cache, Nginx Helper, SG Optimizer, and WP Fastest Cache (previously only W3 Total Cache was purged).
 
 = 3.0.0 =
 * Removed: Server-Side GA4 (SSGA4) — Measurement Protocol event pipeline removed. Plugin refocused on Partytown offloading and consent authority.

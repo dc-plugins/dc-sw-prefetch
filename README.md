@@ -2,10 +2,10 @@
 
 > Offload third-party scripts to a Web Worker via Partytown + consent-aware loading.
 
-![Version](https://img.shields.io/badge/version-3.0.0-blue)
+![Version](https://img.shields.io/badge/version-3.0.1-blue)
 ![WordPress](https://img.shields.io/badge/WordPress-6.8%2B-21759b)
 ![PHP](https://img.shields.io/badge/PHP-8.0%2B-777bb4)
-![WooCommerce](https://img.shields.io/badge/WooCommerce-10.4%2B-96588a)
+![WooCommerce](https://img.shields.io/badge/WooCommerce-10.7%2B-96588a)
 ![License](https://img.shields.io/badge/license-GPL--2.0%2B-green)
 
 Offload third-party scripts (GTM, Pixel, HubSpot…) to a Web Worker via Partytown + consent-aware loading. Fully vendored — no npm required.
@@ -187,6 +187,12 @@ The administrator may configure additional services via the Partytown Script Lis
 ---
 
 ## Changelog
+
+### 3.0.1
+- Fix: Removed debug `console.log/debug/warn` calls from the viewport prefetch script that were printing to every visitor's DevTools console on WooCommerce shop pages.
+- Fix: "Tested up to" corrected to WordPress 6.8; WC tested up to updated to 10.7.0.
+- Fix: Output buffer script regex replaced PCRE_DOTALL lazy quantifier with an atomic group, preventing potential catastrophic backtracking on malformed HTML.
+- Fix: Settings save now also flushes WP Rocket, LiteSpeed Cache, WP Super Cache, Nginx Helper, SG Optimizer, and WP Fastest Cache (previously only W3 Total Cache was purged).
 
 ### 3.0.0
 - Removed: Server-Side GA4 (SSGA4) Measurement Protocol pipeline.
