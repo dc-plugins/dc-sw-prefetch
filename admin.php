@@ -411,10 +411,12 @@ function dc_swp_admin_page_html() {
 			require_once ABSPATH . 'wp-admin/includes/file.php';
 			WP_Filesystem();
 		}
-		$pkg_raw = $wp_filesystem->get_contents( $pkg_json );
-		if ( false !== $pkg_raw ) {
-			$pkg        = json_decode( $pkg_raw, true );
-			$pt_version = $pkg['vendored']['@qwik.dev/partytown'] ?? 'unknown';
+		if ( ! empty( $wp_filesystem ) ) {
+			$pkg_raw = $wp_filesystem->get_contents( wp_normalize_path( $pkg_json ) );
+			if ( false !== $pkg_raw ) {
+				$pkg        = json_decode( $pkg_raw, true );
+				$pt_version = $pkg['vendored']['@qwik.dev/partytown'] ?? 'unknown';
+			}
 		}
 	}
 	?>
@@ -524,18 +526,17 @@ function dc_swp_admin_page_html() {
 				</tr>
 				<tr valign="top"
 				<?php
-				if ( ! $sw_enabled ) {
-					echo ' class="dc-swp-row-disabled"';}
-				?>
-				>
+				if ( ! $sw_enabled ) :
+					?>
+					class="dc-swp-row-disabled"<?php endif; ?>>
 					<th scope="row"><?php echo esc_html__( 'SharedArrayBuffer (Atomics Bridge)', 'dc-sw-prefetch' ); ?></th>
 					<td>
 						<label class="pwa-toggle">
 							<input type="checkbox" name="dc_swp_coi_headers" value="yes" <?php checked( $coi_headers && $sw_enabled, true ); ?>
 							<?php
-							if ( ! $sw_enabled ) {
-								echo ' disabled';}
-							?>
+							if ( ! $sw_enabled ) :
+								?>
+								disabled<?php endif; ?>
 							>
 							<span class="pwa-slider"></span>
 						</label>
@@ -594,7 +595,11 @@ function dc_swp_admin_page_html() {
 						</fieldset>
 
 						<!-- Panel: own -->
-						<div id="dc-swp-gtm-panel-own" class="dc-swp-gtm-panel" <?php echo 'own' !== $gtm_mode ? 'style="display:none"' : ''; ?>>
+						<div id="dc-swp-gtm-panel-own" class="dc-swp-gtm-panel"
+						<?php
+						if ( 'own' !== $gtm_mode ) :
+							?>
+							style="display:none"<?php endif; ?>>
 							<input type="text" id="dc-swp-gtm-id-own"
 								class="regular-text" style="font-family:monospace"
 								value="<?php echo esc_attr( get_option( 'dc_swp_gtm_id', '' ) ); ?>"
@@ -606,7 +611,10 @@ function dc_swp_admin_page_html() {
 						<!-- Panel: detect -->
 						<div id="dc-swp-gtm-panel-detect" class="dc-swp-gtm-panel"
 							data-saved-id="<?php echo esc_attr( get_option( 'dc_swp_gtm_id', '' ) ); ?>"
-							<?php echo 'detect' !== $gtm_mode ? 'style="display:none"' : ''; ?>>
+							<?php
+							if ( 'detect' !== $gtm_mode ) :
+								?>
+								style="display:none"<?php endif; ?>>
 							<button type="button" id="dc-swp-gtm-detect-btn" class="button button-secondary">
 								<?php echo esc_html__( 'Scan Website', 'dc-sw-prefetch' ); ?>
 							</button>
@@ -616,7 +624,11 @@ function dc_swp_admin_page_html() {
 						</div>
 
 						<!-- Panel: managed (wizard) -->
-						<div id="dc-swp-gtm-panel-managed" class="dc-swp-gtm-panel" <?php echo 'managed' !== $gtm_mode ? 'style="display:none"' : ''; ?>>
+						<div id="dc-swp-gtm-panel-managed" class="dc-swp-gtm-panel"
+						<?php
+						if ( 'managed' !== $gtm_mode ) :
+							?>
+							style="display:none"<?php endif; ?>>
 							<div class="dc-swp-step-indicator">
 							<?php for ( $_ws = 1; $_ws <= 4; $_ws++ ) : ?>
 								<?php
@@ -678,7 +690,11 @@ function dc_swp_admin_page_html() {
 						</div>
 					</td>
 				</tr>
-				<tr valign="top" id="dc-swp-consent-mode-row"<?php echo 'off' === $gtm_mode ? ' style="display:none"' : ''; ?>>
+				<tr valign="top" id="dc-swp-consent-mode-row"
+				<?php
+				if ( 'off' === $gtm_mode ) :
+					?>
+					style="display:none"<?php endif; ?>>
 					<th scope="row"><?php echo esc_html__( 'Google Consent Mode v2', 'dc-sw-prefetch' ); ?></th>
 					<td>
 						<label class="pwa-toggle">
@@ -789,7 +805,11 @@ function dc_swp_admin_page_html() {
 						</fieldset>
 
 						<!-- Panel: own -->
-						<div id="dc-swp-pixel-panel-own" class="dc-swp-gtm-panel" <?php echo 'own' !== $pixel_mode ? 'style="display:none"' : ''; ?>>
+						<div id="dc-swp-pixel-panel-own" class="dc-swp-gtm-panel"
+						<?php
+						if ( 'own' !== $pixel_mode ) :
+							?>
+							style="display:none"<?php endif; ?>>
 							<input type="text" id="dc-swp-pixel-id-own"
 								class="regular-text" style="font-family:monospace"
 								value="<?php echo esc_attr( $pixel_id ); ?>"
@@ -802,7 +822,10 @@ function dc_swp_admin_page_html() {
 						<!-- Panel: detect -->
 						<div id="dc-swp-pixel-panel-detect" class="dc-swp-gtm-panel"
 							data-saved-id="<?php echo esc_attr( $pixel_id ); ?>"
-							<?php echo 'detect' !== $pixel_mode ? 'style="display:none"' : ''; ?>>
+							<?php
+							if ( 'detect' !== $pixel_mode ) :
+								?>
+								style="display:none"<?php endif; ?>>
 							<button type="button" id="dc-swp-pixel-detect-btn" class="button button-secondary">
 								<?php echo esc_html__( 'Scan Website', 'dc-sw-prefetch' ); ?>
 							</button>
@@ -812,7 +835,11 @@ function dc_swp_admin_page_html() {
 						</div>
 
 						<!-- Panel: managed (wizard) -->
-						<div id="dc-swp-pixel-panel-managed" class="dc-swp-gtm-panel" <?php echo 'managed' !== $pixel_mode ? 'style="display:none"' : ''; ?>>
+						<div id="dc-swp-pixel-panel-managed" class="dc-swp-gtm-panel"
+						<?php
+						if ( 'managed' !== $pixel_mode ) :
+							?>
+							style="display:none"<?php endif; ?>>
 							<div class="dc-swp-step-indicator">
 							<?php for ( $_pws = 1; $_pws <= 3; $_pws++ ) : ?>
 								<?php
@@ -883,7 +910,11 @@ function dc_swp_admin_page_html() {
 						</div>
 
 						<!-- Sub-options shown when mode ≠ off -->
-						<div id="dc-swp-pixel-sub-options" <?php echo 'off' === $pixel_mode ? 'style="display:none"' : ''; ?>>
+						<div id="dc-swp-pixel-sub-options"
+						<?php
+						if ( 'off' === $pixel_mode ) :
+							?>
+							style="display:none"<?php endif; ?>>
 							<hr style="margin:14px 0 10px">
 							<table class="form-table" style="margin:0">
 								<tr valign="top">
@@ -1099,18 +1130,17 @@ function dc_swp_admin_page_html() {
 			<table class="form-table">
 				<tr valign="top"
 				<?php
-				if ( ! $sw_enabled ) {
-					echo ' class="dc-swp-row-disabled"';}
-				?>
-				>
+				if ( ! $sw_enabled ) :
+					?>
+					class="dc-swp-row-disabled"<?php endif; ?>>
 					<th scope="row"><?php echo esc_html__( 'Partytown Debug Mode', 'dc-sw-prefetch' ); ?></th>
 					<td>
 						<label class="pwa-toggle">
 							<input type="checkbox" name="dc_swp_debug_mode" value="yes" <?php checked( $debug_mode && $sw_enabled, true ); ?>
 							<?php
-							if ( ! $sw_enabled ) {
-								echo ' disabled';}
-							?>
+							if ( ! $sw_enabled ) :
+								?>
+								disabled<?php endif; ?>
 							>
 							<span class="pwa-slider"></span>
 						</label>
