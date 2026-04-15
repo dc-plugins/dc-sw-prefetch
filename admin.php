@@ -402,20 +402,20 @@ function dc_swp_admin_page_html() {
 	}
 	$footer_credit = get_option( 'dc_swp_footer_credit', 'no' ) === 'yes';
 
-	// Read vendored Partytown version from package.json using WP_Filesystem.
-	$pkg_json   = plugin_dir_path( __FILE__ ) . 'package.json';
+	// Read vendored Partytown version from the first-line comment of the deployed lib file.
+	// package.json is excluded from production deploys; the vendored JS is always present.
 	$pt_version = 'unknown';
-	if ( file_exists( $pkg_json ) ) {
+	$pt_js      = plugin_dir_path( __FILE__ ) . 'assets/partytown/partytown.js';
+	if ( file_exists( $pt_js ) ) {
 		global $wp_filesystem;
 		if ( empty( $wp_filesystem ) ) {
 			require_once ABSPATH . 'wp-admin/includes/file.php';
 			WP_Filesystem();
 		}
 		if ( ! empty( $wp_filesystem ) ) {
-			$pkg_raw = $wp_filesystem->get_contents( wp_normalize_path( $pkg_json ) );
-			if ( false !== $pkg_raw ) {
-				$pkg        = json_decode( $pkg_raw, true );
-				$pt_version = $pkg['vendored']['@qwik.dev/partytown'] ?? 'unknown';
+			$pt_head = $wp_filesystem->get_contents( wp_normalize_path( $pt_js ) );
+			if ( false !== $pt_head && preg_match( '/Partytown ([\d.]+)/', $pt_head, $m ) ) {
+				$pt_version = $m[1];
 			}
 		}
 	}
