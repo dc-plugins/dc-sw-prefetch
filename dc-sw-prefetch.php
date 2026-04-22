@@ -1145,7 +1145,7 @@ function dc_swp_enqueue_gtm(): void {
 	// only the inline script (no external request).
 	$dl_handle = 'dc-swp-gtm-datalayer';
 	if ( ! wp_script_is( $dl_handle, 'registered' ) ) {
-		wp_register_script( $dl_handle, false, array(), null, array( 'in_footer' => false ) );
+		wp_register_script( $dl_handle, false, array(), DC_SWP_VERSION, array( 'in_footer' => false ) );
 		wp_add_inline_script( $dl_handle, 'window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}' );
 	}
 	wp_enqueue_script( $dl_handle );
@@ -1164,7 +1164,7 @@ function dc_swp_enqueue_gtm(): void {
 		wp_add_inline_script( $handle, "gtag('js',new Date());gtag('config','" . $safe_id . "');", 'after' );
 	}
 
-	wp_register_script( $handle, $src, array( $dl_handle, 'dc-swp-partytown-config' ), null, array( 'in_footer' => false ) );
+	wp_register_script( $handle, $src, array( $dl_handle, 'dc-swp-partytown-config' ), DC_SWP_VERSION, array( 'in_footer' => false ) );
 	wp_script_add_data( $handle, 'dc_swp_type', 'text/partytown' );
 	wp_enqueue_script( $handle );
 }
@@ -1370,7 +1370,7 @@ function dc_swp_enqueue_pixel(): void {
 
 	$stub_handle = 'dc-swp-fbq-stub';
 	if ( ! wp_script_is( $stub_handle, 'registered' ) ) {
-		wp_register_script( $stub_handle, false, array(), null, array( 'in_footer' => false ) );
+		wp_register_script( $stub_handle, false, array(), DC_SWP_VERSION, array( 'in_footer' => false ) );
 		wp_add_inline_script( $stub_handle, $stub );
 	}
 	wp_enqueue_script( $stub_handle );
@@ -1381,7 +1381,7 @@ function dc_swp_enqueue_pixel(): void {
 	if ( ! $fbevents_in_block ) {
 		$safe_id = esc_js( $pixel_id );
 		$handle  = 'dc-swp-fbevents';
-		wp_register_script( $handle, 'https://connect.facebook.net/en_US/fbevents.js', array( $stub_handle, 'dc-swp-partytown-config' ), null, array( 'in_footer' => false ) );
+		wp_register_script( $handle, 'https://connect.facebook.net/en_US/fbevents.js', array( $stub_handle, 'dc-swp-partytown-config' ), DC_SWP_VERSION, array( 'in_footer' => false ) );
 		wp_script_add_data( $handle, 'dc_swp_type', 'text/partytown' );
 		// Main-thread init + PageView forwarded to worker via fbq forward config.
 		wp_add_inline_script( $handle, "fbq('init','" . $safe_id . "');fbq('track','PageView');", 'after' );
@@ -3221,8 +3221,8 @@ function dc_swp_enqueue_script_blocks(): void {
 			continue;
 		}
 
-		$cat     = $blk['category'] ?? 'marketing';
-		$handle  = 'dc-swp-block-' . sanitize_key( $blk['id'] ?? md5( $src ) );
+		$cat    = $blk['category'] ?? 'marketing';
+		$handle = 'dc-swp-block-' . sanitize_key( $blk['id'] ?? md5( $src ) );
 
 		// Determine consent and type.
 		if ( $pt_enabled ) {
@@ -3239,7 +3239,7 @@ function dc_swp_enqueue_script_blocks(): void {
 			$type    = ''; // Partytown disabled: WP default type (deferred on main thread).
 		}
 
-		wp_register_script( $handle, $src, array( 'dc-swp-partytown-config' ), null, array( 'in_footer' => false ) );
+		wp_register_script( $handle, $src, array( 'dc-swp-partytown-config' ), DC_SWP_VERSION, array( 'in_footer' => false ) );
 		if ( $type ) {
 			wp_script_add_data( $handle, 'dc_swp_type', $type );
 		}
@@ -3303,4 +3303,3 @@ function dc_swp_output_script_block_noscripts(): void {
 		echo '<noscript><img src="' . esc_url( $noscript_url ) . '" width="1" height="1" style="display:none" alt=""></noscript>' . "\n";
 	}
 }
-
