@@ -18,7 +18,7 @@ add_filter(
 	'admin_footer_text',
 	function ( $text ) {
 		$screen = get_current_screen();
-		if ( $screen && 'toplevel_page_dc-sw-prefetch' === $screen->id ) {
+		if ( $screen && 'toplevel_page_dc-service-worker-prefetcher' === $screen->id ) {
 			return sprintf(
 				/* translators: %s: linked name of the plugin author organisation */
 				esc_html__( 'More plugins by %s', 'dc-service-worker-prefetcher' ),
@@ -33,7 +33,7 @@ add_filter(
 	'update_footer',
 	function ( $text ) {
 		$screen = get_current_screen();
-		if ( $screen && 'toplevel_page_dc-sw-prefetch' === $screen->id ) {
+		if ( $screen && 'toplevel_page_dc-service-worker-prefetcher' === $screen->id ) {
 			/* translators: %s: plugin version number */
 			return sprintf( esc_html__( 'Version %s', 'dc-service-worker-prefetcher' ), DC_SWP_VERSION );
 		}
@@ -69,7 +69,7 @@ add_action( 'admin_enqueue_scripts', 'dc_swp_enqueue_admin_assets' );
  * @return void
  */
 function dc_swp_enqueue_admin_assets( $hook ) {
-	if ( 'toplevel_page_dc-sw-prefetch' !== $hook ) {
+	if ( 'toplevel_page_dc-service-worker-prefetcher' !== $hook ) {
 		return;
 	}
 	// phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion -- inline-only handle, no file to version.

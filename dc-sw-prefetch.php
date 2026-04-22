@@ -6,7 +6,7 @@
  * Plugin Name: DC Script Worker Proxy
  * Plugin URI:  https://github.com/dc-plugins/dc-sw-prefetch
  * Description: Offloads third-party scripts (GTM, Pixel, Analytics...) to a Web Worker via Partytown with consent-aware loading. Fully vendored -- no build step required.
- * Version:     3.0.1
+ * Version:     3.0.2
  * Author:      lennilg
  * Author URI:  https://github.com/lennilg
  * License:           GPL-2.0-or-later
@@ -383,7 +383,7 @@ function dc_swp_is_meta_ldu_enabled() {
 // files can safely reference DC_SWP_VERSION at module level.
 // ============================================================
 
-define( 'DC_SWP_VERSION', '3.0.1' );
+define( 'DC_SWP_VERSION', '3.0.2' );
 
 
 // ============================================================
