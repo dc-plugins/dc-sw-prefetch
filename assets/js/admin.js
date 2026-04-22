@@ -187,21 +187,10 @@ jQuery( function ( $ ) {
 
 // -- Inline script blocks accordion ------------------------------------------
 ( function ( $ ) {
-	let blocks      = dcSwpAdminData.blocks;
+	let blocks         = dcSwpAdminData.blocks;
 	const noBlocksMsg  = dcSwpAdminData.noBlocksMsg;
 	const delMsg       = dcSwpAdminData.delMsg;
 	const knownServices = dcSwpAdminData.knownServices || [];
-
-	/** Extract all external src= URLs from a script block's code string. */
-	function extractSrcUrls( code ) {
-		const re  = /<script\b[^>]+\bsrc=["']([^"']+)["']/gi;
-		const out = [];
-		let m;
-		while ( ( m = re.exec( code ) ) !== null ) {
-			out.push( m[ 1 ] );
-		}
-		return out;
-	}
 
 	/** Return true if the URL hostname matches a Partytown-verified service. */
 	function isKnownSvc( url ) {
@@ -217,127 +206,56 @@ jQuery( function ( $ ) {
 	}
 
 	/**
-	 * Return true if ANY URL in the raw code (src= attrs or inline string literals)
-	 * resolves to a Partytown-verified service hostname.
-	 * This catches inline snippets like Meta Pixel that embed the CDN URL as a
-	 * string argument rather than a separate <script src=""> tag.
-	 */
-	function hasKnownServiceAnywhere( code ) {
-		const urlRe = /https?:\/\/([a-zA-Z0-9][a-zA-Z0-9.-]+)/g;
-		let m;
-		while ( ( m = urlRe.exec( code ) ) !== null ) {
-			const host = m[ 1 ].toLowerCase();
-			if ( knownServices.some( function ( k ) { return host === k || host.endsWith( '.' + k ); } ) ) {
-				return true;
-			}
-		}
-		return false;
-	}
-
-	/** Return true if the block has at least one non-empty inline <script> (no src=). */
-	function hasInlineJs( code ) {
-		const re = /<script\b([^>]*)>([\s\S]*?)<\/script>/gi;
-		let m;
-		while ( ( m = re.exec( code ) ) !== null ) {
-			if ( ! /\bsrc\s*=/i.test( m[ 1 ] ) && m[ 2 ].trim() !== '' ) {
-				return true;
-			}
-		}
-		return false;
-	}
-
-	/**
-	 * Render a shields.io badge image into $badge; fall back to styled text on error/offline.
+	 * Refresh the badge for a block item based on its src URL.
 	 *
-	 * @param {jQuery} $badge       The badge span element.
-	 * @param {string} shieldsUrl   Full shields.io badge URL.
-	 * @param {string} altText      Alt / accessible text for the image.
-	 * @param {string} fallbackText Text content for the offline/firewall fallback.
-	 * @param {Object} fallbackCss  jQuery CSS map applied when falling back to text.
+	 * @param {jQuery} $item The .dc-swp-blk-item element.
+	 * @param {string} src   Current script URL.
+	 * @param {boolean} force Whether force_partytown is on.
 	 */
-	function setBadgeImg( $badge, shieldsUrl, altText, fallbackText, fallbackCss ) {
-		const img = new Image();
-		img.alt   = altText;
-		img.style.verticalAlign = 'middle';
-		img.onload = function () {
-			$badge
-				.empty()
-				.css( { color: '', background: '', border: '', padding: '0' } )
-				.append( img )
-				.show();
-		};
-		img.onerror = function () {
-			$badge.empty().text( fallbackText ).css( fallbackCss ).show();
-		};
-		img.src = shieldsUrl;
-	}
+	function refreshBlockBadge( $item, src, force ) {
+		const $badge  = $item.find( '.dc-swp-blk-badge' );
+		const $fwrap  = $item.find( '.dc-swp-blk-force-wrap' );
+		const $notice = $item.find( '.dc-swp-blk-force-notice' );
 
-	/**
-	 * Refresh the badge, force-toggle visibility, and warning notice for a block item.
-	 *
-	 * @param {jQuery} $item  The .dc-swp-blk-item element.
-	 * @param {string} code   Current block code.
-	 * @param {boolean} force Whether force_partytown is currently on.
-	 */
-	function refreshBlockBadge( $item, code, force ) {
-		const srcUrls          = extractSrcUrls( code );
-		const hasUnknownSrc    = srcUrls.some( function ( u ) { return ! isKnownSvc( u ); } );
-		const anyKnown         = hasKnownServiceAnywhere( code );
-		const inlineJs         = hasInlineJs( code );
-		// Unknown inline = there is inline JS but no known-service URL found anywhere.
-		const hasUnknownInline = inlineJs && ! anyKnown;
-		const $badge           = $item.find( '.dc-swp-blk-badge' );
-		const $fwrap           = $item.find( '.dc-swp-blk-force-wrap' );
-		const $notice          = $item.find( '.dc-swp-blk-force-notice' );
-
-		const hasAnything = anyKnown || hasUnknownSrc || hasUnknownInline;
-		if ( ! hasAnything ) {
+		if ( ! src ) {
 			$badge.hide();
 			$fwrap.hide();
 			$notice.hide();
 			return;
 		}
 
-		const hasUnknown = hasUnknownSrc || hasUnknownInline;
+		const known = isKnownSvc( src );
 
-		if ( ! hasUnknown ) {
-			// Everything identified resolves to a known Partytown service.
-			setBadgeImg(
-				$badge,
-				'https://img.shields.io/badge/Supported-Partytown-brightgreen',
-				dcSwpAdminData.badgeSupported,
-				dcSwpAdminData.badgeSupported,
-				{ color: '#00a32a', background: '#f0fdf0', border: '1px solid #00a32a' }
-			);
+		if ( known ) {
+			$badge
+				.text( dcSwpAdminData.badgeSupported )
+				.css( { color: '#00a32a', background: '#f0fdf0', border: '1px solid #00a32a', padding: '1px 6px' } )
+				.show();
 			$fwrap.hide();
 			$notice.hide();
 		} else if ( force ) {
-			setBadgeImg(
-				$badge,
-				'https://img.shields.io/badge/Forced-Partytown-orange',
-				'⚡ Forced / Partytown',
-				'⚡ Forced / Partytown',
-				{ color: '#a16207', background: '#fefce8', border: '1px solid #ca8a04' }
-			);
+			$badge
+				.text( '⚡ Forced / Partytown' )
+				.css( { color: '#a16207', background: '#fefce8', border: '1px solid #ca8a04', padding: '1px 6px' } )
+				.show();
 			$fwrap.show();
 			$notice.show();
 		} else {
-			setBadgeImg(
-				$badge,
-				'https://img.shields.io/badge/Unsupported-Deferred-red',
-				dcSwpAdminData.badgeUnsupported,
-				dcSwpAdminData.badgeUnsupported,
-				{ color: '#d63638', background: '#fdf2f2', border: '1px solid #d63638' }
-			);
+			$badge
+				.text( dcSwpAdminData.badgeUnsupported )
+				.css( { color: '#d63638', background: '#fdf2f2', border: '1px solid #d63638', padding: '1px 6px' } )
+				.show();
 			$fwrap.show();
 			$notice.hide();
 		}
+		$item.find( '.dc-swp-blk-force-label' ).toggle( $fwrap.is( ':visible' ) );
 	}
 
 	function buildBlockEl( b, idx ) {
 		const labelSafe    = $( '<span>' ).text( b.label || ( 'Block ' + ( idx + 1 ) ) ).html();
-		const codeSafe     = $( '<span>' ).text( b.code  || '' ).html();
-		const checked      = b.enabled       ? ' checked' : '';
+		const srcSafe      = $( '<span>' ).text( b.src   || '' ).html();
+		const noscriptSafe = $( '<span>' ).text( b.noscript_img_url || '' ).html();
+		const checked      = b.enabled        ? ' checked' : '';
 		const forceChk     = b.force_partytown ? ' checked' : '';
 		const skipChk      = b.skip_logged_in  ? ' checked' : '';
 		const disCls       = b.enabled ? '' : ' dc-swp-blk-disabled';
@@ -345,6 +263,8 @@ jQuery( function ( $ ) {
 		const noticeHtml   = $( '<span>' ).text( dcSwpAdminData.forcePtNotice ).html();
 		const catLabel     = $( '<span>' ).text( dcSwpAdminData.blockCategoryLabel || 'Consent category' ).html();
 		const skipLbl      = $( '<span>' ).text( dcSwpAdminData.blockSkipLoggedIn  || 'Skip for logged-in users' ).html();
+		const srcLbl       = $( '<span>' ).text( dcSwpAdminData.blockSrcLabel      || 'Script URL' ).html();
+		const nsLbl        = $( '<span>' ).text( dcSwpAdminData.blockNoscriptLabel || 'Noscript pixel URL (optional)' ).html();
 		const cats         = dcSwpAdminData.consentCategories || [ 'marketing', 'statistics', 'statistics-anonymous', 'functional', 'preferences' ];
 		const curCat       = b.category || 'marketing';
 		let catOpts = '';
@@ -368,14 +288,17 @@ jQuery( function ( $ ) {
 			'</div>',
 			'<div class="dc-swp-blk-body">',
 			'<div class="dc-swp-blk-force-notice" style="display:none;margin-bottom:8px;padding:8px 10px;background:#fefce8;border-left:3px solid #ca8a04;font-size:12px;color:#92400e">' + noticeHtml + '</div>',
+			'<div style="margin-bottom:8px"><label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">' + srcLbl + '</label>',
+			'<input type="url" class="dc-swp-blk-src large-text" value="' + srcSafe + '" placeholder="https://cdn.example.com/script.js" style="width:100%;box-sizing:border-box"></div>',
+			'<div style="margin-bottom:8px"><label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">' + nsLbl + '</label>',
+			'<input type="url" class="dc-swp-blk-noscript large-text" value="' + noscriptSafe + '" placeholder="https://example.com/pixel?noscript=1" style="width:100%;box-sizing:border-box"></div>',
 			'<div class="dc-swp-blk-cat-wrap" style="margin-bottom:8px"><label style="font-size:12px;font-weight:600;margin-right:6px">' + catLabel + '</label><select class="dc-swp-blk-category">' + catOpts + '</select></div>',
 			'<div class="dc-swp-blk-skip-wrap" style="margin-bottom:8px"><label style="font-size:12px;font-weight:600"><input class="dc-swp-blk-skip" type="checkbox"' + skipChk + ' style="margin-right:5px">' + skipLbl + '</label></div>',
-			'<textarea class="dc-swp-blk-code large-text code" rows="8" spellcheck="false">' + codeSafe + '</textarea>',
 			'</div></div>',
 		].join( '' ) );
 
 		// Initialise badge state after DOM insertion returns synchronously.
-		refreshBlockBadge( $el, b.code || '', !! b.force_partytown );
+		refreshBlockBadge( $el, b.src || '', !! b.force_partytown );
 
 		// Also keep force-label visibility in sync with force-wrap.
 		$el.find( '.dc-swp-blk-force-label' ).toggle( $el.find( '.dc-swp-blk-force-wrap' ).is( ':visible' ) );
@@ -441,8 +364,7 @@ jQuery( function ( $ ) {
 		const id     = $it.data( 'id' );
 		patchBlock( id, { force_partytown: forced } );
 		const blk = blocks.find( function ( b ) { return b.id === id; } );
-		refreshBlockBadge( $it, blk ? ( blk.code || '' ) : '', forced );
-		$it.find( '.dc-swp-blk-force-label' ).toggle( $it.find( '.dc-swp-blk-force-wrap' ).is( ':visible' ) );
+		refreshBlockBadge( $it, blk ? ( blk.src || '' ) : '', forced );
 	} );
 
 	// Delete.
@@ -459,27 +381,32 @@ jQuery( function ( $ ) {
 		patchBlock( $( this ).closest( '.dc-swp-blk-item' ).data( 'id' ), { label: $( this ).text().trim() } );
 	} );
 
-	// Live code edit -- also refreshes the compatibility badge.
-	$( document ).on( 'input', '.dc-swp-blk-code', function () {
+	// Live src URL edit -- also refreshes the compatibility badge.
+	$( document ).on( 'input', '.dc-swp-blk-src', function () {
 		const $it  = $( this ).closest( '.dc-swp-blk-item' );
 		const id   = $it.data( 'id' );
-		const code = $( this ).val();
-		patchBlock( id, { code: code } );
-		const blk = blocks.find( function ( b ) { return b.id === id; } );
-		refreshBlockBadge( $it, code, !! ( blk && blk.force_partytown ) );
-		$it.find( '.dc-swp-blk-force-label' ).toggle( $it.find( '.dc-swp-blk-force-wrap' ).is( ':visible' ) );
+		const src  = $( this ).val();
+		patchBlock( id, { src: src } );
+		const blk  = blocks.find( function ( b ) { return b.id === id; } );
+		refreshBlockBadge( $it, src, !! ( blk && blk.force_partytown ) );
+	} );
+
+	// Live noscript URL edit.
+	$( document ).on( 'input', '.dc-swp-blk-noscript', function () {
+		patchBlock( $( this ).closest( '.dc-swp-blk-item' ).data( 'id' ), { noscript_img_url: $( this ).val() } );
 	} );
 
 	// Add new block.
 	$( '#dc-swp-add-block-btn' ).on( 'click', function () {
-		const code  = $.trim( $( '#dc-swp-new-code' ).val() );
-		if ( ! code ) {
-			$( '#dc-swp-new-code' ).focus().css( 'outline', '2px solid #d63638' );
-			setTimeout( function () { $( '#dc-swp-new-code' ).css( 'outline', '' ); }, 1500 );
+		const src = $.trim( $( '#dc-swp-new-src' ).val() );
+		if ( ! src ) {
+			$( '#dc-swp-new-src' ).focus().css( 'outline', '2px solid #d63638' );
+			setTimeout( function () { $( '#dc-swp-new-src' ).css( 'outline', '' ); }, 1500 );
 			return;
 		}
-		const label = $.trim( $( '#dc-swp-new-label' ).val() ) || ( 'Script Block ' + ( blocks.length + 1 ) );
-		const nb    = { id: 'block_' + Date.now(), label: label, code: code, enabled: true };
+		const label    = $.trim( $( '#dc-swp-new-label' ).val() ) || ( 'Script Block ' + ( blocks.length + 1 ) );
+		const noscript = $.trim( $( '#dc-swp-new-noscript' ).val() );
+		const nb       = { id: 'block_' + Date.now(), label: label, src: src, noscript_img_url: noscript, enabled: true, category: 'marketing' };
 		blocks.push( nb );
 		renderList();
 		const $ni = $( '.dc-swp-blk-item[data-id="' + nb.id + '"]' );
@@ -490,7 +417,8 @@ jQuery( function ( $ ) {
 		$ni.find( '.dc-swp-blk-chevron' ).removeClass( 'dashicons-arrow-right-alt2' ).addClass( 'dashicons-arrow-down-alt2' );
 		try { $ni[ 0 ].scrollIntoView( { behavior: 'smooth', block: 'nearest' } ); } catch { /* not supported in all browsers */ }
 		$( '#dc-swp-new-label' ).val( '' );
-		$( '#dc-swp-new-code' ).val( '' );
+		$( '#dc-swp-new-src' ).val( '' );
+		$( '#dc-swp-new-noscript' ).val( '' );
 	} );
 
 	// Sync to hidden field before form submit.
@@ -498,7 +426,8 @@ jQuery( function ( $ ) {
 		$( '.dc-swp-blk-item' ).each( function () {
 			const id = $( this ).data( 'id' );
 			patchBlock( id, {
-				code:            $( this ).find( '.dc-swp-blk-code' ).val(),
+				src:             $( this ).find( '.dc-swp-blk-src' ).val(),
+				noscript_img_url: $( this ).find( '.dc-swp-blk-noscript' ).val(),
 				label:           $( this ).find( '.dc-swp-blk-label' ).text().trim(),
 				enabled:         $( this ).find( '.dc-swp-blk-enable' ).prop( 'checked' ),
 				force_partytown: $( this ).find( '.dc-swp-blk-force' ).prop( 'checked' ),
@@ -508,6 +437,7 @@ jQuery( function ( $ ) {
 		$( '#dc_swp_inline_scripts_json' ).val( JSON.stringify( blocks ) );
 	} );
 } )( jQuery );
+
 
 // -- Google Tag Management -- panel switcher + wizard -------------------------
 ( function ( $ ) {
