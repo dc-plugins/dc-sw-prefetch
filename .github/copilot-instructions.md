@@ -15,15 +15,14 @@ The Partytown library is **vendored** in `assets/partytown/` — no npm build st
 ```
 dc-sw-prefetch.php   — Main plugin file: bot detection, hooks, Partytown injection,
                        prefetch JS, SW endpoint, LCP preload, cache headers
-admin.php            — Admin settings page (i18n via __() with 'dc-script-worker-prefetcher' text domain)
-includes/            — integrations.php (HubSpot, Klaviyo, Mixpanel, FullStory, Intercom, TikTok)
+admin.php            — Admin settings page (i18n via __() with 'dc-sw-prefetch' text domain)
 uninstall.php        — Cleanup on plugin deletion
 assets/partytown/    — Vendored Partytown lib files (do NOT hand-edit)
 scripts/             — update-partytown.sh: vendor a new Partytown release
 .github/workflows/   — deploy.yml (rsync + GitHub Release), update-partytown.yml (weekly bot)
 phpcs.xml            — PHP_CodeSniffer config (WordPress ruleset)
 package.json         — Tracks vendored Partytown version under "vendored"
-languages/           — .pot template + da_DK .po/.mo translations (slug: dc-script-worker-prefetcher)
+languages/           — .pot template + da_DK .po/.mo translations
 ```
 
 ## Coding Conventions
@@ -34,13 +33,13 @@ languages/           — .pot template + da_DK .po/.mo translations (slug: dc-sc
   - **Exceptions requiring `phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped`:**
     1. Service worker / Partytown JS endpoint (`readfile()` of vendored static files).
     2. Fully-static PHP-constructed JS strings (`$consent_js`, `$ldu_js`) — include the comment `-- fully static JS; nonce is pre-escaped via esc_attr`.
-    3. Partytown inline snippets (Mixpanel, TikTok, Intercom, etc.) output via `echo '<script type="text/partytown"...'` — include the comment `-- $js is a static string; token is esc_js-escaped; nonce is pre-escaped via esc_attr`.
+    3. Admin-entered inline script blocks — include the comment `-- admin-controlled inline JS` (content is sanitized at save time via `dc_swp_sanitize_js_code()`).
 - Use `sanitize_*` and `wp_unslash()` on all user-supplied input.
-- **Script Block URL fields** (`src`, `noscript_img_url`) MUST be sanitized with `esc_url_raw()` at save time and output with `esc_url()`. Do NOT store or output raw HTML or JS — blocks hold URLs only.
+- **Inline JS code fields** (the `code` key in inline script block objects) MUST be sanitized with `dc_swp_sanitize_js_code()` — NOT `wp_kses()` (which mangles JS operators) and NOT left unsanitized. This function strips PHP opening tags to prevent server-side execution while leaving JavaScript intact.
 - Guard every file with `if ( ! defined( 'ABSPATH' ) ) { die(); }`.
 - PHP 8.0+ features (named arguments, `str_contains`, etc.) are acceptable.
 - Wrap functions in `function_exists()` checks where child-theme coexistence is required (see bot detection).
-- Translations use `__()` / `esc_html__()` with the `dc-script-worker-prefetcher` text domain.
+- Translations use `__()` / `esc_html__()` with the `dc-sw-prefetch` text domain.
 
 ## Key Patterns
 
@@ -48,9 +47,7 @@ languages/           — .pot template + da_DK .po/.mo translations (slug: dc-sc
 - **Safe pages**: On WooCommerce cart, checkout, and account pages (`dc_swp_is_safe_page()`), COI headers are suppressed and `SharedArrayBuffer` is overridden in JS so the Atomics bridge never activates. Partytown itself still loads via the Service Worker bridge -- analytics scripts can fire on transactional pages without breaking payment gateway iframes.
 - **Partytown endpoint**: served by WordPress via a rewrite rule + query var; PHP streams the vendored JS files directly.
 - **Admin settings** are stored as individual named options (e.g. `dc_swp_sw_enabled`, `dc_swp_inline_scripts`) via `get_option` / `update_option`. There is no single serialised bag option.
-- **Partytown script enqueue pattern**: External scripts that must run in the Partytown worker are registered via `wp_register_script()` + `wp_script_add_data($handle, 'dc_swp_type', 'text/partytown')` + `wp_enqueue_script()`. A `script_loader_tag` filter (`dc_swp_script_loader_tag()`) reads the `dc_swp_type` and `dc_swp_consent_cat` metadata and rewrites the `type=` attribute and adds `data-wp-consent-category=` and CSP `nonce=` attributes. **Never `echo` a `<script src=...>` tag directly for external scripts** — this triggers `NonEnqueuedScript` PHPCS violations and WP.org rejection.
-- **Inline Partytown snippets** (Mixpanel, TikTok, Intercom) that have no external `src=` may still be output via `echo '<script type="text/partytown"...'` on `wp_head`. These are inline snippets, not external script loads, and do not trigger `NonEnqueuedScript`.
-- **Inline script blocks** (`dc_swp_inline_scripts`): JSON-encoded array of `{ id, label, src, noscript_img_url, enabled, force_partytown, skip_logged_in, category }` objects. The `src` field is a URL sanitized with `esc_url_raw()` at save time; output via `wp_register_script()` + `wp_enqueue_script()`. The `noscript_img_url` field is also a URL and is output as `<noscript><img src="..."></noscript>` with `esc_url()`.
+- **Inline script blocks** (`dc_swp_inline_scripts`): JSON-encoded array of `{ id, label, code, enabled, force_partytown }` objects. The `code` field is sanitized via `dc_swp_sanitize_js_code()` at save time and output raw inside `<script>` tags (capability-gated to `manage_options`). Do not use `wp_kses()` on this field — it mangles JS operators.
 
 ## Build & Update Workflow
 
@@ -93,7 +90,7 @@ Pushing to `main` or creating a version tag triggers `deploy.yml`, which:
 - Do **not** hand-edit files inside `assets/partytown/` — always use the update script.
 - Do **not** introduce npm/build dependencies into the plugin runtime; keep it vendor-only.
 - **All option names must use the `dc_swp_` prefix** (`dc_swp_sw_enabled`, `dc_swp_preload_products`, `dc_swp_product_base`, `dc_swp_footer_credit`). The old `dampcig_pwa_*` names are migrated via `dc_swp_migrate_options()` on activation and must not be reintroduced.
-- All user-facing strings use `__()` / `esc_html__()` with the `dc-script-worker-prefetcher` text domain. Danish translations are in `languages/dc-script-worker-prefetcher-da_DK.po`. Do **not** reintroduce the old `dc_swp_str()` key-based bilingual array.
+- All user-facing strings use `__()` / `esc_html__()` with the `dc-sw-prefetch` text domain. Danish translations are in `languages/dc-sw-prefetch-da_DK.po`. Do **not** reintroduce the old `dc_swp_str()` key-based bilingual array.
 - **`phpcs.xml` must NOT globally suppress `WordPress.Security.EscapeOutput.OutputNotEscaped`** — use per-line `// phpcs:ignore` comments with justification comments only at the specific lines that require it. A global suppression hides real violations from your own linter AND triggers WP.org rejection.
 - **Do not add redundant `phpcs:ignore NonPrefixedFunctionFound`** on functions that already use the `dc_swp_` prefix — these are covered by the `<property name="prefixes">` declaration in `phpcs.xml`.
 - **Never use `file_get_contents()`** for local files — use `WP_Filesystem` (`global $wp_filesystem; WP_Filesystem(); $wp_filesystem->get_contents( $path )`).
@@ -109,12 +106,6 @@ Pushing to `main` or creating a version tag triggers `deploy.yml`, which:
 | 4 | 39 redundant `phpcs:ignore NonPrefixedFunctionFound` on `dc_swp_` functions | Removed — prefix covered by phpcs.xml declaration |
 | 5 | `file_get_contents()` instead of WP Filesystem API | Replaced with `WP_Filesystem` |
 | 6 | Proxy endpoint not explained to reviewers | Added to `readme.txt` under External Services |
-| 7 | Free-form `code` textarea in Script Blocks (arbitrary script insertion) | Replaced with structured `src` URL + `noscript_img_url` fields; sanitized with `esc_url_raw()` |
-| 8 | External scripts injected via raw `echo '<script src=...>'` (non-enqueue) | All external scripts converted to `wp_register_script()` + `wp_enqueue_script()`; `script_loader_tag` filter applies `type=`, consent category, and nonce |
-| 9 | Remote image calls to `img.shields.io` and `paypalobjects.com` in admin | shields.io badge `<img>` tags removed (pure CSS badges used); PayPal donate image removed |
-| 10 | FullStory not listed under External Services in `readme.txt` | Added FullStory entry with privacy policy and data description |
-| 11 | Text domain `dc-service-worker-prefetcher` did not match WP.org slug | Renamed to `dc-script-worker-prefetcher`; language files regenerated |
-| 12 | Unescaped noscript HTML from free-form `code` field | Eliminated with Issue 7 fix; noscript output now uses `esc_url()` on stored URL |
 
 ## SYSTEM ##
 **Role** You are a senior WordPress plugin engineer and technical documentation expert working inside Visual Studio.

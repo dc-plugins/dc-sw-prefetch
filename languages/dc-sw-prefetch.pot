@@ -1,57 +1,54 @@
+# Copyright (C) 2026 Dampcig
+# This file is distributed under the same license as the DC Script Worker Prefetcher plugin.
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: DC Script Worker Prefetcher 3.0.1\n"
+"Project-Id-Version: DC Script Worker Prefetcher 2.3.0\n"
 "Report-Msgid-Bugs-To: https://www.dampcig.dk\n"
 "POT-Creation-Date: 2026-04-11 18:04+0000\n"
-"PO-Revision-Date: 2026-04-11 18:04+0000\n"
-"Last-Translator: Dampcig <info@dampcig.dk>\n"
-"Language-Team: Danish <info@dampcig.dk>\n"
-"Language: da_DK\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
+#. translators: %s: URL to DC Plugins GitHub organisation
 #: admin.php
 msgid "More plugins by <a href=\"%s\" target=\"_blank\" rel=\"noopener\">DC Plugins</a>"
 msgstr ""
-"Flere plugins fra <a href=\"%s\" target=\"_blank\" rel=\"noopener\">DC "
-"Plugins</a>"
 
 #: admin.php
 msgid "+ Add Pattern"
-msgstr "+ Tilføj Mønster"
+msgstr ""
 
 #: admin.php
 msgid "Detected external scripts"
-msgstr "Opdagede eksterne scripts"
+msgstr ""
 
 #: admin.php
 msgid "Advanced"
-msgstr "Avanceret"
+msgstr ""
 
 #: admin.php
 msgid "No patterns added yet. Click \"+ Add Pattern\" or use Auto-Detect."
 msgstr ""
-"Ingen mønstre tilføjet endnu. Klik \"+ Tilføj Mønster\" eller brug Auto-"
-"Detekter."
 
 #: admin.php
 msgid "Metrics reset — reload to confirm."
-msgstr "Metrikker nulstillet — genindlæs for at bekræfte."
+msgstr ""
 
 #: admin.php
 msgid "SW Proxy Settings"
-msgstr "SW Proxy Indstillinger"
+msgstr ""
 
 #: admin.php
 msgid "Settings saved!"
-msgstr "Indstillinger gemt!"
+msgstr ""
 
 #: admin.php
 msgid "Partytown Integration"
-msgstr "Partytown Integration"
+msgstr ""
 
 #: admin.php
 msgid ""
@@ -63,17 +60,10 @@ msgid ""
 "TikTok Pixel, and Mixpanel. Enable the Consent Gate to block scripts until "
 "visitor consent is granted via the WP Consent API."
 msgstr ""
-"I modsætning til async/defer — som kun forsinker indlæsning, men stadig "
-"kører scripts på main-tråden — afvikler Partytown tredjeparts-scripts i en "
-"Web Worker. Browser main-tråden berøres aldrig: ingen layout-jank, ingen "
-"TBT-straf, ingen konkurrence med brugerinteraktioner. Officielt testede og "
-"kompatible tjenester: Google Tag Manager, Facebook Pixel, HubSpot, Intercom,"
-" Klaviyo, TikTok Pixel og Mixpanel. Aktivér Samtykkeporten for at blokere "
-"scripts indtil besøgende har givet samtykke via WP Consent API."
 
 #: admin.php
 msgid "Enable Partytown"
-msgstr "Aktiver Partytown"
+msgstr ""
 
 #: admin.php
 msgid ""
@@ -82,59 +72,51 @@ msgid ""
 " with defer — useful for diagnosing Partytown issues (no Web Worker, no "
 "consent gating)."
 msgstr ""
-"Aktiver Partytown service worker til offloading af tredjeparts-scripts og "
-"viewport-prefetch. Deaktiveret = diagnostiktilstand: scripts afvikles "
-"direkte på main-tråden med defer (ingen Web Worker, ingen samtykke-gating)."
 
 #: admin.php
 msgid "Benefits"
-msgstr "Fordele"
+msgstr ""
 
 #: admin.php
 msgid ""
 "Analytics scripts run in a Web Worker — unlike async, they never execute on "
 "the browser main thread"
 msgstr ""
-"Analysescripts afvikles i en Web Worker — i modsætning til async kører de "
-"aldrig på main-tråden"
 
 #: admin.php
 msgid "Viewport prefetch pre-loads product links automatically"
-msgstr "Viewport-prefetch preloader produktlinks automatisk"
+msgstr ""
 
 #: admin.php
 msgid "Pagination next-page link prefetched 2 s ahead"
-msgstr "Pagineringslink prefetches 2 s i forvejen"
+msgstr ""
 
 #: admin.php
 msgid "Bots and crawlers never receive Partytown (clean HTML)"
-msgstr "Bots og crawlers modtager aldrig Partytown (rent HTML)"
+msgstr ""
 
 #: admin.php
 msgid "Automatic updates via GitHub Actions workflow"
-msgstr "Automatiske opdateringer via GitHub Actions workflow"
+msgstr ""
 
 #: admin.php
 msgid "WP emoji scripts removed — saves a DNS lookup and ~76 KB"
-msgstr "WP emoji-scripts fjernet — sparer et DNS-opslag og ~76 KB"
+msgstr ""
 
 #: admin.php
 msgid ""
 "Third-party scripts auto-detected and offloaded to Partytown in one click"
 msgstr ""
-"Tredjeparts-scripts auto-detekteres og offloades til Partytown med ét klik"
 
 #: admin.php
 msgid ""
 "Consent-aware: optional Consent Gate blocks scripts (text/plain) until "
 "consent is granted via the WP Consent API"
 msgstr ""
-"Samtykke-bevidst: valgfri Samtykkeport blokerer scripts (text/plain) indtil "
-"samtykke er givet via WP Consent API"
 
 #: admin.php
 msgid "Partytown Script List"
-msgstr "Partytown Script Liste"
+msgstr ""
 
 #: admin.php
 msgid ""
@@ -146,40 +128,32 @@ msgid ""
 "(<code>fullstory.com</code>). <a href=\"https://partytown.qwik.dev/common-"
 "services/\" target=\"_blank\" rel=\"noopener\">Full list ↗</a>"
 msgstr ""
-"Angiv én URL eller søgestreng per linje. Matcher mod script src. Kun "
-"officielt testede tjenester anbefales: <strong>HubSpot</strong>, "
-"<strong>Intercom</strong>, <strong>Klaviyo</strong>, <strong>TikTok "
-"Pixel</strong>, <strong>Mixpanel</strong>, <strong>FullStory</strong> "
-"(<code>fullstory.com</code>). <a href=\"https://partytown.qwik.dev/common-"
-"services/\" target=\"_blank\" rel=\"noopener\">Fuld liste ↗</a>"
 
 #: admin.php
 msgid "🔍 Auto-Detect Third-Party Scripts"
-msgstr "🔍 Auto-Detekter Tredjeparts-Scripts"
+msgstr ""
 
 #: admin.php
 msgid "No external scripts found on the homepage."
-msgstr "Ingen eksterne scripts fundet på forsiden."
+msgstr ""
 
 #: admin.php
 msgid "Add Selected to List"
-msgstr "Tilføj Valgte til Liste"
+msgstr ""
 
 #: admin.php
 msgid ""
 "Compatibility unknown — not on Partytown's verified services list. Test "
 "carefully before adding."
 msgstr ""
-"Ukendt kompatibilitet — ikke på Partytowns verificerede liste. Test "
-"grundigt, før du tilføjer til listen."
 
 #: admin.php
 msgid "✔ Verified compatible service"
-msgstr "✔ Verificeret kompatibel tjeneste"
+msgstr ""
 
 #: admin.php
 msgid "Inline Script Blocks"
-msgstr "Indlejrede Script Blokke"
+msgstr ""
 
 #: admin.php
 msgid ""
@@ -190,52 +164,44 @@ msgid ""
 "href=\"https://partytown.qwik.dev/common-services/\" target=\"_blank\" "
 "rel=\"noopener\">Compatible services ↗</a>"
 msgstr ""
-"Indsæt komplette tredjeparts-script-blokke her — inkl. &lt;script&gt;-tags "
-"og &lt;noscript&gt;-fallbacks (Meta Pixel, TikTok Pixel osv.). Plugin'et "
-"konverterer dem automatisk til <code>type=\"text/partytown\"</code> så de "
-"køres i en Web Worker og respekterer marketingsamtykke. <a "
-"href=\"https://partytown.qwik.dev/common-services/\" target=\"_blank\" "
-"rel=\"noopener\">Kompatible tjenester ↗</a>"
 
 #: admin.php
 msgid "Add Script Block"
-msgstr "Tilføj Script Blok"
+msgstr ""
 
 #: admin.php
 msgid "Label, e.g. Meta Pixel"
-msgstr "Navn, f.eks. Meta Pixel"
+msgstr ""
 
 #: admin.php
 msgid "+ Add Block"
-msgstr "+ Tilføj Blok"
+msgstr ""
 
 #: admin.php
 msgid "No script blocks added yet."
-msgstr "Ingen script-blokke tilføjet endnu."
+msgstr ""
 
 #: admin.php
 msgid "Delete this script block?"
-msgstr "Slet denne script-blok?"
+msgstr ""
 
 #: admin.php
 msgid "Imported Scripts"
-msgstr "Importerede Scripts"
+msgstr ""
 
 #: admin.php
 msgid "Remove WP Emoji"
-msgstr "Fjern WP Emoji"
+msgstr ""
 
 #: admin.php
 msgid ""
 "Removes the WordPress emoji detection script and its CSS (s.w.org fetch). "
 "Recommended — modern browsers have native emoji support."
 msgstr ""
-"Fjerner WordPress emoji-detection script og tilhørende CSS (s.w.org fetch). "
-"Anbefalet — moderne browsere har native emoji."
 
 #: admin.php
 msgid "SharedArrayBuffer (Atomics Bridge)"
-msgstr "SharedArrayBuffer (Atomics Bridge)"
+msgstr ""
 
 #: admin.php
 msgid ""
@@ -248,24 +214,15 @@ msgid ""
 "— regardless of the exclusion list. <strong>Test in staging first — can "
 "break OAuth popups or other cross-origin iframes.</strong>"
 msgstr ""
-"Sender <code>Cross-Origin-Opener-Policy: same-origin</code> og <code>Cross-"
-"Origin-Embedder-Policy: credentialless</code> på offentlige sider. Aktiverer"
-" <code>crossOriginIsolated</code> i browseren, så Partytown skifter til den "
-"hurtigere Atomics-bro i stedet for sync-XHR. Skip bots, indloggede brugere "
-"og kassen. Alle cross-origin iframes får automatisk "
-"<code>credentialless</code>-attributten, så de kan indlæses under COEP — "
-"uanset ekskluderingslisten. <strong>Test i staging — kan bryde OAuth-popups "
-"eller andre cross-origin iframes.</strong>"
 
 #: admin.php
 msgid "Footer Credit"
-msgstr "Footer Kredit"
+msgstr ""
 
 #: admin.php
 msgid ""
 "Show some love and support development by adding a small link in the footer"
 msgstr ""
-"Vis kærlighed og støt udviklingen ved at tilføje et lille link i footeren"
 
 #: admin.php
 msgid ""
@@ -273,21 +230,18 @@ msgid ""
 "target=\"_blank\">Dampcig.dk</a> link in the footer by linking the copyright"
 " symbol ©."
 msgstr ""
-"Indsætter et diskret <a href=\"https://www.dampcig.dk\" "
-"target=\"_blank\">Dampcig.dk</a>-link i sidens footer ved at linke "
-"copyright-symbolet ©."
 
 #: admin.php
 msgid "Save Settings"
-msgstr "Gem Indstillinger"
+msgstr ""
 
 #: admin.php
 msgid "Partytown Version"
-msgstr "Partytown Version"
+msgstr ""
 
 #: admin.php
 msgid "Google Consent Mode v2"
-msgstr "Google Consent Mode v2"
+msgstr ""
 
 #: admin.php
 msgid ""
@@ -302,18 +256,10 @@ msgid ""
 "withdraws consent. <strong>Requires GTM or a gtag.js-based setup together "
 "with a GCM v2-compatible CMP.</strong>"
 msgstr ""
-"Global samtykkemyndighed for alle GCM v2-kompatible tjenester. Injicerer et "
-"7-parameter <code>gtag(\"consent\",\"default\",{...})</code>-kodestykke i "
-"&lt;head&gt; inden nogen scripts indlæses — med per-kategori samtykke "
-"(marketing → annoncer, statistik → analyse, præferencer → personalisering). "
-"Når aktivt, afvikles scripts for GCM v2-bevidste tjenester (Google Tag "
-"Manager, Hotjar, LinkedIn Insight, TikTok Pixel, Microsoft Clarity) altid "
-"som <code>text/partytown</code>. <strong>Kræver GTM eller gtag.js samt en "
-"GCM v2-kompatibel CMP.</strong>"
 
 #: admin.php
 msgid "URL Passthrough"
-msgstr "URL Passthrough"
+msgstr ""
 
 #: admin.php
 msgid ""
@@ -322,14 +268,10 @@ msgid ""
 "even when <code>ad_storage</code> is denied. Recommended for Google Ads "
 "advertisers."
 msgstr ""
-"Aktiverer <code>gtag(\\\"set\\\",\\\"url_passthrough\\\",true)</code>. "
-"Bevarar gclid / wbraid-parametre i URL-adresser, så konverteringsattribution"
-" fungerer cookiefrit — selv når <code>ad_storage</code> er nægtet. Anbefales"
-" til Google Ads-annoncører."
 
 #: admin.php
 msgid "Ads Data Redaction"
-msgstr "Annonce-dataredigering"
+msgstr ""
 
 #: admin.php
 msgid ""
@@ -338,14 +280,10 @@ msgid ""
 "<code>ad_storage</code> is denied — enhanced privacy for visitors who have "
 "not granted marketing consent."
 msgstr ""
-"Aktiverer <code>gtag(\\\"set\\\",\\\"ads_data_redaction\\\",true)</code>. "
-"Redigerer klik-id'er (gclid, wbraid) fra data sendt til Google, når "
-"<code>ad_storage</code> er nægtet — øget privatlivsbeskyttelse for besøgende"
-" der ikke har givet markedsføringsamtykke."
 
 #: admin.php
 msgid "Meta Pixel Limited Data Use (LDU)"
-msgstr "Meta Pixel Limited Data Use (LDU)"
+msgstr ""
 
 #: admin.php
 msgid ""
@@ -358,18 +296,10 @@ msgid ""
 " via <code>text/plain</code>. Requires Meta Pixel to be added via the "
 "Partytown Script List or an Inline Script Block."
 msgstr ""
-"Meta/Facebook Pixel understøtter ikke Google Consent Mode v2 — det bruger "
-"sin egen Limited Data Use (LDU) samtykke-API. Injicerer et fbq-stub + "
-"<code>fbq(\"dataProcessingOptions\",[\"LDU\"],0,0)</code> i &lt;head&gt; "
-"inden Partytown og Facebook Pixel-scripts indlæses. Meta Pixel afvikles "
-"altid som <code>text/partytown</code> — Meta anvender LDU-begrænsninger "
-"internt (ingen data brugt til annoncemålretning). Din CMP behøver ikke "
-"blokere scriptet via <code>text/plain</code>. Kræver at Meta Pixel er "
-"tilføjet via Partytown Script Liste eller en Inline Script Blok."
 
 #: admin.php
 msgid "Partytown Debug Mode"
-msgstr "Partytown Debug-tilstand"
+msgstr ""
 
 #: admin.php
 msgid ""
@@ -381,46 +311,34 @@ msgid ""
 "<strong>Use only in staging or local development — enables verbose logging "
 "for all visitors.</strong>"
 msgstr ""
-"Indlæser den uminificeret debug-version af Partytown og aktiverer alle log-"
-"flag. Log-output sendes via <code>console.debug()</code> — husk at aktivere "
-"<strong>Verbose</strong>-niveauet i DevTools-konsollen (standardfilter "
-"skjuler det). Worker-logge fra web workeren vises kun i <strong>Atomics "
-"Bridge</strong>-tilstand, som kræver at <em>COI-headers</em> er aktiveret "
-"ovenfor. <strong>Brug kun i staging eller lokalt udviklingsmiljø — åbner "
-"verbose-logging for alle besøgende.</strong>"
 
 #: admin.php
 msgid "Consent Architecture & GCM v2 Services"
-msgstr "Samtykke-arkitektur & GCM v2-tjenester"
+msgstr ""
 
 #: admin.php
 msgid "GCM v2-Aware Services"
-msgstr "GCM v2-bevidste tjenester"
+msgstr ""
 
 #: admin.php
 msgid ""
 "These services natively read the GCM v2 consent state and self-restrict data"
 " collection — no text/plain blocking is needed when GCM v2 is active."
 msgstr ""
-"Disse tjenester læser selv GCM v2-samtykketilstanden og begrænser "
-"dataindsamling internt — ingen text/plain-blokering er nødvendig, når GCM v2"
-" er aktivt."
 
 #: admin.php
 msgid "Meta Pixel — Separate LDU Mechanism"
-msgstr "Meta Pixel — separat LDU-mekanisme"
+msgstr ""
 
 #: admin.php
 msgid ""
 "Meta Pixel does not implement GCM v2. Enable Meta Pixel LDU below — Meta "
 "applies Limited Data Use restrictions internally."
 msgstr ""
-"Meta Pixel understøtter ikke GCM v2. Aktiver Meta Pixel LDU nedenfor — Meta "
-"anvender LDU-begrænsninger internt."
 
 #: admin.php
 msgid "Consent Gate (WP Consent API)"
-msgstr "Samtykkeport (WP Consent API)"
+msgstr ""
 
 #: admin.php
 msgid ""
@@ -429,39 +347,32 @@ msgid ""
 "integrates with <a href=\"%s\" target=\"_blank\" rel=\"noopener\">WP Consent"
 " API</a>. When disabled (default), all scripts load unconditionally."
 msgstr ""
-"Når aktiveret, blokeres scripts som <code>type=\"text/plain\"</code> indtil "
-"besøgende har givet samtykke via WP Consent API. Kræver et CMP-plugin der "
-"integrerer med <a href=\"%s\" target=\"_blank\" rel=\"noopener\">WP Consent "
-"API</a>. Når deaktiveret (standard), indlæses alle scripts ubetinget."
 
 #: admin.php
 msgid ""
 "⚠️ Consent Gate is enabled but the WP Consent API plugin is not installed. "
 "Scripts will be blocked for all visitors."
 msgstr ""
-"⚠️ Samtykkeport er aktiveret, men WP Consent API-pluginnet er ikke "
-"installeret. Scripts vil blive blokeret for alle besøgende."
 
 #: admin.php
 msgid "Script List default category"
-msgstr "Script Liste standardkategori"
+msgstr ""
 
 #: admin.php
 msgid "WP Consent API category used to gate Script List entries."
 msgstr ""
-"WP Consent API-kategorien der bruges til at gatekeeper Script Liste-poster."
 
 #: admin.php
 msgid "Consent category"
-msgstr "Samtykke-kategori"
+msgstr ""
 
 #: admin.php
 msgid "Checking for GCM v2 conflicts…"
-msgstr "Søger efter GCM v2-konflikter…"
+msgstr ""
 
 #: admin.php
 msgid "⚠ Existing GCM v2 stub detected"
-msgstr "⚠ Eksisterende GCM v2-stub fundet"
+msgstr ""
 
 #: admin.php
 msgid ""
@@ -471,14 +382,10 @@ msgid ""
 "deterministically. Disable Google Consent Mode in the other plugin before "
 "enabling it here."
 msgstr ""
-"Et andet plugin eller tema på dit site outputter allerede et "
-"gtag('consent','default',...)-kald. To GCM v2-stubs kan ikke køre samtidig —"
-" hvem der fyrer sidst vinder, og det er ikke-deterministisk. Deaktiver "
-"Google Consent Mode i det andet plugin, inden du aktiverer det her."
 
 #: admin.php
 msgid "WP Consent API not installed"
-msgstr "WP Consent API er ikke installeret"
+msgstr ""
 
 #: admin.php
 msgid ""
@@ -486,100 +393,94 @@ msgid ""
 "Without it, consent signals cannot be delivered reliably to Google across "
 "different CMP plugins."
 msgstr ""
-"Vores GCM v2-opdateringsscript læser samtykkestatus via WP Consent API-"
-"pluginnet. Uden det kan samtykkesignaler ikke sendes pålideligt til Google "
-"på tværs af CMP-plugins."
 
 #: admin.php
 msgid "Install WP Consent API ↗"
-msgstr "Installer WP Consent API ↗"
+msgstr ""
 
 #: admin.php
 msgid "✓ Supported | Partytown"
-msgstr "✓ Understøttet | Partytown"
+msgstr ""
 
 #: admin.php
 msgid "⚠ Unsupported | Deferred"
-msgstr "⚠ Ikke understøttet | Udskudt"
+msgstr ""
 
 #: admin.php
 msgid "Force Enable Partytown"
-msgstr "Tving Partytown aktivt"
+msgstr ""
 
 #: admin.php
 msgid ""
 "Running script with unknown Partytown compatibility — test your site in "
 "debug mode to confirm no render errors."
 msgstr ""
-"Kører script med ukendt Partytown-kompatibilitet — test dit site i debug-"
-"tilstand for at bekræfte ingen renderingsfejl."
 
 #: admin.php
 msgid "Google Tag Management"
-msgstr "Google Tag Management"
+msgstr ""
 
 #: admin.php
 msgid "Disabled — no tag management"
-msgstr "Deaktiveret — ingen tag-styring"
+msgstr ""
 
 #: admin.php
 msgid "Enter Tag ID — I have my own GTM or GA4 ID"
-msgstr "Angiv Tag-ID — jeg har mit eget GTM- eller GA4-ID"
+msgstr ""
 
 #: admin.php
 msgid "Auto-Detect — find active tag in page source code"
-msgstr "Auto-Detekter — find aktivt tag i sidens kildekode"
+msgstr ""
 
 #: admin.php
 msgid "Setup Guide — step-by-step GTM onboarding"
-msgstr "Opsætningsguide — trin-for-trin GTM-onboarding"
+msgstr ""
 
 #: admin.php
 msgid "GTM-XXXXXXX or G-XXXXXXXXXX"
-msgstr "GTM-XXXXXXX eller G-XXXXXXXXXX"
+msgstr ""
 
 #: admin.php
 msgid "⚠ Invalid format. Expected: GTM-XXXXXXX, G-XXXXXXXXXX, or UA-XXXXXX-X."
 msgstr ""
-"⚠ Ugyldigt format. Forventet: GTM-XXXXXXX, G-XXXXXXXXXX eller UA-XXXXXX-X."
 
 #: admin.php
 msgid "✔ Valid tag ID"
-msgstr "✔ Gyldigt tag-ID"
+msgstr ""
 
 #: admin.php
 msgid "Scan Website"
-msgstr "Scan hjemmeside"
+msgstr ""
 
 #: admin.php
 msgid "No active Google Tag found in page source."
-msgstr "Intet aktivt Google Tag fundet i sidens kildekode."
+msgstr ""
 
 #: admin.php
 msgid ""
 "\\u2714 Auto-Detect selected \\u2014 tag is already in the Partytown Script "
 "List."
-msgstr "✔ Auto-Detekter valgt — tagget er allerede i Partytown-scriptlisten."
+msgstr ""
 
 #: admin.php
 msgid "Detected"
-msgstr "Fundet"
+msgstr ""
 
 #: admin.php
 msgid "Use This ID"
-msgstr "Brug dette ID"
+msgstr ""
 
 #: admin.php
 msgid "will be used on next save"
-msgstr "bruges ved næste gem"
+msgstr ""
 
 #: admin.php
 msgid "Auto-detected and active"
-msgstr "Auto-detekteret og aktiv"
+msgstr ""
 
 #: admin.php
 msgid "Step 1 — Create GTM Account & Container"
-msgstr "Trin 1 — Opret GTM-konto og container"
+msgstr ""
 
 #: admin.php
 msgid ""
@@ -589,27 +490,20 @@ msgid ""
 "your website URL as the name), select <strong>Web</strong> as the platform, "
 "then click <strong>Create</strong>."
 msgstr ""
-"Gå til <a href=\"https://tagmanager.google.com\" target=\"_blank\" "
-"rel=\"noopener\">tagmanager.google.com ↗</a>, log ind, klik <strong>Opret "
-"konto</strong>, angiv kontonavn + land, tilføj en Container (brug "
-"websiteadressen som navn), vælg type <strong>Web</strong> og klik "
-"<strong>Opret</strong>."
 
 #: admin.php
 msgid "Step 2 — Enter Your Container ID"
-msgstr "Trin 2 — Angiv dit Container-ID"
+msgstr ""
 
 #: admin.php
 msgid ""
 "Your <strong>Container ID</strong> appears in the top-right of the GTM "
 "interface (format: <code>GTM-XXXXXXX</code>). Copy it and paste it below."
 msgstr ""
-"Dit <strong>Container-ID</strong> vises øverst til højre i GTM-grænsefladen "
-"(format: <code>GTM-XXXXXXX</code>). Kopiér det og indsæt det herunder."
 
 #: admin.php
 msgid "Step 3 — Add Tags in GTM"
-msgstr "Trin 3 — Tilføj tags i GTM"
+msgstr ""
 
 #: admin.php
 msgid ""
@@ -620,15 +514,10 @@ msgid ""
 "Pages</em>. GCM v2 consent mode automatically controls data collection per "
 "visitor consent."
 msgstr ""
-"Opret tags inde i GTM, f.eks. <strong>Google Analytics 4</strong> (brug "
-"\"Google Tag\"-konfiguration med dit <code>G-XXXXXXXXXX</code> Measurement "
-"ID), <strong>LinkedIn Insight Tag</strong>, <strong>TikTok Pixel</strong> "
-"osv. Sæt triggeren til <em>Alle sider</em>. GCM v2-samtykketilstand styrer "
-"automatisk dataindsamling pr. besøgende."
 
 #: admin.php
 msgid "Step 4 — Publish & Confirm"
-msgstr "Trin 4 — Publicér og bekræft"
+msgstr ""
 
 #: admin.php
 msgid ""
@@ -637,34 +526,30 @@ msgid ""
 "<code>&lt;head&gt;</code> with GCM v2 consent pre-configured. Click "
 "<strong>Complete Setup</strong> below to save your Container ID."
 msgstr ""
-"Klik <strong>Send</strong> → <strong>Publicér</strong> i GTM for at udgive "
-"containeren. Pluginnet injicerer GTM-kodestykket i <code>&lt;head&gt;</code>"
-" med GCM v2-samtykke præ-konfigureret. Klik <strong>Fuldfør "
-"opsætning</strong> nedenfor for at gemme dit Container-ID."
 
 #: admin.php
 msgid "Next →"
-msgstr "Næste →"
+msgstr ""
 
 #: admin.php
 msgid "← Back"
-msgstr "← Tilbage"
+msgstr ""
 
 #: admin.php
 msgid "✔ Complete Setup"
-msgstr "✔ Fuldfør opsætning"
+msgstr ""
 
 #: admin.php
 msgid "✔ Saved"
-msgstr "✔ Gemt"
+msgstr ""
 
 #: admin.php
 msgid "GTM Active"
-msgstr "GTM Aktiv"
+msgstr ""
 
 #: admin.php
 msgid "GA4 Active"
-msgstr "GA4 Aktiv"
+msgstr ""
 
 #: admin.php
 msgid ""
@@ -672,9 +557,6 @@ msgid ""
 "snippet in <code>&lt;head&gt;</code> at the correct position — after the GCM"
 " v2 consent default but before any other scripts."
 msgstr ""
-"Angiv dit GTM Container-ID eller GA4 Measurement ID. Pluginnet injicerer "
-"kodestykket i <code>&lt;head&gt;</code> i korrekt rækkefølge — efter GCM "
-"v2-samtykkestandarden men før alle andre scripts."
 
 #: admin.php
 msgid ""
@@ -682,22 +564,16 @@ msgid ""
 "UA). Only detects tags actually present in the rendered source — not plugin "
 "settings. GCM v2 consent mode fires automatically before the detected tag."
 msgstr ""
-"Henter sidens HTML-kildekode og scanner for aktive Google Tags (GTM, GA4, "
-"UA). Detekterer kun tags der faktisk er synlige i kildekoden — ikke plugin-"
-"indstillinger. GCM v2-samtykkestandarden aktiveres automatisk inden det "
-"detekterede tag."
 
 #: admin.php
 msgid ""
 "Follow the step-by-step guide to create your GTM container and let this "
 "plugin inject and manage the snippet."
 msgstr ""
-"Følg trin-for-trin-guiden for at oprette din GTM-container og lad dette "
-"plugin injicere og administrere kodestykket."
 
 #: admin.php
 msgid "Early Resource Hints"
-msgstr "Tidlige Resource Hints"
+msgstr ""
 
 #: admin.php
 msgid ""
@@ -705,13 +581,10 @@ msgid ""
 "rel=\"dns-prefetch\"&gt;</code> for all configured third-party hosts in "
 "&lt;head&gt;. Reduces TCP+TLS round-trip latency for first-visit page loads."
 msgstr ""
-"Emitterer <code>&lt;link rel=\"preconnect\"&gt;</code> og <code>&lt;link "
-"rel=\"dns-prefetch\"&gt;</code> for alle konfigurerede tredjepartshosts i "
-"&lt;head&gt;. Reducerer TCP+TLS-ventetid for førstegangssøgende besøgende."
 
 #: admin.php
 msgid "Partytown Health Monitor"
-msgstr "Partytown Sundhedsmonitor"
+msgstr ""
 
 #: admin.php
 msgid ""
@@ -719,21 +592,16 @@ msgid ""
 "traffic observed within 15 seconds) and surfaces an admin notice. Disable if"
 " you experience false positives."
 msgstr ""
-"Registrerer tjenester der fejler stille inde i Partytown-workeren (ingen "
-"netværkstrafik observeret indenfor 15 sekunder) og viser en admin-notis. "
-"Deaktiver hvis du har mange falske positiver."
 
 #: admin.php
 msgid ""
 "⚠ Partytown Health Monitor: These hosts produced no observable network "
 "traffic. They may be failing inside the Partytown worker:"
 msgstr ""
-"⚠ Partytown-sundhedsmonitor: Disse hosts producerede ingen observerbar "
-"netværkstrafik. De kan fejle i Partytown-workeren:"
 
 #: admin.php
 msgid "Performance Metrics"
-msgstr "Ydelses-Metrikker"
+msgstr ""
 
 #: admin.php
 msgid ""
@@ -742,45 +610,40 @@ msgid ""
 "percentiles in the admin — giving tangible proof of Partytown's main-thread "
 "offloading benefit."
 msgstr ""
-"Indsamler anonyme TBT (Total Blocking Time) og INP (Interaction to Next "
-"Paint) målinger fra besøgende og viser rullende gennemsnit + P75-percentiler"
-" i admin. Beviser Partytowns fordele for main-tråden."
 
 #: admin.php
 msgid "Performance Dashboard"
-msgstr "Ydelses-Dashboard"
+msgstr ""
 
 #: admin.php
 msgid "Total Blocking Time (TBT)"
-msgstr "Total Blocking Time (TBT)"
+msgstr ""
 
 #: admin.php
 msgid "Interaction to Next Paint (INP)"
-msgstr "Interaction to Next Paint (INP)"
+msgstr ""
 
 #: admin.php
 msgid "Samples collected"
-msgstr "Prøver indsamlet"
+msgstr ""
 
 #: admin.php
 msgid "Reset Metrics"
-msgstr "Nulstil Metrikker"
+msgstr ""
 
 #: admin.php
 msgid ""
 "No performance data yet. Enable Performance Metrics and wait for visitor "
 "activity."
 msgstr ""
-"Ingen ydelses-data endnu. Aktiver Ydelses-Metrikker og vent på besøgendes "
-"aktivitet."
 
 #: admin.php
 msgid "Last updated"
-msgstr "Sidst opdateret"
+msgstr ""
 
 #: admin.php
 msgid "Partytown Exclusion Patterns"
-msgstr "Partytown Ekskluderingsmønstre"
+msgstr ""
 
 #: admin.php
 msgid ""
@@ -788,6 +651,3 @@ msgid ""
 "<code>*</code> wildcard. Useful for landing pages or payment flows with "
 "scripts incompatible with the Partytown worker."
 msgstr ""
-"URL-mønstre (ét pr. linje) hvor Partytown springes over. Understøtter "
-"<code>*</code>-wildcard. Nyttig til destinationssider eller betalingsflows "
-"med inkompatible scripts."

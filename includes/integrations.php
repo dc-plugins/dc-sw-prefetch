@@ -72,22 +72,13 @@ function dc_swp_intg_hubspot(): void {
 		return;
 	}
 
-	$handle = 'dc-swp-hubspot';
-	$src    = esc_url_raw( 'https://js.hs-scripts.com/' . $portal_id . '.js' );
-	wp_register_script(
-		$handle,
-		$src,
-		array( 'dc-swp-partytown-config' ),
-		DC_SWP_VERSION,
-		array(
-			'in_footer' => true,
-			'strategy'  => 'async',
-		)
-	);
-	wp_script_add_data( $handle, 'dc_swp_type', 'text/partytown' );
-	wp_enqueue_script( $handle );
+	$nonce_attr = dc_swp_intg_nonce_attr();
+	$src        = esc_url( 'https://js.hs-scripts.com/' . $portal_id . '.js' );
+
+	// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped,WordPress.WP.EnqueuedResources.NonEnqueuedScript -- src is esc_url; nonce attr is pre-escaped; Partytown inline requires direct echo.
+	echo '<script type="text/partytown" src="' . $src . '"' . $nonce_attr . ' async defer></script>' . "\n";
 }
-add_action( 'wp_enqueue_scripts', 'dc_swp_intg_hubspot', 8 );
+add_action( 'wp_head', 'dc_swp_intg_hubspot', 8 );
 
 // ============================================================
 // KLAVIYO
@@ -111,22 +102,13 @@ function dc_swp_intg_klaviyo(): void {
 		return;
 	}
 
-	$handle = 'dc-swp-klaviyo';
-	$src    = esc_url_raw( 'https://static.klaviyo.com/onsite/js/klaviyo.js?company_id=' . rawurlencode( $site_id ) );
-	wp_register_script(
-		$handle,
-		$src,
-		array( 'dc-swp-partytown-config' ),
-		DC_SWP_VERSION,
-		array(
-			'in_footer' => false,
-			'strategy'  => 'async',
-		)
-	);
-	wp_script_add_data( $handle, 'dc_swp_type', 'text/partytown' );
-	wp_enqueue_script( $handle );
+	$nonce_attr = dc_swp_intg_nonce_attr();
+	$src        = esc_url( 'https://static.klaviyo.com/onsite/js/klaviyo.js?company_id=' . rawurlencode( $site_id ) );
+
+	// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped,WordPress.WP.EnqueuedResources.NonEnqueuedScript -- src is esc_url; nonce attr is pre-escaped; Partytown inline requires direct echo.
+	echo '<script type="text/partytown" src="' . $src . '"' . $nonce_attr . ' async></script>' . "\n";
 }
-add_action( 'wp_enqueue_scripts', 'dc_swp_intg_klaviyo', 8 );
+add_action( 'wp_head', 'dc_swp_intg_klaviyo', 8 );
 
 // ============================================================
 // MIXPANEL
@@ -205,22 +187,31 @@ function dc_swp_intg_fullstory(): void {
 		return;
 	}
 
-	$safe_org = esc_js( $org_id );
-	$handle   = 'dc-swp-fullstory';
+	$nonce_attr = dc_swp_intg_nonce_attr();
+	$safe_org   = esc_js( $org_id );
 
-	// Set FullStory config variables on the main thread before the library loads
-	// in the Partytown worker. fs.js reads these from window when it initialises.
-	$config = "window['_fs_host']='fullstory.com';" .
+	$js = "window['_fs_host']='fullstory.com';" .
 		"window['_fs_script']='edge.fullstory.com/s/fs.js';" .
 		"window['_fs_org']='" . $safe_org . "';" .
-		"window['_fs_namespace']='FS';";
+		"window['_fs_namespace']='FS';" .
+		'(function(m,n,e,t,l,o,g,y){' .
+		"if(e in m){if(m.console&&m.console.log){m.console.log('FullStory namespace conflict, see https://help.fullstory.com/hc/articles/360020623294');}return;}" .
+		'g=m[e]=function(a,b,s){g.q?g.q.push([a,b,s]):g._api(a,b,s);};g.q=[];' .
+		"o=n.createElement(t);o.async=1;o.crossOrigin='anonymous';o.src='https://'+_fs_script;" .
+		'y=n.getElementsByTagName(t)[0];y.parentNode.insertBefore(o,y);' .
+		'g.identify=function(i,v,s){g(l,{uid:i},s);if(v)g(l,v,s)};g.setUserVars=function(v,s){g(l,v,s)};' .
+		"g.event=function(i,v,s){g('event',{n:i,p:v},s)};g.anonymize=function(){g.identify(!!0)};" .
+		'g.shutdown=function(){g.q=[]};g.restart=function(){g.q=null};' .
+		"g.log=function(a,b){g('log',[a,b])};g.consent=function(a){g('consent',!arguments.length||a)};" .
+		"g.identifyAccount=function(i,v){o='account';v=v||{};v.acctId=i;g(o,v)};g.clearUserCookie=function(){};" .
+		"g._w={};y='XMLHttpRequest';g._w[y]=m[y];y='fetch';g._w[y]=m[y];" .
+		"if(m[y])m[y]=function(){return g._w[y].apply(this,arguments)};g._v='1.3.0';" .
+		"})(window,document,window['_fs_namespace'],'script','user');";
 
-	wp_register_script( $handle, 'https://edge.fullstory.com/s/fs.js', array( 'dc-swp-partytown-config' ), DC_SWP_VERSION, array( 'in_footer' => false ) );
-	wp_script_add_data( $handle, 'dc_swp_type', 'text/partytown' );
-	wp_add_inline_script( $handle, $config, 'before' );
-	wp_enqueue_script( $handle );
+	// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $js contains static strings + esc_js org; nonce is pre-escaped.
+	echo '<script type="text/partytown"' . $nonce_attr . '>' . $js . "</script>\n";
 }
-add_action( 'wp_enqueue_scripts', 'dc_swp_intg_fullstory', 8 );
+add_action( 'wp_head', 'dc_swp_intg_fullstory', 8 );
 
 // ============================================================
 // INTERCOM

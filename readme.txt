@@ -5,7 +5,7 @@ Requires at least: 6.8
 Tested up to: 6.9
 Requires PHP: 8.0
 WC tested up to: 10.7.0
-Stable tag: 3.1.0
+Stable tag: 3.0.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -173,22 +173,9 @@ Provided by TikTok Inc. / ByteDance Ltd. Sends page views, conversion events, an
 Provided by Mixpanel, Inc. Sends page views, custom events, and an anonymous visitor identifier.
 [Privacy Policy](https://mixpanel.com/legal/privacy-policy/) | [Terms of Service](https://mixpanel.com/legal/terms-of-use/)
 
-**FullStory**
-Provided by FullStory Inc. When a FullStory Org ID is configured in the plugin settings, the FullStory session-replay library (fs.js) is loaded from edge.fullstory.com. Sends session recordings, page interaction events, and visitor identity information (if the site calls FS.identify). Data is transmitted only when the visitor has granted marketing consent (or when the Consent Gate is disabled).
-[Privacy Policy](https://www.fullstory.com/legal/privacy-policy/) | [Terms of Service](https://www.fullstory.com/legal/terms-of-service/)
-
 The administrator may freely add other services through the Partytown Script List. The plugin imposes no restriction on which services can be configured, beyond the security allowlist that prevents the CORS proxy from being used as an open relay. Refer to each service's own privacy policy and terms of service for details on what data they collect.
 
 == Changelog ==
-
-= 3.1.0 =
-* Fix: Text domain corrected to `dc-script-worker-prefetcher` to match plugin slug on WordPress.org.
-* Fix: GTM and Meta Pixel scripts now enqueued via `wp_register_script()` / `wp_enqueue_script()` + `script_loader_tag` filter instead of direct `echo` output.
-* Fix: HubSpot, Klaviyo, and FullStory integrations now enqueued via the WordPress script API.
-* Fix: Inline Script Blocks redesigned -- free-form code textarea replaced with a Script URL field and optional Noscript Pixel URL field, eliminating arbitrary script injection.
-* Fix: Noscript tracking pixels in Script Blocks are now output as fully escaped `<img>` tags rather than raw HTML.
-* Fix: Removed external requests to img.shields.io and paypalobjects.com from the admin UI.
-* Fix: Added FullStory to the External Services section of readme.txt.
 
 = 3.0.1 =
 * Fix: Removed debug console.log/debug/warn calls from the viewport prefetch script that were printing to every visitor's DevTools console on WooCommerce shop pages.
