@@ -21,8 +21,8 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         run: |
           TAG_VERSION="${GITHUB_REF_NAME#v}"
-          sed -i "s/^ \* Version:.*$/ * Version:     ${TAG_VERSION}/" dc-sw-prefetch.php
-          sed -i "s/^define( 'DC_SWP_VERSION', '[^']*' );/define( 'DC_SWP_VERSION', '${TAG_VERSION}' );/" dc-sw-prefetch.php
+          sed -i "s/^ \* Version:.*$/ * Version:     ${TAG_VERSION}/" dc-script-worker-prefetcher.php
+          sed -i "s/^define( 'DC_SWP_VERSION', '[^']*' );/define( 'DC_SWP_VERSION', '${TAG_VERSION}' );/" dc-script-worker-prefetcher.php
           sed -i "s/^Stable tag: .*/Stable tag: ${TAG_VERSION}/" readme.txt
           sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"${TAG_VERSION}\"/" package.json
           echo "Stamped version ${TAG_VERSION}"
@@ -52,34 +52,34 @@ jobs:
             --exclude='package.json' \
             --exclude='package-lock.json' \
             --exclude='eslint.config.mjs' \
-            ./ ${{ vars.SSH_USER }}@${{ vars.SSH_HOST }}:${{ vars.DEPLOY_PATH }}dc-sw-prefetch/
+            ./ ${{ vars.SSH_USER }}@${{ vars.SSH_HOST }}:${{ vars.DEPLOY_PATH }}dc-script-worker-prefetcher/
 
       - name: Remove dev-only files from server
         run: |
           ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -p 22 \
             ${{ vars.SSH_USER }}@${{ vars.SSH_HOST }} \
-            "rm -f ${{ vars.DEPLOY_PATH }}dc-sw-prefetch/.distignore \
-                   ${{ vars.DEPLOY_PATH }}dc-sw-prefetch/.gitignore \
-                   ${{ vars.DEPLOY_PATH }}dc-sw-prefetch/.gitattributes \
-                   ${{ vars.DEPLOY_PATH }}dc-sw-prefetch/phpcs.xml \
-                   ${{ vars.DEPLOY_PATH }}dc-sw-prefetch/phpunit.xml.dist \
-                   ${{ vars.DEPLOY_PATH }}dc-sw-prefetch/composer.json \
-                   ${{ vars.DEPLOY_PATH }}dc-sw-prefetch/composer.lock \
-                   ${{ vars.DEPLOY_PATH }}dc-sw-prefetch/package.json \
-                   ${{ vars.DEPLOY_PATH }}dc-sw-prefetch/package-lock.json \
-                   ${{ vars.DEPLOY_PATH }}dc-sw-prefetch/README.md && \
-             rm -f  ${{ vars.DEPLOY_PATH }}dc-sw-prefetch/eslint.config.mjs && \
-             rm -rf ${{ vars.DEPLOY_PATH }}dc-sw-prefetch/.github \
-                    ${{ vars.DEPLOY_PATH }}dc-sw-prefetch/.phpunit.cache \
-                    ${{ vars.DEPLOY_PATH }}dc-sw-prefetch/scripts \
-                    ${{ vars.DEPLOY_PATH }}dc-sw-prefetch/tests \
-                    ${{ vars.DEPLOY_PATH }}dc-sw-prefetch/vendor \
-                    ${{ vars.DEPLOY_PATH }}dc-sw-prefetch/node_modules"
+            "rm -f ${{ vars.DEPLOY_PATH }}dc-script-worker-prefetcher/.distignore \
+                   ${{ vars.DEPLOY_PATH }}dc-script-worker-prefetcher/.gitignore \
+                   ${{ vars.DEPLOY_PATH }}dc-script-worker-prefetcher/.gitattributes \
+                   ${{ vars.DEPLOY_PATH }}dc-script-worker-prefetcher/phpcs.xml \
+                   ${{ vars.DEPLOY_PATH }}dc-script-worker-prefetcher/phpunit.xml.dist \
+                   ${{ vars.DEPLOY_PATH }}dc-script-worker-prefetcher/composer.json \
+                   ${{ vars.DEPLOY_PATH }}dc-script-worker-prefetcher/composer.lock \
+                   ${{ vars.DEPLOY_PATH }}dc-script-worker-prefetcher/package.json \
+                   ${{ vars.DEPLOY_PATH }}dc-script-worker-prefetcher/package-lock.json \
+                   ${{ vars.DEPLOY_PATH }}dc-script-worker-prefetcher/README.md && \
+             rm -f  ${{ vars.DEPLOY_PATH }}dc-script-worker-prefetcher/eslint.config.mjs && \
+             rm -rf ${{ vars.DEPLOY_PATH }}dc-script-worker-prefetcher/.github \
+                    ${{ vars.DEPLOY_PATH }}dc-script-worker-prefetcher/.phpunit.cache \
+                    ${{ vars.DEPLOY_PATH }}dc-script-worker-prefetcher/scripts \
+                    ${{ vars.DEPLOY_PATH }}dc-script-worker-prefetcher/tests \
+                    ${{ vars.DEPLOY_PATH }}dc-script-worker-prefetcher/vendor \
+                    ${{ vars.DEPLOY_PATH }}dc-script-worker-prefetcher/node_modules"
 
       - name: Build wordpress.org ZIP
         run: |
           mkdir -p dist
-          zip -r dist/dc-sw-prefetch.zip . \
+          zip -r dist/dc-script-worker-prefetcher.zip . \
             -x '*.git*' -x '.github/*' -x '.gitignore' -x '.gitattributes' \
             -x '.distignore' -x 'phpcs.xml' -x 'phpunit.xml.dist' -x '.phpunit.cache/*' \
             -x 'composer.json' -x 'composer.lock' -x 'README.md' -x 'scripts/*' \
@@ -89,13 +89,13 @@ jobs:
       - name: Upload ZIP artifact
         uses: actions/upload-artifact@v4
         with:
-          name: dc-sw-prefetch-${{ github.sha }}
-          path: dist/dc-sw-prefetch.zip
+          name: dc-script-worker-prefetcher-${{ github.sha }}
+          path: dist/dc-script-worker-prefetcher.zip
           retention-days: 30
 
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/dc-sw-prefetch.zip
+          files: dist/dc-script-worker-prefetcher.zip
           generate_release_notes: true
