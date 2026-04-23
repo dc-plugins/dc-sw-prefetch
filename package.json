@@ -1,6 +1,6 @@
 {
   "name": "dc-sw-prefetch",
-  "version": "3.0.1",
+  "version": "3.1.0",
   "description": "DC Script Worker Proxy \u2014 Partytown Web Worker proxy for third-party scripts.",
   "private": true,
   "vendored": {

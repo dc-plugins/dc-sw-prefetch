@@ -6,12 +6,12 @@
  * Plugin Name: DC Script Worker Proxy
  * Plugin URI:  https://github.com/dc-plugins/dc-sw-prefetch
  * Description: Offloads third-party scripts (GTM, Pixel, Analytics...) to a Web Worker via Partytown with consent-aware loading. Fully vendored -- no build step required.
- * Version:     3.0.2
+ * Version:     3.1.0
  * Author:      lennilg
  * Author URI:  https://github.com/lennilg
  * License:           GPL-2.0-or-later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
- * Text Domain:       dc-service-worker-prefetcher
+ * Text Domain:       dc-script-worker-prefetcher
  * Domain Path:       /languages
  * Requires at least: 6.8
  * Requires PHP:      8.0
@@ -59,7 +59,7 @@ register_activation_hook( __FILE__, 'dc_swp_migrate_options' );
 add_action(
 	'plugins_loaded',
 	function () {
-		load_plugin_textdomain( 'dc-service-worker-prefetcher', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
+		load_plugin_textdomain( 'dc-script-worker-prefetcher', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
 	}
 );
 
@@ -383,13 +383,13 @@ function dc_swp_is_meta_ldu_enabled() {
 // files can safely reference DC_SWP_VERSION at module level.
 // ============================================================
 
-define( 'DC_SWP_VERSION', '3.0.2' );
+define( 'DC_SWP_VERSION', '3.1.0' );
 
 
 // ============================================================
 // I18N -- LOAD TEXT DOMAIN
 // Loads .mo translation files from the /languages directory so
-// that __() / _e() / esc_html__() calls with the 'dc-service-worker-prefetcher'
+// that __() / _e() / esc_html__() calls with the 'dc-script-worker-prefetcher'
 // text domain resolve to the admin user's locale.
 // ============================================================
 // ADMIN INTERFACE
@@ -431,7 +431,7 @@ function dc_swp_footer_credit_js() {
 	}
 
 	$url   = 'https://www.dampcig.dk';
-	$title = esc_html__( 'Powered by Dampcig.dk', 'dc-service-worker-prefetcher' );
+	$title = esc_html__( 'Powered by Dampcig.dk', 'dc-script-worker-prefetcher' );
 	wp_register_script( 'dc-swp-footer-credit', plugins_url( 'assets/js/footer-credit.js', __FILE__ ), array(), DC_SWP_VERSION, array( 'in_footer' => true ) );
 	wp_localize_script(
 		'dc-swp-footer-credit',
@@ -657,7 +657,14 @@ function dc_swp_serve_partytown_proxy() {
 	// Cache for 1 hour -- CDN script content rarely changes.
 	header( 'Cache-Control: public, max-age=3600, stale-while-revalidate=300' );
 
-	// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- proxied JS body from allowlisted CDN
+	// Output the proxied JavaScript verbatim. Any HTML escaping would corrupt
+	// JS operators (`<`, `>`, `&`) and break the script. Safety controls in place:
+	// - the upstream host is hard-allowlisted (dc_swp_is_proxy_host_allowed)
+	// - the request used redirection => 0 so the body cannot come from a
+	// different origin via redirect
+	// - the response Content-Type is forced to application/javascript so a
+	// hostile body cannot be re-interpreted as HTML by the browser.
+	// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- proxied JS body; escaping would corrupt JS operators (see comment above).
 	echo $body;
 	exit();
 }
@@ -1111,18 +1118,19 @@ function dc_swp_inject_gtm_head() {
 	echo '<script' . $nonce_attr . ">window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}</script>\n";
 
 	if ( 0 === stripos( $tag_id, 'GTM-' ) ) {
-		// GTM container -- load the container script in a Partytown Web Worker.
-		// Using type="text/partytown" offloads GTM (and all tags firing inside it)
-		// entirely off the main thread. The dataLayer.push forward ensures consent
-		// signals and other main-thread pushes are relayed into the worker.
-		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- tag ID regex-validated; esc_attr applied.
-		echo '<script type="text/partytown"' . $nonce_attr . ' src="https://www.googletagmanager.com/gtm.js?id=' . esc_attr( $tag_id ) . '"></script>' . "\n";
+		// GTM container -- registered via wp_register_script and rewritten to
+		// type="text/partytown" by dc_swp_script_loader_tag().
+		$src = 'https://www.googletagmanager.com/gtm.js?id=' . rawurlencode( $tag_id );
+		wp_register_script( 'dc-swp-pt-gtm', $src, array(), DC_SWP_VERSION, false );
+		wp_script_add_data( 'dc-swp-pt-gtm', 'dc_swp_consent_category', 'statistics' );
+		wp_print_scripts( 'dc-swp-pt-gtm' );
 	} else {
-		// GA4 / UA measurement ID -- load gtag.js in a Partytown Web Worker.
-		// The inline gtag('config',...) call runs on the main thread and is forwarded
-		// to the worker via the dataLayer.push proxy (gtag() internally calls dataLayer.push).
-		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- tag ID regex-validated; esc_attr/esc_js applied.
-		echo '<script type="text/partytown"' . $nonce_attr . ' src="https://www.googletagmanager.com/gtag/js?id=' . esc_attr( $tag_id ) . '"></script>' . "\n";
+		// GA4 / UA measurement ID -- gtag.js loaded via wp_register_script and
+		// rewritten by dc_swp_script_loader_tag() to type="text/partytown".
+		$src = 'https://www.googletagmanager.com/gtag/js?id=' . rawurlencode( $tag_id );
+		wp_register_script( 'dc-swp-pt-gtag', $src, array(), DC_SWP_VERSION, false );
+		wp_script_add_data( 'dc-swp-pt-gtag', 'dc_swp_consent_category', 'statistics' );
+		wp_print_scripts( 'dc-swp-pt-gtag' );
 
 		$safe_id = esc_js( $tag_id );
 		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- fully static JS; tag ID is esc_js escaped; nonce is pre-escaped.
@@ -1342,8 +1350,11 @@ function dc_swp_inject_pixel_head(): void {
 	// Partytown worker causes "Cannot set properties of undefined (setting 'version')".
 	if ( ! $fbevents_in_block ) {
 		$safe_id = esc_attr( $pixel_id );
-		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pixel ID is digits-only (regex-validated); nonce is esc_attr.
-		echo '<script type="text/partytown"' . $nonce_attr . ' src="https://connect.facebook.net/en_US/fbevents.js"></script>' . "\n";
+		// fbevents.js -- registered via wp_register_script and rewritten to
+		// type="text/partytown" by dc_swp_script_loader_tag().
+		wp_register_script( 'dc-swp-pt-fbevents', 'https://connect.facebook.net/en_US/fbevents.js', array(), DC_SWP_VERSION, false );
+		wp_script_add_data( 'dc-swp-pt-fbevents', 'dc_swp_consent_category', 'marketing' );
+		wp_print_scripts( 'dc-swp-pt-fbevents' );
 
 		// -- Main-thread init + PageView (forwarded to worker via fbq forward config) --
 		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pixel ID digits-only; nonce pre-escaped.
@@ -3119,207 +3130,192 @@ function dc_swp_resolve_companion( $src, $type, $companion_map ) {
 
 
 // ============================================================
-// INLINE SCRIPT BLOCKS -- PARTYTOWN WEB WORKER
-// Allows admins to paste complete third-party script blocks
-// (e.g. Meta Pixel, TikTok Pixel) directly into the admin UI.
-// Inline <script> blocks are output with type="text/partytown"
-// so Partytown executes them in a Web Worker. External src= scripts
-// inside a block are also echoed directly (they only exist in the
-// block -- not in functions.php or WP's script queue) with the
-// consent-gated type so Partytown loads them in the worker too.
-// When Partytown is disabled, all scripts (inline and src=) are
-// echoed with defer on the main thread.
-// <noscript> tracking pixels are only emitted when consent is
-// present (GDPR). All PT-mode output is consent-gated via the
-// WP Consent API Consent Gate (dc_swp_has_consent_for()).
+// SCRIPT CENTER -- CONSENT-GATED THIRD-PARTY SCRIPTS
+// Each Script Center row stores { code, src, async, category, ... }.
+// The "code" field holds an inert JS body (sanitised at save time
+// with sanitize_text_field) and is rendered as
+// <script type="text/plain" data-wp-consent-category="...">...</script>
+// The browser never executes type="text/plain". A consent layer
+// (WP Consent API listener / Partytown) flips the type to
+// text/javascript or text/partytown only after the visitor grants
+// consent for the matching category. The "src" field is rendered
+// via wp_enqueue_script() so the same script_loader_tag filter that
+// handles GTM / Meta Pixel / Integrations can swap the type and
+// inject the consent-category attribute.
 // ============================================================
 
 add_action( 'wp_head', 'dc_swp_output_inline_scripts', 3 );
+add_action( 'wp_enqueue_scripts', 'dc_swp_enqueue_script_center_src', 5 );
+add_filter( 'script_loader_tag', 'dc_swp_script_loader_tag', 10, 3 );
 
 /**
- * Parse the admin-stored raw script paste and output each inline
- * <script> block with type="text/partytown" (consent granted) or
- * type="text/plain" (no consent). External src= scripts inside the
- * paste are also echoed -- they exist only in the block and are never
- * added to functions.php or via wp_enqueue_script, so the output
- * buffer has nothing to rewrite. When Partytown is active they are
- * stamped with the consent-gated type so Partytown runs them in the
- * worker; when Partytown is disabled they are echoed with defer on
- * the main thread.
+ * Rewrite <script> tags emitted by WP for any handle prefixed `dc-swp-`.
+ *
+ * - Pre-consent (or always when Partytown is disabled): swap type to text/plain
+ *   and add data-wp-consent-category so the consent layer can flip the type.
+ * - Post-consent + Partytown enabled: swap type to text/partytown.
+ * - Append the CSP nonce attribute when one is configured.
+ *
+ * Handles use wp_script_add_data( $handle, 'dc_swp_consent_category', ... )
+ * and (optionally) wp_script_add_data( $handle, 'dc_swp_async', true ).
+ *
+ * @param string $tag    Original <script> tag rendered by WP.
+ * @param string $handle Script handle.
+ * @param string $src    Script src URL.
+ * @return string Rewritten <script> tag.
+ */
+function dc_swp_script_loader_tag( $tag, $handle, $src ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter -- $src required by WP filter signature.
+	if ( 0 !== strpos( $handle, 'dc-swp-sc-' )
+		&& 0 !== strpos( $handle, 'dc-swp-pt-' ) ) {
+		return $tag;
+	}
+	$wp_scripts = wp_scripts();
+	$category   = $wp_scripts->get_data( $handle, 'dc_swp_consent_category' );
+	if ( ! is_string( $category ) || '' === $category ) {
+		$category = dc_swp_get_script_list_category();
+	}
+	$pt_enabled = 'yes' === get_option( 'dc_swp_sw_enabled', 'yes' );
+	if ( $pt_enabled && dc_swp_has_consent_for( $category ) ) {
+		$type = 'text/partytown';
+	} else {
+		$type = 'text/plain';
+	}
+	$attrs = ' type="' . esc_attr( $type ) . '"';
+	if ( 'text/plain' === $type ) {
+		$attrs .= ' data-wp-consent-category="' . esc_attr( $category ) . '"';
+	}
+	$nonce = dc_swp_get_csp_nonce();
+	if ( '' !== $nonce && false === strpos( $tag, ' nonce=' ) ) {
+		$attrs .= ' nonce="' . esc_attr( $nonce ) . '"';
+	}
+	if ( $wp_scripts->get_data( $handle, 'dc_swp_async' ) && false === strpos( $tag, ' async' ) ) {
+		$attrs .= ' async';
+	}
+	// Replace any existing type=… (WP may emit type="text/javascript") and append our attrs.
+	$tag = preg_replace( '/\s+type=(["\'])[^"\']*\1/i', '', $tag );
+	$tag = preg_replace( '/<script\b/i', '<script' . $attrs, $tag, 1 );
+	return $tag;
+}
+
+/**
+ * Decode the dc_swp_inline_scripts option into a normalised array of rows.
+ *
+ * Each returned row has: id, label, code, src, async, enabled, skip_logged_in,
+ * category. Legacy entries that contained a `force_partytown` or raw-HTML
+ * `code` field are read transparently -- the renderer treats `code` as inert
+ * text regardless of legacy content (sanitize_text_field has already stripped
+ * `<` `>` from any value re-saved through the admin UI).
+ *
+ * @return array List of script-block rows.
+ */
+function dc_swp_get_script_center_rows(): array {
+	$raw = (string) get_option( 'dc_swp_inline_scripts', '' );
+	if ( '' === $raw ) {
+		return array();
+	}
+	$decoded = json_decode( $raw, true );
+	if ( ! is_array( $decoded ) ) {
+		return array();
+	}
+	$rows = array();
+	foreach ( $decoded as $blk ) {
+		if ( ! is_array( $blk ) ) {
+			continue;
+		}
+		$rows[] = array(
+			'id'             => (string) ( $blk['id'] ?? '' ),
+			'label'          => (string) ( $blk['label'] ?? '' ),
+			'code'           => (string) ( $blk['code'] ?? '' ),
+			'src'            => (string) ( $blk['src'] ?? '' ),
+			'async'          => ! empty( $blk['async'] ),
+			'enabled'        => ! empty( $blk['enabled'] ),
+			'skip_logged_in' => ! empty( $blk['skip_logged_in'] ),
+			'category'       => (string) ( $blk['category'] ?? 'marketing' ),
+		);
+	}
+	return $rows;
+}
+
+/**
+ * Enqueue external src= URLs from Script Center rows via wp_register_script
+ * + wp_enqueue_script. The dc_swp_script_loader_tag() filter (registered
+ * elsewhere) takes care of swapping the type to text/plain (pre-consent) /
+ * text/partytown (post-consent) and adding the consent-category attribute.
+ *
+ * @return void
+ */
+function dc_swp_enqueue_script_center_src(): void {
+	if ( dc_swp_is_bot_request() || is_admin() ) {
+		return;
+	}
+	foreach ( dc_swp_get_script_center_rows() as $row ) {
+		if ( ! $row['enabled'] || '' === $row['src'] ) {
+			continue;
+		}
+		if ( $row['skip_logged_in'] && is_user_logged_in() ) {
+			continue;
+		}
+		$handle = 'dc-swp-sc-' . sanitize_key( $row['id'] );
+		if ( wp_script_is( $handle, 'registered' ) ) {
+			continue;
+		}
+		wp_register_script( $handle, esc_url_raw( $row['src'] ), array(), DC_SWP_VERSION, false );
+		wp_script_add_data( $handle, 'dc_swp_consent_category', $row['category'] );
+		if ( $row['async'] ) {
+			wp_script_add_data( $handle, 'dc_swp_async', true );
+		}
+		wp_enqueue_script( $handle );
+	}
+}
+
+/**
+ * Render Script Center "code" entries as inert <script type="text/plain">
+ * blocks at wp_head priority 3. The browser does not execute text/plain;
+ * a consent layer (WP Consent API listener / Partytown) swaps the type
+ * once the visitor grants consent for data-wp-consent-category.
+ *
+ * @return void
+ * Render the JS body of each enabled Script Center row inside an inert
+ * <script type="text/plain" data-wp-consent-category="..."></script> block.
+ *
+ * The browser does not execute type="text/plain". A consent layer (the WP
+ * Consent API listener / Partytown) is responsible for switching the type
+ * to text/javascript or text/partytown after the visitor grants consent
+ * for the matching category. The JS body is single-line text after
+ * sanitize_text_field(), so it cannot break out of the wrapping <script> tag.
+ *
+ * External src= URLs are NOT rendered here -- they are enqueued via
+ * dc_swp_enqueue_script_center_src() so WP's script printer emits them
+ * and the central script_loader_tag filter applies the same consent gate.
  *
  * Runs at wp_head priority 3, after Partytown lib is loaded (priority 2).
  */
 function dc_swp_output_inline_scripts() {
-	if ( dc_swp_is_bot_request() ) {
-		return;
-	}
-	if ( is_admin() ) {
+	if ( dc_swp_is_bot_request() || is_admin() ) {
 		return;
 	}
 
-	$raw_stored = (string) get_option( 'dc_swp_inline_scripts', '' );
-	if ( '' === $raw_stored ) {
+	$rows = dc_swp_get_script_center_rows();
+	if ( empty( $rows ) ) {
 		return;
 	}
 
-	// JSON array format (new): combine only enabled blocks.
-	// Legacy plain-text format (old): use as-is for backward compatibility.
-	$decoded_stored = json_decode( $raw_stored, true );
-
-	// Extract inline <script> blocks and external src= script tags from the raw code.
-	// Inline blocks (no src=) are output directly; external src= scripts are collected
-	// separately so they are always rendered regardless of whether they have inline companions.
-	// When processing JSON blocks (new format) each src= entry carries the block's
-	// force_partytown flag so the output layer can honour the admin's override.
-	$js_blocks       = array();
-	$src_blocks      = array();
-	$noscript_blocks = array(); // Accumulate noscript content across all enabled blocks.
-
-	$allowed_attr_re = '/\b(data-[a-z0-9_-]+|id|crossorigin|referrerpolicy)\s*=\s*(["\'])([^"\']*)\2/i';
-
-	/**
-	 * Inner helper: parse one raw code string into $js_blocks / $src_blocks.
-	 * $force_blk: whether the parent block has force_partytown enabled.
-	 * $cat_blk: WP Consent API category for this block.
-	 */
-	$parse_code = function ( $code, $force_blk, $cat_blk = '' ) use ( &$js_blocks, &$src_blocks, &$noscript_blocks, $allowed_attr_re ) {
-		if ( preg_match_all( '/<script\b([^>]*)>((?>[^<]|<(?!\/script>))*)<\/script>/i', $code, $matches, PREG_SET_ORDER ) ) {
-			foreach ( $matches as $m ) {
-				if ( preg_match( '/\bsrc\s*=\s*(["\'])([^"\']+)\1/i', $m[1], $src_m ) ) {
-					// Preserve pass-through attributes from the original tag.
-					// Included: data-* (e.g. data-key, data-domain, data-site),
-					// id (scripts that read their own DOM id to initialise),
-					// crossorigin (CORS/COEP compliance),
-					// referrerpolicy (privacy-focused analytics).
-					// Excluded: src, type, nonce -- set by us; async/defer -- controlled by us;
-					// integrity -- SRI is incompatible with Partytown's proxied fetch.
-					$extra_attrs = '';
-					if ( preg_match_all( $allowed_attr_re, $m[1], $da_m, PREG_SET_ORDER ) ) {
-						foreach ( $da_m as $da ) {
-							$extra_attrs .= ' ' . esc_attr( $da[1] ) . '="' . esc_attr( $da[3] ) . '"';
-						}
-					}
-					$src_blocks[] = array(
-						'src'             => $src_m[2],
-						'extra'           => $extra_attrs,
-						'force_partytown' => $force_blk,
-						'category'        => $cat_blk,
-					);
-					continue;
-				}
-				$content = trim( $m[2] );
-				if ( '' !== $content ) {
-					$js_blocks[] = array(
-						'content'         => $content,
-						'force_partytown' => $force_blk,
-						'category'        => $cat_blk,
-					);
-				}
-			}
-		}
-		// Collect noscript snippets (output is handled later, separate from scripts).
-		if ( preg_match_all( '/<noscript\b[^>]*>(.*?)<\/noscript>/is', $code, $ns_m ) ) {
-			foreach ( $ns_m[1] as $ns ) {
-				$ns_trimmed = trim( $ns );
-				if ( '' !== $ns_trimmed ) {
-					$noscript_blocks[] = $ns_trimmed;
-				}
-			}
-		}
-	};
-
-	if ( is_array( $decoded_stored ) ) {
-		foreach ( $decoded_stored as $blk ) {
-			if ( empty( $blk['enabled'] ) || '' === trim( (string) ( $blk['code'] ?? '' ) ) ) {
-				continue;
-			}
-			if ( ! empty( $blk['skip_logged_in'] ) && is_user_logged_in() ) {
-				continue;
-			}
-			$parse_code( $blk['code'], ! empty( $blk['force_partytown'] ), $blk['category'] ?? '' );
-		}
-	} else {
-		// Legacy plain-text format: no force_partytown support.
-		$parse_code( $raw_stored, false );
-	}
-
-	if ( empty( $js_blocks ) && empty( $src_blocks ) ) {
-		return;
-	}
-
-	$pt_enabled = get_option( 'dc_swp_sw_enabled', 'yes' ) === 'yes';
 	$nonce      = dc_swp_get_csp_nonce();
 	$nonce_attr = '' !== $nonce ? ' nonce="' . esc_attr( $nonce ) . '"' : '';
 
-	if ( $pt_enabled ) {
-		// Partytown active -- per-block consent gate via WP Consent API.
-		foreach ( $js_blocks as $blk ) {
-			$js          = $blk['content'];
-			$cat         = $blk['category'];
-			[ $allowed ] = dc_swp_resolve_inline_consent( $js, $cat );
-			$blk_type    = $allowed ? 'text/partytown' : 'text/plain';
-			$consent_cat = ! $allowed ? ' data-wp-consent-category="' . esc_attr( $cat ? $cat : dc_swp_get_script_list_category() ) . '"' : '';
-			if ( dc_swp_inline_matches_known_service( $js ) || $blk['force_partytown'] ) {
-				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- admin-controlled inline JS.
-				echo '<script type="' . esc_attr( $blk_type ) . '"' . $consent_cat . $nonce_attr . ">\n" . $js . "\n</script>\n";
-			} elseif ( $allowed ) {
-				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- admin-controlled inline JS.
-				echo '<script defer' . $nonce_attr . ">\n" . $js . "\n</script>\n";
-			} else {
-				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- admin-controlled inline JS.
-				echo '<script type="text/plain"' . $consent_cat . $nonce_attr . ">\n" . $js . "\n</script>\n";
-			}
+	foreach ( $rows as $row ) {
+		if ( ! $row['enabled'] || '' === trim( $row['code'] ) ) {
+			continue;
 		}
-		// External src= scripts from blocks -- per-service consent gate.
-		foreach ( $src_blocks as $blk ) {
-			// If block has an explicit category, use it; otherwise resolve from hostname.
-			if ( '' !== ( $blk['category'] ?? '' ) ) {
-				$cat = $blk['category'];
-				// Still check GCM v2/LDU bypasses.
-				$gcm_by  = dc_swp_is_consent_mode_enabled() && dc_swp_script_uses_gcm_v2( $blk['src'] );
-				$ldu_by  = dc_swp_is_meta_ldu_enabled() && dc_swp_is_meta_script( $blk['src'] );
-				$allowed = $gcm_by || $ldu_by || dc_swp_has_consent_for( $cat );
-			} else {
-				[ $allowed, $cat ] = dc_swp_resolve_script_consent( $blk['src'] );
-			}
-			$blk_type    = $allowed ? 'text/partytown' : 'text/plain';
-			$consent_cat = ! $allowed ? ' data-wp-consent-category="' . esc_attr( $cat ) . '"' : '';
-			if ( dc_swp_url_matches_known_service( $blk['src'] ) || $blk['force_partytown'] ) {
-				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped,WordPress.WP.EnqueuedResources.NonEnqueuedScript -- admin-controlled script src.
-				echo '<script type="' . esc_attr( $blk_type ) . '" src="' . esc_url( $blk['src'] ) . '"' . $blk['extra'] . $consent_cat . $nonce_attr . "></script>\n";
-			} elseif ( $allowed ) {
-				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped,WordPress.WP.EnqueuedResources.NonEnqueuedScript -- admin-controlled script src.
-				echo '<script defer src="' . esc_url( $blk['src'] ) . '"' . $blk['extra'] . $nonce_attr . "></script>\n";
-			} else {
-				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped,WordPress.WP.EnqueuedResources.NonEnqueuedScript -- admin-controlled script src.
-				echo '<script type="text/plain" src="' . esc_url( $blk['src'] ) . '"' . $blk['extra'] . $consent_cat . $nonce_attr . "></script>\n";
-			}
+		if ( $row['skip_logged_in'] && is_user_logged_in() ) {
+			continue;
 		}
-		// <noscript> tracking pixels -- only emit when the gate allows.
-		$noscript_consent = dc_swp_has_consent_for( dc_swp_get_script_list_category() );
-		if ( $noscript_consent ) {
-			foreach ( $noscript_blocks as $ns_content ) {
-				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- admin-controlled noscript fallback.
-				echo '<noscript>' . $ns_content . "</noscript>\n";
-			}
-		}
-	} else {
-		// Partytown disabled -- diagnostic mode: render scripts directly on the main
-		// thread with defer so they do not block page rendering. No consent gate
-		// is applied here; this mode is intended for local debugging only.
-		foreach ( $js_blocks as $blk ) {
-			// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- admin-controlled inline JS.
-			echo '<script defer' . $nonce_attr . ">\n" . $blk['content'] . "\n</script>\n";
-		}
-		// External src= scripts from blocks: output with defer on the main thread.
-		foreach ( $src_blocks as $blk ) {
-			// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped,WordPress.WP.EnqueuedResources.NonEnqueuedScript -- admin-controlled script src.
-			echo '<script defer src="' . esc_url( $blk['src'] ) . '"' . $blk['extra'] . $nonce_attr . "></script>\n";
-		}
-		// Always emit <noscript> pixels in diagnostic mode (no consent gate in diag mode).
-		foreach ( $noscript_blocks as $ns_content ) {
-			// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- admin-controlled noscript fallback.
-			echo '<noscript>' . $ns_content . "</noscript>\n";
-		}
+		$cat = $row['category'] ? $row['category'] : dc_swp_get_script_list_category();
+		printf(
+			'<script type="text/plain" data-wp-consent-category="%1$s"%2$s>%3$s</script>' . "\n",
+			esc_attr( $cat ),
+			$nonce_attr, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-escaped via esc_attr above.
+			esc_html( $row['code'] )
+		);
 	}
 }

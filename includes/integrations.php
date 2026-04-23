@@ -68,17 +68,14 @@ function dc_swp_intg_hubspot(): void {
 	if ( empty( $portal_id ) || ! dc_swp_intg_can_inject() ) {
 		return;
 	}
-	if ( ! dc_swp_has_consent_for( 'marketing' ) ) {
-		return;
-	}
 
-	$nonce_attr = dc_swp_intg_nonce_attr();
-	$src        = esc_url( 'https://js.hs-scripts.com/' . $portal_id . '.js' );
-
-	// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped,WordPress.WP.EnqueuedResources.NonEnqueuedScript -- src is esc_url; nonce attr is pre-escaped; Partytown inline requires direct echo.
-	echo '<script type="text/partytown" src="' . $src . '"' . $nonce_attr . ' async defer></script>' . "\n";
+	$src = 'https://js.hs-scripts.com/' . rawurlencode( $portal_id ) . '.js';
+	wp_register_script( 'dc-swp-pt-hubspot', $src, array(), DC_SWP_VERSION, false );
+	wp_script_add_data( 'dc-swp-pt-hubspot', 'dc_swp_consent_category', 'marketing' );
+	wp_script_add_data( 'dc-swp-pt-hubspot', 'dc_swp_async', true );
+	wp_enqueue_script( 'dc-swp-pt-hubspot' );
 }
-add_action( 'wp_head', 'dc_swp_intg_hubspot', 8 );
+add_action( 'wp_enqueue_scripts', 'dc_swp_intg_hubspot', 8 );
 
 // ============================================================
 // KLAVIYO
@@ -98,17 +95,14 @@ function dc_swp_intg_klaviyo(): void {
 	if ( empty( $site_id ) || ! dc_swp_intg_can_inject() ) {
 		return;
 	}
-	if ( ! dc_swp_has_consent_for( 'marketing' ) ) {
-		return;
-	}
 
-	$nonce_attr = dc_swp_intg_nonce_attr();
-	$src        = esc_url( 'https://static.klaviyo.com/onsite/js/klaviyo.js?company_id=' . rawurlencode( $site_id ) );
-
-	// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped,WordPress.WP.EnqueuedResources.NonEnqueuedScript -- src is esc_url; nonce attr is pre-escaped; Partytown inline requires direct echo.
-	echo '<script type="text/partytown" src="' . $src . '"' . $nonce_attr . ' async></script>' . "\n";
+	$src = 'https://static.klaviyo.com/onsite/js/klaviyo.js?company_id=' . rawurlencode( $site_id );
+	wp_register_script( 'dc-swp-pt-klaviyo', $src, array(), DC_SWP_VERSION, false );
+	wp_script_add_data( 'dc-swp-pt-klaviyo', 'dc_swp_consent_category', 'marketing' );
+	wp_script_add_data( 'dc-swp-pt-klaviyo', 'dc_swp_async', true );
+	wp_enqueue_script( 'dc-swp-pt-klaviyo' );
 }
-add_action( 'wp_head', 'dc_swp_intg_klaviyo', 8 );
+add_action( 'wp_enqueue_scripts', 'dc_swp_intg_klaviyo', 8 );
 
 // ============================================================
 // MIXPANEL

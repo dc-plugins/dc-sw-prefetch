@@ -5,7 +5,7 @@ Requires at least: 6.8
 Tested up to: 6.9
 Requires PHP: 8.0
 WC tested up to: 10.7.0
-Stable tag: 3.0.1
+Stable tag: 3.1.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -173,9 +173,22 @@ Provided by TikTok Inc. / ByteDance Ltd. Sends page views, conversion events, an
 Provided by Mixpanel, Inc. Sends page views, custom events, and an anonymous visitor identifier.
 [Privacy Policy](https://mixpanel.com/legal/privacy-policy/) | [Terms of Service](https://mixpanel.com/legal/terms-of-use/)
 
+**FullStory**
+Provided by FullStory, Inc. Sends session-replay event data, page views, and DOM mutations from `edge.fullstory.com/s/fs.js`. Loaded only when the administrator has added a `fullstory.com` pattern to the Script List or Inline Script Block, and after marketing consent.
+[Privacy Policy](https://www.fullstory.com/legal/privacy/) | [Terms of Service](https://www.fullstory.com/legal/terms-and-conditions/)
+
 The administrator may freely add other services through the Partytown Script List. The plugin imposes no restriction on which services can be configured, beyond the security allowlist that prevents the CORS proxy from being used as an open relay. Refer to each service's own privacy policy and terms of service for details on what data they collect.
 
 == Changelog ==
+
+= 3.1.0 =
+* Security: Script Center (formerly Inline Script Blocks) now sanitizes pasted JavaScript with `sanitize_text_field()` and renders it inside an inert `<script type="text/plain" data-wp-consent-category="...">` block. The browser never executes the script directly; the consent layer (WP Consent API listener) flips the type to `text/javascript` or `text/partytown` only after the visitor grants consent for the matching category. This mirrors the pattern used by Complianz GDPR's Script Center.
+* Security: External `src=` scripts (HubSpot, Klaviyo, GTM, Meta Pixel) are now registered via `wp_register_script` + `wp_enqueue_script` + a central `script_loader_tag` filter that applies the type swap and consent gate. Direct `echo '<script src="...">'` patterns removed.
+* Security: Removed the PayPal `pixel.gif` tracking pixel from the Donate panel; the donate button now uses a locally-hosted PNG instead of the remote `paypalobjects.com` image.
+* Security: Removed all `img.shields.io` requests from the admin Consent Architecture panel; badges are pure CSS only.
+* Security: JS proxy endpoint output documented inline -- the response is forced to `Content-Type: application/javascript`, the upstream host is hard-allowlisted, and `redirection => 0` prevents off-origin body substitution.
+* Fix: Plugin text-domain corrected to match the wp.org slug (`dc-script-worker-prefetcher`). Translation files renamed accordingly.
+* Refactor: `force_partytown` per-block override removed -- Script Center now applies a single consent category per row (marketing / statistics / statistics-anonymous / functional / preferences) with optional `src` URL and `async` attribute.
 
 = 3.0.1 =
 * Fix: Removed debug console.log/debug/warn calls from the viewport prefetch script that were printing to every visitor's DevTools console on WooCommerce shop pages.
