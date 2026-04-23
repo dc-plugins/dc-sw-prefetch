@@ -1,7 +1,7 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: dc-sw-prefetch\n"
+"Project-Id-Version: dc-script-worker-prefetcher\n"
 "Report-Msgid-Bugs-To: https://www.dampcig.dk\n"
 "POT-Creation-Date: 2026-04-11 18:04+0000\n"
 "PO-Revision-Date: 2026-04-11 18:04+0000\n"

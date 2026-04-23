@@ -21,8 +21,8 @@ add_filter(
 		if ( $screen && 'toplevel_page_dc-sw-prefetch' === $screen->id ) {
 			return sprintf(
 				/* translators: %s: linked name of the plugin author organisation */
-				esc_html__( 'More plugins by %s', 'dc-sw-prefetch' ),
-				'<a href="' . esc_url( 'https://github.com/dc-plugins' ) . '" target="_blank" rel="noopener">' . esc_html__( 'DC Plugins', 'dc-sw-prefetch' ) . '</a>'
+				esc_html__( 'More plugins by %s', 'dc-script-worker-prefetcher' ),
+				'<a href="' . esc_url( 'https://github.com/dc-plugins' ) . '" target="_blank" rel="noopener">' . esc_html__( 'DC Plugins', 'dc-script-worker-prefetcher' ) . '</a>'
 			);
 		}
 		return $text;
@@ -35,7 +35,7 @@ add_filter(
 		$screen = get_current_screen();
 		if ( $screen && 'toplevel_page_dc-sw-prefetch' === $screen->id ) {
 			/* translators: %s: plugin version number */
-			return sprintf( esc_html__( 'Version %s', 'dc-sw-prefetch' ), DC_SWP_VERSION );
+			return sprintf( esc_html__( 'Version %s', 'dc-script-worker-prefetcher' ), DC_SWP_VERSION );
 		}
 		return $text;
 	},
@@ -52,10 +52,10 @@ add_action( 'admin_menu', 'dc_swp_setup_menu' );
  */
 function dc_swp_setup_menu() {
 	add_menu_page(
-		__( 'SW Proxy Settings', 'dc-sw-prefetch' ),
+		__( 'SW Proxy Settings', 'dc-script-worker-prefetcher' ),
 		'SW Proxy',
 		'manage_options',
-		'dc-sw-prefetch',
+		'dc-script-worker-prefetcher',
 		'dc_swp_admin_page_html',
 		'dashicons-performance'
 	);
@@ -356,7 +356,7 @@ function dc_swp_admin_page_html() {
 		$_excl_lines = array_map( 'sanitize_text_field', explode( "\n", $_raw_excl ) );
 		update_option( 'dc_swp_exclusion_patterns', implode( "\n", array_filter( $_excl_lines ) ) );
 		delete_transient( 'dc_swp_health_issues' );
-		echo '<div class="notice notice-success"><p>' . esc_html__( 'Settings saved!', 'dc-sw-prefetch' ) . '</p></div>';
+		echo '<div class="notice notice-success"><p>' . esc_html__( 'Settings saved!', 'dc-script-worker-prefetcher' ) . '</p></div>';
 	}
 
 	$sw_enabled          = get_option( 'dc_swp_sw_enabled', 'yes' ) === 'yes';
@@ -397,7 +397,7 @@ function dc_swp_admin_page_html() {
 			$inline_script_blocks = array(
 				array(
 					'id'      => 'block_' . substr( md5( $inline_scripts_raw ), 0, 8 ),
-					'label'   => __( 'Imported Scripts', 'dc-sw-prefetch' ),
+					'label'   => __( 'Imported Scripts', 'dc-script-worker-prefetcher' ),
 					'code'    => $inline_scripts_raw,
 					'enabled' => true,
 				),
@@ -426,12 +426,12 @@ function dc_swp_admin_page_html() {
 	}
 	?>
 	<div class="wrap">
-		<h1><?php echo esc_html__( 'SW Proxy Settings', 'dc-sw-prefetch' ); ?></h1>
+		<h1><?php echo esc_html__( 'SW Proxy Settings', 'dc-script-worker-prefetcher' ); ?></h1>
 
 		<div class="notice notice-info">
-			<p><strong>ℹ️ <?php echo esc_html__( 'Partytown Integration', 'dc-sw-prefetch' ); ?></strong></p>
-			<p><?php echo esc_html__( 'Unlike async/defer -- which only delay loading but still execute scripts on the main thread -- Partytown runs third-party scripts entirely in a Web Worker. The browser main thread is never touched: no layout jank, no TBT penalty, no competition with user interactions. Officially tested compatible services: Google Tag Manager, Facebook Pixel, HubSpot, Intercom, Klaviyo, TikTok Pixel, and Mixpanel. Enable the Consent Gate to block scripts until visitor consent is granted via the WP Consent API.', 'dc-sw-prefetch' ); ?></p>
-			<p><?php echo esc_html__( 'Partytown Version', 'dc-sw-prefetch' ); ?>: <code><?php echo esc_html( $pt_version ); ?></code>
+			<p><strong>ℹ️ <?php echo esc_html__( 'Partytown Integration', 'dc-script-worker-prefetcher' ); ?></strong></p>
+			<p><?php echo esc_html__( 'Unlike async/defer -- which only delay loading but still execute scripts on the main thread -- Partytown runs third-party scripts entirely in a Web Worker. The browser main thread is never touched: no layout jank, no TBT penalty, no competition with user interactions. Officially tested compatible services: Google Tag Manager, Facebook Pixel, HubSpot, Intercom, Klaviyo, TikTok Pixel, and Mixpanel. Enable the Consent Gate to block scripts until visitor consent is granted via the WP Consent API.', 'dc-script-worker-prefetcher' ); ?></p>
+			<p><?php echo esc_html__( 'Partytown Version', 'dc-script-worker-prefetcher' ); ?>: <code><?php echo esc_html( $pt_version ); ?></code>
 				&nbsp;--&nbsp;
 				<a href="https://github.com/QwikDev/partytown/releases" target="_blank" rel="noopener">Changelog ↗</a></p>
 		</div>
@@ -439,13 +439,13 @@ function dc_swp_admin_page_html() {
 		<form method="post" action="" class="pwa-cache-settings">
 			<?php wp_nonce_field( 'dc_swp_save_settings', 'dc_swp_nonce' ); ?>
 
-		<nav class="nav-tab-wrapper" id="dc-swp-tabs" aria-label="<?php esc_attr_e( 'Settings sections', 'dc-sw-prefetch' ); ?>">
-			<a href="#tab-scripts"     class="nav-tab"><?php esc_html_e( 'Scripts', 'dc-sw-prefetch' ); ?></a>
-			<a href="#tab-analytics"   class="nav-tab"><?php esc_html_e( 'Tag Management', 'dc-sw-prefetch' ); ?></a>
-			<a href="#tab-meta"        class="nav-tab"><?php esc_html_e( 'Meta Pixel', 'dc-sw-prefetch' ); ?></a>
-			<a href="#tab-integrations"  class="nav-tab"><?php esc_html_e( 'Integrations', 'dc-sw-prefetch' ); ?></a>
-			<a href="#tab-performance"  class="nav-tab"><?php esc_html_e( 'Performance', 'dc-sw-prefetch' ); ?></a>
-			<a href="#tab-advanced"    class="nav-tab"><?php esc_html_e( 'Advanced', 'dc-sw-prefetch' ); ?></a>
+		<nav class="nav-tab-wrapper" id="dc-swp-tabs" aria-label="<?php esc_attr_e( 'Settings sections', 'dc-script-worker-prefetcher' ); ?>">
+			<a href="#tab-scripts"     class="nav-tab"><?php esc_html_e( 'Scripts', 'dc-script-worker-prefetcher' ); ?></a>
+			<a href="#tab-analytics"   class="nav-tab"><?php esc_html_e( 'Tag Management', 'dc-script-worker-prefetcher' ); ?></a>
+			<a href="#tab-meta"        class="nav-tab"><?php esc_html_e( 'Meta Pixel', 'dc-script-worker-prefetcher' ); ?></a>
+			<a href="#tab-integrations"  class="nav-tab"><?php esc_html_e( 'Integrations', 'dc-script-worker-prefetcher' ); ?></a>
+			<a href="#tab-performance"  class="nav-tab"><?php esc_html_e( 'Performance', 'dc-script-worker-prefetcher' ); ?></a>
+			<a href="#tab-advanced"    class="nav-tab"><?php esc_html_e( 'Advanced', 'dc-script-worker-prefetcher' ); ?></a>
 		</nav>
 
 		<!-- ===== TAB 1: SCRIPTS ===== -->
@@ -453,17 +453,17 @@ function dc_swp_admin_page_html() {
 			<fieldset class="dc-swp-fieldset">
 			<table class="form-table">
 				<tr valign="top">
-					<th scope="row"><?php echo esc_html__( 'Enable Partytown', 'dc-sw-prefetch' ); ?></th>
+					<th scope="row"><?php echo esc_html__( 'Enable Partytown', 'dc-script-worker-prefetcher' ); ?></th>
 					<td>
 						<label class="pwa-toggle">
 							<input type="checkbox" id="dc_swp_sw_enabled" name="dc_swp_sw_enabled" value="yes" <?php checked( $sw_enabled, true ); ?>>
 							<span class="pwa-slider"></span>
 						</label>
-						<p class="description"><?php echo esc_html__( 'Activate Partytown service worker for third-party script offloading and viewport prefetch. When disabled, scripts render directly on the main thread with defer -- useful for diagnosing Partytown issues (no Web Worker, no consent gating).', 'dc-sw-prefetch' ); ?></p>
+						<p class="description"><?php echo esc_html__( 'Activate Partytown service worker for third-party script offloading and viewport prefetch. When disabled, scripts render directly on the main thread with defer -- useful for diagnosing Partytown issues (no Web Worker, no consent gating).', 'dc-script-worker-prefetcher' ); ?></p>
 					</td>
 				</tr>
 				<tr valign="top">
-					<th scope="row"><?php echo esc_html__( 'Consent Gate (WP Consent API)', 'dc-sw-prefetch' ); ?></th>
+					<th scope="row"><?php echo esc_html__( 'Consent Gate (WP Consent API)', 'dc-script-worker-prefetcher' ); ?></th>
 					<td>
 						<label class="pwa-toggle">
 							<input type="checkbox" id="dc_swp_consent_gate" name="dc_swp_consent_gate" value="yes" <?php checked( $consent_gate, true ); ?>>
@@ -472,61 +472,61 @@ function dc_swp_admin_page_html() {
 						<p class="description">
 						<?php
 						/* translators: %s: URL to WP Consent API plugin installation page */
-						echo wp_kses_post( sprintf( __( 'When enabled, scripts are blocked as <code>type="text/plain"</code> until the visitor grants consent via WP Consent API. Requires a CMP plugin that integrates with <a href="%s" target="_blank" rel="noopener">WP Consent API</a>. When disabled (default), all scripts load unconditionally.', 'dc-sw-prefetch' ), esc_url( admin_url( 'plugin-install.php?tab=plugin-information&plugin=wp-consent-api' ) ) ) );
+						echo wp_kses_post( sprintf( __( 'When enabled, scripts are blocked as <code>type="text/plain"</code> until the visitor grants consent via WP Consent API. Requires a CMP plugin that integrates with <a href="%s" target="_blank" rel="noopener">WP Consent API</a>. When disabled (default), all scripts load unconditionally.', 'dc-script-worker-prefetcher' ), esc_url( admin_url( 'plugin-install.php?tab=plugin-information&plugin=wp-consent-api' ) ) ) );
 						?>
 						</p>
 						<?php if ( $consent_gate && ! function_exists( 'wp_has_consent' ) ) : ?>
 							<div class="notice notice-warning inline" style="margin-top:8px;padding:8px 12px">
-								<p><?php echo esc_html__( '⚠️ Consent Gate is enabled but the WP Consent API plugin is not installed. Scripts will be blocked for all visitors.', 'dc-sw-prefetch' ); ?></p>
+								<p><?php echo esc_html__( '⚠️ Consent Gate is enabled but the WP Consent API plugin is not installed. Scripts will be blocked for all visitors.', 'dc-script-worker-prefetcher' ); ?></p>
 							</div>
 						<?php endif; ?>
 					</td>
 				</tr>
 				<tr valign="top">
-					<th scope="row"><?php echo esc_html__( 'Partytown Script List', 'dc-sw-prefetch' ); ?></th>
+					<th scope="row"><?php echo esc_html__( 'Partytown Script List', 'dc-script-worker-prefetcher' ); ?></th>
 					<td>
 						<input type="hidden" id="dc_swp_partytown_entries_json" name="dc_swp_partytown_entries_json" value="">
 						<div id="dc-swp-script-list" style="margin-bottom:8px;"></div>
 						<p style="margin-top:4px;">
 							<button type="button" id="dc-swp-add-pattern-btn" class="button button-secondary">
-								<?php esc_html_e( '+ Add Pattern', 'dc-sw-prefetch' ); ?>
+								<?php esc_html_e( '+ Add Pattern', 'dc-script-worker-prefetcher' ); ?>
 							</button>
 							&nbsp;
 							<button type="button" id="dc-swp-autodetect-btn" class="button button-secondary">
-								<?php echo esc_html__( '🔍 Auto-Detect Third-Party Scripts', 'dc-sw-prefetch' ); ?>
+								<?php echo esc_html__( '🔍 Auto-Detect Third-Party Scripts', 'dc-script-worker-prefetcher' ); ?>
 							</button>
 							<span id="dc-swp-autodetect-spinner" class="spinner" style="float:none;margin-left:4px;display:none;"></span>
 						</p>
 						<div id="dc-swp-autodetect-results" style="display:none;margin-top:8px;padding:10px;background:#f9f9f9;border:1px solid #ddd;border-radius:3px;">
-							<p style="margin:0 0 8px;"><strong><?php esc_html_e( 'Detected external scripts', 'dc-sw-prefetch' ); ?>:</strong></p>
+							<p style="margin:0 0 8px;"><strong><?php esc_html_e( 'Detected external scripts', 'dc-script-worker-prefetcher' ); ?>:</strong></p>
 							<div id="dc-swp-autodetect-list" style="margin-bottom:8px;"></div>
 							<button type="button" id="dc-swp-add-selected" class="button button-primary" style="display:none;">
-								<?php echo esc_html__( 'Add Selected to List', 'dc-sw-prefetch' ); ?>
+								<?php echo esc_html__( 'Add Selected to List', 'dc-script-worker-prefetcher' ); ?>
 							</button>
 						</div>
-						<p class="description" style="margin-top:8px"><?php echo wp_kses_post( __( 'Enter one URL or pattern per line. Matched against the script <code>src</code> attribute. Only officially tested services are recommended: <strong>HubSpot</strong>, <strong>Intercom</strong>, <strong>Klaviyo</strong>, <strong>TikTok Pixel</strong>, <strong>Mixpanel</strong>, <strong>FullStory</strong> (<code>fullstory.com</code>). <a href="https://partytown.qwik.dev/common-services/" target="_blank" rel="noopener">Full list ↗</a>', 'dc-sw-prefetch' ) ); ?></p>
+						<p class="description" style="margin-top:8px"><?php echo wp_kses_post( __( 'Enter one URL or pattern per line. Matched against the script <code>src</code> attribute. Only officially tested services are recommended: <strong>HubSpot</strong>, <strong>Intercom</strong>, <strong>Klaviyo</strong>, <strong>TikTok Pixel</strong>, <strong>Mixpanel</strong>, <strong>FullStory</strong> (<code>fullstory.com</code>). <a href="https://partytown.qwik.dev/common-services/" target="_blank" rel="noopener">Full list ↗</a>', 'dc-script-worker-prefetcher' ) ); ?></p>
 					</td>
 				</tr>
 				<tr valign="top">
-					<th scope="row"><?php echo esc_html__( 'Inline Script Blocks', 'dc-sw-prefetch' ); ?></th>
+					<th scope="row"><?php echo esc_html__( 'Inline Script Blocks', 'dc-script-worker-prefetcher' ); ?></th>
 					<td>
 						<input type="hidden" id="dc_swp_inline_scripts_json" name="dc_swp_inline_scripts_json" value="">
 						<div id="dc-swp-block-list" style="margin-bottom:8px"></div>
 
 						<div class="dc-swp-add-area">
-							<h4><?php echo esc_html__( 'Add Script Block', 'dc-sw-prefetch' ); ?></h4>
+							<h4><?php echo esc_html__( 'Add Script Block', 'dc-script-worker-prefetcher' ); ?></h4>
 							<input type="text" id="dc-swp-new-label"
 								class="regular-text"
 								style="width:100%;margin-bottom:8px;box-sizing:border-box"
-								placeholder="<?php echo esc_attr( __( 'Label, e.g. Meta Pixel', 'dc-sw-prefetch' ) ); ?>">
+								placeholder="<?php echo esc_attr( __( 'Label, e.g. Meta Pixel', 'dc-script-worker-prefetcher' ) ); ?>">
 							<textarea id="dc-swp-new-code" rows="8" class="large-text code"
 								placeholder="&lt;!-- Paste the complete script block here, including &lt;script&gt; tags --&gt;"></textarea>
 							<button type="button" id="dc-swp-add-block-btn" class="button button-secondary" style="margin-top:8px">
-								<?php echo esc_html__( '+ Add Block', 'dc-sw-prefetch' ); ?>
+								<?php echo esc_html__( '+ Add Block', 'dc-script-worker-prefetcher' ); ?>
 							</button>
 						</div>
 
-						<p class="description" style="margin-top:8px"><?php echo wp_kses_post( __( 'Paste complete third-party script blocks here -- including &lt;script&gt; tags and &lt;noscript&gt; fallbacks (Meta Pixel, TikTok Pixel, etc.). The plugin automatically converts them to <code>type="text/partytown"</code> so they run in a Web Worker and respect marketing consent. <a href="https://partytown.qwik.dev/common-services/" target="_blank" rel="noopener">Compatible services ↗</a>', 'dc-sw-prefetch' ) ); ?></p>
+						<p class="description" style="margin-top:8px"><?php echo wp_kses_post( __( 'Paste complete third-party script blocks here -- including &lt;script&gt; tags and &lt;noscript&gt; fallbacks (Meta Pixel, TikTok Pixel, etc.). The plugin automatically converts them to <code>type="text/partytown"</code> so they run in a Web Worker and respect marketing consent. <a href="https://partytown.qwik.dev/common-services/" target="_blank" rel="noopener">Compatible services ↗</a>', 'dc-script-worker-prefetcher' ) ); ?></p>
 					</td>
 				</tr>
 				<tr valign="top"
@@ -534,7 +534,7 @@ function dc_swp_admin_page_html() {
 				if ( ! $sw_enabled ) :
 					?>
 					class="dc-swp-row-disabled"<?php endif; ?>>
-					<th scope="row"><?php echo esc_html__( 'SharedArrayBuffer (Atomics Bridge)', 'dc-sw-prefetch' ); ?></th>
+					<th scope="row"><?php echo esc_html__( 'SharedArrayBuffer (Atomics Bridge)', 'dc-script-worker-prefetcher' ); ?></th>
 					<td>
 						<label class="pwa-toggle">
 							<input type="checkbox" name="dc_swp_coi_headers" value="yes" <?php checked( $coi_headers && $sw_enabled, true ); ?>
@@ -545,25 +545,25 @@ function dc_swp_admin_page_html() {
 							>
 							<span class="pwa-slider"></span>
 						</label>
-						<p class="description"><?php echo wp_kses_post( __( 'Sends <code>Cross-Origin-Opener-Policy: same-origin</code> and <code>Cross-Origin-Embedder-Policy: credentialless</code> on public pages. Enables <code>crossOriginIsolated</code> in the browser so Partytown switches to the faster Atomics bridge instead of the sync-XHR bridge. Skipped for bots, logged-in users and WooCommerce transactional pages (cart, checkout, account) -- on those pages Partytown falls back to the Service Worker bridge automatically so analytics scripts still fire without affecting payment gateways. All cross-origin iframes are automatically given the <code>credentialless</code> attribute so they can load under COEP -- regardless of the exclusion list. <strong>Test in staging first -- can break OAuth popups or other cross-origin iframes.</strong>', 'dc-sw-prefetch' ) ); ?></p>
+						<p class="description"><?php echo wp_kses_post( __( 'Sends <code>Cross-Origin-Opener-Policy: same-origin</code> and <code>Cross-Origin-Embedder-Policy: credentialless</code> on public pages. Enables <code>crossOriginIsolated</code> in the browser so Partytown switches to the faster Atomics bridge instead of the sync-XHR bridge. Skipped for bots, logged-in users and WooCommerce transactional pages (cart, checkout, account) -- on those pages Partytown falls back to the Service Worker bridge automatically so analytics scripts still fire without affecting payment gateways. All cross-origin iframes are automatically given the <code>credentialless</code> attribute so they can load under COEP -- regardless of the exclusion list. <strong>Test in staging first -- can break OAuth popups or other cross-origin iframes.</strong>', 'dc-script-worker-prefetcher' ) ); ?></p>
 					</td>
 				</tr>
 				<tr valign="top">
-					<th scope="row"><?php echo esc_html__( 'Early Resource Hints', 'dc-sw-prefetch' ); ?></th>
+					<th scope="row"><?php echo esc_html__( 'Early Resource Hints', 'dc-script-worker-prefetcher' ); ?></th>
 					<td>
 						<label class="pwa-toggle">
 							<input type="checkbox" name="dc_swp_resource_hints" value="yes" <?php checked( $resource_hints, true ); ?>>
 							<span class="pwa-slider"></span>
 						</label>
-						<p class="description"><?php echo wp_kses_post( __( 'Emits <code>&lt;link rel="preconnect"&gt;</code> and <code>&lt;link rel="dns-prefetch"&gt;</code> for all configured third-party hosts in &lt;head&gt;. Reduces TCP+TLS round-trip latency for first-visit page loads.', 'dc-sw-prefetch' ) ); ?></p>
+						<p class="description"><?php echo wp_kses_post( __( 'Emits <code>&lt;link rel="preconnect"&gt;</code> and <code>&lt;link rel="dns-prefetch"&gt;</code> for all configured third-party hosts in &lt;head&gt;. Reduces TCP+TLS round-trip latency for first-visit page loads.', 'dc-script-worker-prefetcher' ) ); ?></p>
 					</td>
 				</tr>
 				<tr valign="top">
-					<th scope="row"><?php echo esc_html__( 'Partytown Exclusion Patterns', 'dc-sw-prefetch' ); ?></th>
+					<th scope="row"><?php echo esc_html__( 'Partytown Exclusion Patterns', 'dc-script-worker-prefetcher' ); ?></th>
 					<td>
 						<textarea name="dc_swp_exclusion_patterns" rows="5" class="large-text code"
 							placeholder="/landing-page/&#10;/payment-flow/*"><?php echo esc_textarea( $exclusion_patterns ); ?></textarea>
-						<p class="description"><?php echo wp_kses_post( __( 'URL patterns (one per line) where Partytown is completely skipped. Supports <code>*</code> wildcard. Useful for landing pages or payment flows with scripts incompatible with the Partytown worker.', 'dc-sw-prefetch' ) ); ?></p>
+						<p class="description"><?php echo wp_kses_post( __( 'URL patterns (one per line) where Partytown is completely skipped. Supports <code>*</code> wildcard. Useful for landing pages or payment flows with scripts incompatible with the Partytown worker.', 'dc-script-worker-prefetcher' ) ); ?></p>
 					</td>
 				</tr>
 			</table>
@@ -573,10 +573,10 @@ function dc_swp_admin_page_html() {
 		<!-- ===== TAB 2: ANALYTICS ===== -->
 		<div id="tab-analytics" class="dc-swp-tab-panel">
 			<fieldset class="dc-swp-fieldset">
-			<legend><?php esc_html_e( 'Tag Management', 'dc-sw-prefetch' ); ?></legend>
+			<legend><?php esc_html_e( 'Tag Management', 'dc-script-worker-prefetcher' ); ?></legend>
 			<table class="form-table">
 				<tr valign="top">
-					<th scope="row"><?php echo esc_html__( 'Google Tag Management', 'dc-sw-prefetch' ); ?></th>
+					<th scope="row"><?php echo esc_html__( 'Google Tag Management', 'dc-script-worker-prefetcher' ); ?></th>
 					<td>
 						<!-- Hidden field -- always submitted; JS syncs it from whichever panel is active -->
 						<input type="hidden" name="dc_swp_gtm_id" id="dc_swp_gtm_id_field"
@@ -584,10 +584,10 @@ function dc_swp_admin_page_html() {
 						<fieldset>
 						<?php
 						$_gtm_modes = array(
-							'off'     => __( 'Disabled -- no tag management', 'dc-sw-prefetch' ),
-							'own'     => __( 'Enter Tag ID -- I have my own GTM or GA4 ID', 'dc-sw-prefetch' ),
-							'detect'  => __( 'Auto-Detect -- find active tag in page source code', 'dc-sw-prefetch' ),
-							'managed' => __( 'Setup Guide -- step-by-step GTM onboarding', 'dc-sw-prefetch' ),
+							'off'     => __( 'Disabled -- no tag management', 'dc-script-worker-prefetcher' ),
+							'own'     => __( 'Enter Tag ID -- I have my own GTM or GA4 ID', 'dc-script-worker-prefetcher' ),
+							'detect'  => __( 'Auto-Detect -- find active tag in page source code', 'dc-script-worker-prefetcher' ),
+							'managed' => __( 'Setup Guide -- step-by-step GTM onboarding', 'dc-script-worker-prefetcher' ),
 						);
 						foreach ( $_gtm_modes as $_gv => $_gl ) :
 							?>
@@ -608,9 +608,9 @@ function dc_swp_admin_page_html() {
 							<input type="text" id="dc-swp-gtm-id-own"
 								class="regular-text" style="font-family:monospace"
 								value="<?php echo esc_attr( get_option( 'dc_swp_gtm_id', '' ) ); ?>"
-								placeholder="<?php echo esc_attr( __( 'GTM-XXXXXXX or G-XXXXXXXXXX', 'dc-sw-prefetch' ) ); ?>">
+								placeholder="<?php echo esc_attr( __( 'GTM-XXXXXXX or G-XXXXXXXXXX', 'dc-script-worker-prefetcher' ) ); ?>">
 							<span id="dc-swp-gtm-id-status"></span>
-							<p class="description" style="margin-top:6px"><?php echo wp_kses_post( __( 'Enter your GTM Container ID or GA4 Measurement ID. The plugin injects the snippet in <code>&lt;head&gt;</code> at the correct position -- after the GCM v2 consent default but before any other scripts.', 'dc-sw-prefetch' ) ); ?></p>
+							<p class="description" style="margin-top:6px"><?php echo wp_kses_post( __( 'Enter your GTM Container ID or GA4 Measurement ID. The plugin injects the snippet in <code>&lt;head&gt;</code> at the correct position -- after the GCM v2 consent default but before any other scripts.', 'dc-script-worker-prefetcher' ) ); ?></p>
 						</div>
 
 						<!-- Panel: detect -->
@@ -621,11 +621,11 @@ function dc_swp_admin_page_html() {
 								?>
 								style="display:none"<?php endif; ?>>
 							<button type="button" id="dc-swp-gtm-detect-btn" class="button button-secondary">
-								<?php echo esc_html__( 'Scan Website', 'dc-sw-prefetch' ); ?>
+								<?php echo esc_html__( 'Scan Website', 'dc-script-worker-prefetcher' ); ?>
 							</button>
 							<span id="dc-swp-gtm-detect-spinner" class="spinner" style="float:none;margin-left:4px;display:none;"></span>
 							<div id="dc-swp-gtm-detect-result" style="margin-top:8px"></div>
-							<p class="description" style="margin-top:6px"><?php echo wp_kses_post( __( 'Fetches the page HTML source and scans for active Google Tags (GTM, GA4, UA). Only detects tags actually present in the rendered source -- not plugin settings. GCM v2 consent mode fires automatically before the detected tag.', 'dc-sw-prefetch' ) ); ?></p>
+							<p class="description" style="margin-top:6px"><?php echo wp_kses_post( __( 'Fetches the page HTML source and scans for active Google Tags (GTM, GA4, UA). Only detects tags actually present in the rendered source -- not plugin settings. GCM v2 consent mode fires automatically before the detected tag.', 'dc-script-worker-prefetcher' ) ); ?></p>
 						</div>
 
 						<!-- Panel: managed (wizard) -->
@@ -645,10 +645,10 @@ function dc_swp_admin_page_html() {
 							</div>
 							<?php
 							$_wiz_steps = array(
-								1 => array( __( 'Step 1 -- Create GTM Account & Container', 'dc-sw-prefetch' ), __( 'Visit <a href="https://tagmanager.google.com" target="_blank" rel="noopener">tagmanager.google.com ↗</a>, sign in, click <strong>Create Account</strong>, enter an account name and country, add a Container (use your website URL as the name), select <strong>Web</strong> as the platform, then click <strong>Create</strong>.', 'dc-sw-prefetch' ) ),
-								2 => array( __( 'Step 2 -- Enter Your Container ID', 'dc-sw-prefetch' ), __( 'Your <strong>Container ID</strong> appears in the top-right of the GTM interface (format: <code>GTM-XXXXXXX</code>). Copy it and paste it below.', 'dc-sw-prefetch' ) ),
-								3 => array( __( 'Step 3 -- Add Tags in GTM', 'dc-sw-prefetch' ), __( 'Inside GTM, add tags such as <strong>Google Analytics 4</strong> (use the &ldquo;Google Tag&rdquo; configuration tag with your GA4 Measurement ID <code>G-XXXXXXXXXX</code>), <strong>LinkedIn Insight Tag</strong>, <strong>TikTok Pixel</strong>, etc. Set each tag to fire on trigger <em>All Pages</em>. GCM v2 consent mode automatically controls data collection per visitor consent.', 'dc-sw-prefetch' ) ),
-								4 => array( __( 'Step 4 -- Publish & Confirm', 'dc-sw-prefetch' ), __( 'Click <strong>Submit</strong> → <strong>Publish</strong> in GTM to deploy your container. This plugin injects the GTM snippet in <code>&lt;head&gt;</code> with GCM v2 consent pre-configured. Click <strong>Complete Setup</strong> below to save your Container ID.', 'dc-sw-prefetch' ) ),
+								1 => array( __( 'Step 1 -- Create GTM Account & Container', 'dc-script-worker-prefetcher' ), __( 'Visit <a href="https://tagmanager.google.com" target="_blank" rel="noopener">tagmanager.google.com ↗</a>, sign in, click <strong>Create Account</strong>, enter an account name and country, add a Container (use your website URL as the name), select <strong>Web</strong> as the platform, then click <strong>Create</strong>.', 'dc-script-worker-prefetcher' ) ),
+								2 => array( __( 'Step 2 -- Enter Your Container ID', 'dc-script-worker-prefetcher' ), __( 'Your <strong>Container ID</strong> appears in the top-right of the GTM interface (format: <code>GTM-XXXXXXX</code>). Copy it and paste it below.', 'dc-script-worker-prefetcher' ) ),
+								3 => array( __( 'Step 3 -- Add Tags in GTM', 'dc-script-worker-prefetcher' ), __( 'Inside GTM, add tags such as <strong>Google Analytics 4</strong> (use the &ldquo;Google Tag&rdquo; configuration tag with your GA4 Measurement ID <code>G-XXXXXXXXXX</code>), <strong>LinkedIn Insight Tag</strong>, <strong>TikTok Pixel</strong>, etc. Set each tag to fire on trigger <em>All Pages</em>. GCM v2 consent mode automatically controls data collection per visitor consent.', 'dc-script-worker-prefetcher' ) ),
+								4 => array( __( 'Step 4 -- Publish & Confirm', 'dc-script-worker-prefetcher' ), __( 'Click <strong>Submit</strong> → <strong>Publish</strong> in GTM to deploy your container. This plugin injects the GTM snippet in <code>&lt;head&gt;</code> with GCM v2 consent pre-configured. Click <strong>Complete Setup</strong> below to save your Container ID.', 'dc-script-worker-prefetcher' ) ),
 							);
 							foreach ( $_wiz_steps as $_sn => $_wiz_step ) :
 								$_st = $_wiz_step[0];
@@ -662,36 +662,36 @@ function dc_swp_admin_page_html() {
 									<input type="text" id="dc-swp-gtm-wizard-id"
 										class="regular-text" style="font-family:monospace"
 										value="<?php echo esc_attr( get_option( 'dc_swp_gtm_id', '' ) ); ?>"
-										placeholder="<?php echo esc_attr( __( 'GTM-XXXXXXX', 'dc-sw-prefetch' ) ); ?>">
+										placeholder="<?php echo esc_attr( __( 'GTM-XXXXXXX', 'dc-script-worker-prefetcher' ) ); ?>">
 									<span id="dc-swp-gtm-wizard-status"></span>
 								</div>
 								<?php endif; ?>
 								<?php if ( 4 === $_sn ) : ?>
 								<div id="dc-swp-wizard-summary" style="margin:10px 0;padding:10px;background:#f0f7f0;border:1px solid #3cb034;border-radius:3px;display:none">
-									<strong><?php echo esc_html__( 'GTM Active', 'dc-sw-prefetch' ); ?>:</strong> <code id="dc-swp-wizard-summary-id"></code>
+									<strong><?php echo esc_html__( 'GTM Active', 'dc-script-worker-prefetcher' ); ?>:</strong> <code id="dc-swp-wizard-summary-id"></code>
 								</div>
 								<?php endif; ?>
 								<div class="dc-swp-wizard-nav">
 									<?php if ( $_sn > 1 ) : ?>
 									<button type="button" class="button dc-swp-wizard-btn" data-dir="prev" data-step="<?php echo (int) $_sn; ?>">
-										<?php echo esc_html__( '← Back', 'dc-sw-prefetch' ); ?>
+										<?php echo esc_html__( '← Back', 'dc-script-worker-prefetcher' ); ?>
 									</button>
 									<?php endif; ?>
 									<?php if ( $_sn < 4 ) : ?>
 									<button type="button" class="button button-primary dc-swp-wizard-btn"
 										data-dir="next" data-step="<?php echo (int) $_sn; ?>"
 										<?php echo 2 === $_sn ? 'id="dc-swp-wizard-step2-next" disabled' : ''; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- fully static HTML attribute string. ?>>
-										<?php echo esc_html__( 'Next →', 'dc-sw-prefetch' ); ?>
+										<?php echo esc_html__( 'Next →', 'dc-script-worker-prefetcher' ); ?>
 									</button>
 									<?php else : ?>
 									<button type="button" class="button button-primary" id="dc-swp-wizard-complete">
-										<?php echo esc_html__( '✔ Complete Setup', 'dc-sw-prefetch' ); ?>
+										<?php echo esc_html__( '✔ Complete Setup', 'dc-script-worker-prefetcher' ); ?>
 									</button>
 									<?php endif; ?>
 								</div>
 							</div>
 							<?php endforeach; ?>
-							<p class="description" style="margin-top:10px"><?php echo wp_kses_post( __( 'Follow the step-by-step guide to create your GTM container and let this plugin inject and manage the snippet.', 'dc-sw-prefetch' ) ); ?></p>
+							<p class="description" style="margin-top:10px"><?php echo wp_kses_post( __( 'Follow the step-by-step guide to create your GTM container and let this plugin inject and manage the snippet.', 'dc-script-worker-prefetcher' ) ); ?></p>
 						</div>
 					</td>
 				</tr>
@@ -700,14 +700,14 @@ function dc_swp_admin_page_html() {
 				if ( 'off' === $gtm_mode ) :
 					?>
 					style="display:none"<?php endif; ?>>
-					<th scope="row"><?php echo esc_html__( 'Google Consent Mode v2', 'dc-sw-prefetch' ); ?></th>
+					<th scope="row"><?php echo esc_html__( 'Google Consent Mode v2', 'dc-script-worker-prefetcher' ); ?></th>
 					<td>
 						<label class="pwa-toggle">
 							<input type="checkbox" name="dc_swp_consent_mode" value="yes" <?php checked( $consent_mode, true ); ?>>
 							<span class="pwa-slider"></span>
 						</label>
-						<span id="dc-swp-gcm-prereq" style="display:none;margin-left:8px;color:#d63638;font-weight:600;font-size:12px"><?php esc_html_e( '⚠ Save a GTM Container ID first to enable Consent Mode.', 'dc-sw-prefetch' ); ?></span>
-						<p class="description"><?php echo wp_kses_post( __( 'Global consent authority for all GCM v2-compatible services. Injects a full 7-parameter <code>gtag("consent","default",{...})</code> snippet in &lt;head&gt; before any scripts load -- with per-category consent signals (marketing → ads, statistics → analytics, preferences → personalisation). When active, scripts for GCM v2-aware services (Google Tag Manager, Hotjar, LinkedIn Insight, TikTok Pixel, Microsoft Clarity) always run as <code>text/partytown</code>. A revoke listener is automatically injected to fire <code>gtag("consent","update",{...denied})</code> if the visitor withdraws consent. <strong>Requires GTM or a gtag.js-based setup together with a GCM v2-compatible CMP.</strong>', 'dc-sw-prefetch' ) ); ?></p>
+						<span id="dc-swp-gcm-prereq" style="display:none;margin-left:8px;color:#d63638;font-weight:600;font-size:12px"><?php esc_html_e( '⚠ Save a GTM Container ID first to enable Consent Mode.', 'dc-script-worker-prefetcher' ); ?></span>
+						<p class="description"><?php echo wp_kses_post( __( 'Global consent authority for all GCM v2-compatible services. Injects a full 7-parameter <code>gtag("consent","default",{...})</code> snippet in &lt;head&gt; before any scripts load -- with per-category consent signals (marketing → ads, statistics → analytics, preferences → personalisation). When active, scripts for GCM v2-aware services (Google Tag Manager, Hotjar, LinkedIn Insight, TikTok Pixel, Microsoft Clarity) always run as <code>text/partytown</code>. A revoke listener is automatically injected to fire <code>gtag("consent","update",{...denied})</code> if the visitor withdraws consent. <strong>Requires GTM or a gtag.js-based setup together with a GCM v2-compatible CMP.</strong>', 'dc-script-worker-prefetcher' ) ); ?></p>
 					<div id="dc-swp-gcm-notices"></div>
 					<?php
 					// -- Consent Architecture info panel ---------------------------------
@@ -727,11 +727,11 @@ function dc_swp_admin_page_html() {
 					);
 					?>
 					<details class="dc-swp-consent-info">
-						<summary><?php echo esc_html__( 'Consent Architecture & GCM v2 Services', 'dc-sw-prefetch' ); ?></summary>
+						<summary><?php echo esc_html__( 'Consent Architecture & GCM v2 Services', 'dc-script-worker-prefetcher' ); ?></summary>
 						<div class="dc-swp-consent-info-body">
 
-							<p class="dc-swp-info-section"><?php echo esc_html__( 'GCM v2-Aware Services', 'dc-sw-prefetch' ); ?></p>
-							<p class="description" style="margin-bottom:6px"><?php echo esc_html__( 'These services natively read the GCM v2 consent state and self-restrict data collection -- no text/plain blocking is needed when GCM v2 is active.', 'dc-sw-prefetch' ); ?></p>
+							<p class="dc-swp-info-section"><?php echo esc_html__( 'GCM v2-Aware Services', 'dc-script-worker-prefetcher' ); ?></p>
+							<p class="description" style="margin-bottom:6px"><?php echo esc_html__( 'These services natively read the GCM v2 consent state and self-restrict data collection -- no text/plain blocking is needed when GCM v2 is active.', 'dc-script-worker-prefetcher' ); ?></p>
 							<div class="dc-swp-badges">
 								<?php
 								foreach ( $_gcm as $_b ) {
@@ -744,23 +744,23 @@ function dc_swp_admin_page_html() {
 					</details>
 					</td>
 				</tr>
-				<tr valign="top">					<th scope="row"><?php echo esc_html__( 'URL Passthrough', 'dc-sw-prefetch' ); ?></th>
+				<tr valign="top">					<th scope="row"><?php echo esc_html__( 'URL Passthrough', 'dc-script-worker-prefetcher' ); ?></th>
 					<td>
 						<label class="pwa-toggle">
 							<input type="checkbox" name="dc_swp_url_passthrough" value="yes" <?php checked( $url_passthrough, true ); ?>>
 							<span class="pwa-slider"></span>
 						</label>
-						<p class="description"><?php echo wp_kses_post( __( 'Enables <code>gtag("set","url_passthrough",true)</code>. Preserves gclid / wbraid parameters in URLs so conversion attribution works cookieless -- even when <code>ad_storage</code> is denied. Recommended for Google Ads advertisers.', 'dc-sw-prefetch' ) ); ?></p>
+						<p class="description"><?php echo wp_kses_post( __( 'Enables <code>gtag("set","url_passthrough",true)</code>. Preserves gclid / wbraid parameters in URLs so conversion attribution works cookieless -- even when <code>ad_storage</code> is denied. Recommended for Google Ads advertisers.', 'dc-script-worker-prefetcher' ) ); ?></p>
 					</td>
 				</tr>
 				<tr valign="top">
-					<th scope="row"><?php echo esc_html__( 'Ads Data Redaction', 'dc-sw-prefetch' ); ?></th>
+					<th scope="row"><?php echo esc_html__( 'Ads Data Redaction', 'dc-script-worker-prefetcher' ); ?></th>
 					<td>
 						<label class="pwa-toggle">
 							<input type="checkbox" name="dc_swp_ads_data_redaction" value="yes" <?php checked( $ads_data_redaction, true ); ?>>
 							<span class="pwa-slider"></span>
 						</label>
-						<p class="description"><?php echo wp_kses_post( __( 'Enables <code>gtag("set","ads_data_redaction",true)</code>. Redacts click IDs (gclid, wbraid) from data sent to Google when <code>ad_storage</code> is denied -- enhanced privacy for visitors who have not granted marketing consent.', 'dc-sw-prefetch' ) ); ?></p>
+						<p class="description"><?php echo wp_kses_post( __( 'Enables <code>gtag("set","ads_data_redaction",true)</code>. Redacts click IDs (gclid, wbraid) from data sent to Google when <code>ad_storage</code> is denied -- enhanced privacy for visitors who have not granted marketing consent.', 'dc-script-worker-prefetcher' ) ); ?></p>
 					</td>
 				</tr>
 			</table>
@@ -772,10 +772,10 @@ function dc_swp_admin_page_html() {
 		<div id="tab-meta" class="dc-swp-tab-panel">
 			<!-- -- Meta Pixel Mode Card ------------------------------------------ -->
 			<fieldset class="dc-swp-fieldset">
-			<legend><?php esc_html_e( 'Meta Pixel (Client-Side)', 'dc-sw-prefetch' ); ?></legend>
+			<legend><?php esc_html_e( 'Meta Pixel (Client-Side)', 'dc-script-worker-prefetcher' ); ?></legend>
 			<table class="form-table">
 				<tr valign="top">
-					<th scope="row"><?php echo esc_html__( 'Meta Pixel', 'dc-sw-prefetch' ); ?></th>
+					<th scope="row"><?php echo esc_html__( 'Meta Pixel', 'dc-script-worker-prefetcher' ); ?></th>
 					<td>
 						<!-- Hidden field -- always submitted; JS syncs from whichever panel is active -->
 						<input type="hidden" name="dc_swp_pixel_id" id="dc_swp_pixel_id_field"
@@ -783,10 +783,10 @@ function dc_swp_admin_page_html() {
 						<fieldset>
 						<?php
 						$_pixel_modes = array(
-							'off'     => __( 'Disabled -- no Pixel injection', 'dc-sw-prefetch' ),
-							'own'     => __( 'Enter Pixel ID -- I have my own Meta Pixel ID', 'dc-sw-prefetch' ),
-							'detect'  => __( 'Auto-Detect -- find active Pixel in page source', 'dc-sw-prefetch' ),
-							'managed' => __( 'Setup Guide -- step-by-step Meta Pixel onboarding', 'dc-sw-prefetch' ),
+							'off'     => __( 'Disabled -- no Pixel injection', 'dc-script-worker-prefetcher' ),
+							'own'     => __( 'Enter Pixel ID -- I have my own Meta Pixel ID', 'dc-script-worker-prefetcher' ),
+							'detect'  => __( 'Auto-Detect -- find active Pixel in page source', 'dc-script-worker-prefetcher' ),
+							'managed' => __( 'Setup Guide -- step-by-step Meta Pixel onboarding', 'dc-script-worker-prefetcher' ),
 						);
 						foreach ( $_pixel_modes as $_pv => $_pl ) :
 							?>
@@ -807,10 +807,10 @@ function dc_swp_admin_page_html() {
 							<input type="text" id="dc-swp-pixel-id-own"
 								class="regular-text" style="font-family:monospace"
 								value="<?php echo esc_attr( $pixel_id ); ?>"
-								placeholder="<?php echo esc_attr( __( '123456789012345', 'dc-sw-prefetch' ) ); ?>"
+								placeholder="<?php echo esc_attr( __( '123456789012345', 'dc-script-worker-prefetcher' ) ); ?>"
 								maxlength="20" inputmode="numeric" pattern="\d{10,20}">
 							<span id="dc-swp-pixel-id-status"></span>
-							<p class="description" style="margin-top:6px"><?php echo wp_kses_post( __( 'Enter your Meta Pixel ID (10–20 digits). Found in Meta Events Manager &#8594; Data Sources &#8594; Pixels. The plugin injects the full base code + PageView in <code>&lt;head&gt;</code> via <code>type="text/partytown"</code>.', 'dc-sw-prefetch' ) ); ?></p>
+							<p class="description" style="margin-top:6px"><?php echo wp_kses_post( __( 'Enter your Meta Pixel ID (10–20 digits). Found in Meta Events Manager &#8594; Data Sources &#8594; Pixels. The plugin injects the full base code + PageView in <code>&lt;head&gt;</code> via <code>type="text/partytown"</code>.', 'dc-script-worker-prefetcher' ) ); ?></p>
 						</div>
 
 						<!-- Panel: detect -->
@@ -821,11 +821,11 @@ function dc_swp_admin_page_html() {
 								?>
 								style="display:none"<?php endif; ?>>
 							<button type="button" id="dc-swp-pixel-detect-btn" class="button button-secondary">
-								<?php echo esc_html__( 'Scan Website', 'dc-sw-prefetch' ); ?>
+								<?php echo esc_html__( 'Scan Website', 'dc-script-worker-prefetcher' ); ?>
 							</button>
 							<span id="dc-swp-pixel-detect-spinner" class="spinner" style="float:none;margin-left:4px;display:none;"></span>
 							<div id="dc-swp-pixel-detect-result" style="margin-top:8px"></div>
-							<p class="description" style="margin-top:6px"><?php echo wp_kses_post( __( 'Fetches the page HTML source and scans for an active Meta Pixel (fbevents.js <code>fbq(\'init\',...)</code> call). Only detects Pixels actually present in the rendered source.', 'dc-sw-prefetch' ) ); ?></p>
+							<p class="description" style="margin-top:6px"><?php echo wp_kses_post( __( 'Fetches the page HTML source and scans for an active Meta Pixel (fbevents.js <code>fbq(\'init\',...)</code> call). Only detects Pixels actually present in the rendered source.', 'dc-script-worker-prefetcher' ) ); ?></p>
 						</div>
 
 						<!-- Panel: managed (wizard) -->
@@ -846,16 +846,16 @@ function dc_swp_admin_page_html() {
 							<?php
 							$_pixel_wiz_steps = array(
 								1 => array(
-									__( 'Step 1 -- Create Your Meta Pixel', 'dc-sw-prefetch' ),
-									__( 'Go to <a href="https://business.facebook.com/events_manager" target="_blank" rel="noopener">Meta Events Manager &#8599;</a>, click <strong>Connect Data Sources</strong>, select <strong>Web</strong>, then click <strong>Meta Pixel</strong> and follow the prompts to create your Pixel. Your Pixel ID (a 15-digit number) will appear once creation is complete.', 'dc-sw-prefetch' ),
+									__( 'Step 1 -- Create Your Meta Pixel', 'dc-script-worker-prefetcher' ),
+									__( 'Go to <a href="https://business.facebook.com/events_manager" target="_blank" rel="noopener">Meta Events Manager &#8599;</a>, click <strong>Connect Data Sources</strong>, select <strong>Web</strong>, then click <strong>Meta Pixel</strong> and follow the prompts to create your Pixel. Your Pixel ID (a 15-digit number) will appear once creation is complete.', 'dc-script-worker-prefetcher' ),
 								),
 								2 => array(
-									__( 'Step 2 -- Enter Your Pixel ID', 'dc-sw-prefetch' ),
-									__( 'Copy your <strong>Pixel ID</strong> from Meta Events Manager and paste it below. It\'s a 10–20 digit number (e.g. <code>123456789012345</code>).', 'dc-sw-prefetch' ),
+									__( 'Step 2 -- Enter Your Pixel ID', 'dc-script-worker-prefetcher' ),
+									__( 'Copy your <strong>Pixel ID</strong> from Meta Events Manager and paste it below. It\'s a 10–20 digit number (e.g. <code>123456789012345</code>).', 'dc-script-worker-prefetcher' ),
 								),
 								3 => array(
-									__( 'Step 3 -- Confirm &amp; Activate', 'dc-sw-prefetch' ),
-									__( 'The plugin will inject the Meta Pixel base code + PageView into <code>&lt;head&gt;</code> as <code>type="text/partytown"</code> — running it in a web worker. LDU and WP Consent API signals are applied automatically when enabled. Click <strong>Complete Setup</strong> to save.', 'dc-sw-prefetch' ),
+									__( 'Step 3 -- Confirm &amp; Activate', 'dc-script-worker-prefetcher' ),
+									__( 'The plugin will inject the Meta Pixel base code + PageView into <code>&lt;head&gt;</code> as <code>type="text/partytown"</code> — running it in a web worker. LDU and WP Consent API signals are applied automatically when enabled. Click <strong>Complete Setup</strong> to save.', 'dc-script-worker-prefetcher' ),
 								),
 							);
 							foreach ( $_pixel_wiz_steps as $_psn => $_pwiz ) :
@@ -870,37 +870,37 @@ function dc_swp_admin_page_html() {
 									<input type="text" id="dc-swp-pixel-wizard-id"
 										class="regular-text" style="font-family:monospace"
 										value="<?php echo esc_attr( $pixel_id ); ?>"
-										placeholder="<?php echo esc_attr( __( '123456789012345', 'dc-sw-prefetch' ) ); ?>"
+										placeholder="<?php echo esc_attr( __( '123456789012345', 'dc-script-worker-prefetcher' ) ); ?>"
 										maxlength="20" inputmode="numeric" pattern="\d{10,20}">
 									<span id="dc-swp-pixel-wizard-status"></span>
 								</div>
 								<?php endif; ?>
 								<?php if ( 3 === $_psn ) : ?>
 								<div id="dc-swp-pixel-wizard-summary" style="margin:10px 0;padding:10px;background:#f0f7f0;border:1px solid #3cb034;border-radius:3px;display:none">
-									<strong><?php echo esc_html__( 'Pixel Active', 'dc-sw-prefetch' ); ?>:</strong> <code id="dc-swp-pixel-wizard-summary-id"></code>
+									<strong><?php echo esc_html__( 'Pixel Active', 'dc-script-worker-prefetcher' ); ?>:</strong> <code id="dc-swp-pixel-wizard-summary-id"></code>
 								</div>
 								<?php endif; ?>
 								<div class="dc-swp-wizard-nav">
 									<?php if ( $_psn > 1 ) : ?>
 									<button type="button" class="button dc-swp-pixel-wizard-btn" data-dir="prev" data-step="<?php echo (int) $_psn; ?>">
-										<?php echo esc_html__( '&#8592; Back', 'dc-sw-prefetch' ); ?>
+										<?php echo esc_html__( '&#8592; Back', 'dc-script-worker-prefetcher' ); ?>
 									</button>
 									<?php endif; ?>
 									<?php if ( $_psn < 3 ) : ?>
 									<button type="button" class="button button-primary dc-swp-pixel-wizard-btn"
 										data-dir="next" data-step="<?php echo (int) $_psn; ?>"
 										<?php echo 2 === $_psn ? 'id="dc-swp-pixel-wizard-step2-next" disabled' : ''; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- fully static HTML attribute. ?>>
-										<?php echo esc_html__( 'Next &#8594;', 'dc-sw-prefetch' ); ?>
+										<?php echo esc_html__( 'Next &#8594;', 'dc-script-worker-prefetcher' ); ?>
 									</button>
 									<?php else : ?>
 									<button type="button" class="button button-primary" id="dc-swp-pixel-wizard-complete">
-										<?php echo esc_html__( '&#10004; Complete Setup', 'dc-sw-prefetch' ); ?>
+										<?php echo esc_html__( '&#10004; Complete Setup', 'dc-script-worker-prefetcher' ); ?>
 									</button>
 									<?php endif; ?>
 								</div>
 							</div>
 							<?php endforeach; ?>
-							<p class="description" style="margin-top:10px"><?php echo wp_kses_post( __( 'Follow the step-by-step guide to add your Meta Pixel and let this plugin inject and manage the base code.', 'dc-sw-prefetch' ) ); ?></p>
+							<p class="description" style="margin-top:10px"><?php echo wp_kses_post( __( 'Follow the step-by-step guide to add your Meta Pixel and let this plugin inject and manage the base code.', 'dc-script-worker-prefetcher' ) ); ?></p>
 						</div>
 						</td>
 					</tr>
@@ -909,13 +909,13 @@ function dc_swp_admin_page_html() {
 					if ( 'off' === $pixel_mode ) :
 						?>
 						style="display:none"<?php endif; ?>>
-						<th scope="row"><?php echo esc_html__( 'Meta LDU (Limited Data Use)', 'dc-sw-prefetch' ); ?></th>
+						<th scope="row"><?php echo esc_html__( 'Meta LDU (Limited Data Use)', 'dc-script-worker-prefetcher' ); ?></th>
 						<td>
 							<label class="pwa-toggle">
 								<input type="checkbox" name="dc_swp_meta_ldu" value="yes" <?php checked( $meta_ldu, true ); ?>>
 								<span class="pwa-slider"></span>
 							</label>
-							<p class="description" style="margin-top:6px"><?php echo wp_kses_post( __( 'Injects <code>fbq("dataProcessingOptions",["LDU"],0,0)</code> before the Pixel loads. When WP Consent API is active, consented visitors receive <code>fbq("consent","grant")</code> + <code>fbq("dataProcessingOptions",[],0,0)</code> (unrestricted) while non-consented visitors receive <code>fbq("consent","revoke")</code> + full LDU.', 'dc-sw-prefetch' ) ); ?></p>
+							<p class="description" style="margin-top:6px"><?php echo wp_kses_post( __( 'Injects <code>fbq("dataProcessingOptions",["LDU"],0,0)</code> before the Pixel loads. When WP Consent API is active, consented visitors receive <code>fbq("consent","grant")</code> + <code>fbq("dataProcessingOptions",[],0,0)</code> (unrestricted) while non-consented visitors receive <code>fbq("consent","revoke")</code> + full LDU.', 'dc-script-worker-prefetcher' ) ); ?></p>
 						</td>
 					</tr>
 				</table>
@@ -926,18 +926,18 @@ function dc_swp_admin_page_html() {
 		<!-- ===== TAB 5: INTEGRATIONS ===== -->
 		<div id="tab-integrations" class="dc-swp-tab-panel">
 
-			<p><?php echo wp_kses_post( __( 'Enter a service ID to auto-inject its tracking snippet as <code>type="text/partytown"</code> — running it inside a web worker and adding its CDN domains to the Partytown proxy automatically. Leave blank to disable. All six services are confirmed in the <a href="https://partytown.qwik.dev/common-services/" target="_blank" rel="noopener">Partytown Common Services guide</a>.', 'dc-sw-prefetch' ) ); ?></p>
+			<p><?php echo wp_kses_post( __( 'Enter a service ID to auto-inject its tracking snippet as <code>type="text/partytown"</code> — running it inside a web worker and adding its CDN domains to the Partytown proxy automatically. Leave blank to disable. All six services are confirmed in the <a href="https://partytown.qwik.dev/common-services/" target="_blank" rel="noopener">Partytown Common Services guide</a>.', 'dc-script-worker-prefetcher' ) ); ?></p>
 
 			<!-- -- HubSpot ------------------------------------------------------- -->
 			<fieldset class="dc-swp-fieldset">
-			<legend><?php esc_html_e( 'HubSpot', 'dc-sw-prefetch' ); ?></legend>
+			<legend><?php esc_html_e( 'HubSpot', 'dc-script-worker-prefetcher' ); ?></legend>
 			<table class="form-table">
 				<tr valign="top">
-					<th scope="row"><?php esc_html_e( 'Portal ID', 'dc-sw-prefetch' ); ?></th>
+					<th scope="row"><?php esc_html_e( 'Portal ID', 'dc-script-worker-prefetcher' ); ?></th>
 					<td>
 						<input type="text" name="dc_swp_hubspot_portal_id" value="<?php echo esc_attr( $hubspot_portal_id ); ?>"
 							placeholder="12345678" style="width:200px;font-family:monospace">
-						<p class="description"><?php echo wp_kses_post( __( 'Found in HubSpot &#8594; Settings &#8594; Account Setup &#8594; Account Defaults. Loads <code>js.hs-scripts.com/{id}.js</code> as a Partytown script. Leave blank to disable.', 'dc-sw-prefetch' ) ); ?></p>
+						<p class="description"><?php echo wp_kses_post( __( 'Found in HubSpot &#8594; Settings &#8594; Account Setup &#8594; Account Defaults. Loads <code>js.hs-scripts.com/{id}.js</code> as a Partytown script. Leave blank to disable.', 'dc-script-worker-prefetcher' ) ); ?></p>
 					</td>
 				</tr>
 			</table>
@@ -945,14 +945,14 @@ function dc_swp_admin_page_html() {
 
 			<!-- -- Klaviyo ------------------------------------------------------- -->
 			<fieldset class="dc-swp-fieldset">
-			<legend><?php esc_html_e( 'Klaviyo', 'dc-sw-prefetch' ); ?></legend>
+			<legend><?php esc_html_e( 'Klaviyo', 'dc-script-worker-prefetcher' ); ?></legend>
 			<table class="form-table">
 				<tr valign="top">
-					<th scope="row"><?php esc_html_e( 'Public API Key (Site ID)', 'dc-sw-prefetch' ); ?></th>
+					<th scope="row"><?php esc_html_e( 'Public API Key (Site ID)', 'dc-script-worker-prefetcher' ); ?></th>
 					<td>
 						<input type="text" name="dc_swp_klaviyo_site_id" value="<?php echo esc_attr( $klaviyo_site_id ); ?>"
 							placeholder="AbCdEf" style="width:200px;font-family:monospace">
-						<p class="description"><?php echo wp_kses_post( __( 'Found in Klaviyo &#8594; Settings &#8594; API Keys. Loads the Klaviyo onsite JS as a Partytown script. Leave blank to disable.', 'dc-sw-prefetch' ) ); ?></p>
+						<p class="description"><?php echo wp_kses_post( __( 'Found in Klaviyo &#8594; Settings &#8594; API Keys. Loads the Klaviyo onsite JS as a Partytown script. Leave blank to disable.', 'dc-script-worker-prefetcher' ) ); ?></p>
 					</td>
 				</tr>
 			</table>
@@ -960,14 +960,14 @@ function dc_swp_admin_page_html() {
 
 			<!-- -- Mixpanel ------------------------------------------------------ -->
 			<fieldset class="dc-swp-fieldset">
-			<legend><?php esc_html_e( 'Mixpanel', 'dc-sw-prefetch' ); ?></legend>
+			<legend><?php esc_html_e( 'Mixpanel', 'dc-script-worker-prefetcher' ); ?></legend>
 			<table class="form-table">
 				<tr valign="top">
-					<th scope="row"><?php esc_html_e( 'Project Token', 'dc-sw-prefetch' ); ?></th>
+					<th scope="row"><?php esc_html_e( 'Project Token', 'dc-script-worker-prefetcher' ); ?></th>
 					<td>
 						<input type="text" name="dc_swp_mixpanel_token" value="<?php echo esc_attr( $mixpanel_token ); ?>"
 							placeholder="a1b2c3d4e5f6…" style="width:320px;font-family:monospace">
-						<p class="description"><?php echo wp_kses_post( __( 'Found in Mixpanel &#8594; Settings &#8594; Project Settings &#8594; Project Token. Injects the Mixpanel stub + <code>mixpanel.init()</code> as a Partytown script. Leave blank to disable.', 'dc-sw-prefetch' ) ); ?></p>
+						<p class="description"><?php echo wp_kses_post( __( 'Found in Mixpanel &#8594; Settings &#8594; Project Settings &#8594; Project Token. Injects the Mixpanel stub + <code>mixpanel.init()</code> as a Partytown script. Leave blank to disable.', 'dc-script-worker-prefetcher' ) ); ?></p>
 					</td>
 				</tr>
 			</table>
@@ -975,14 +975,14 @@ function dc_swp_admin_page_html() {
 
 			<!-- -- FullStory ----------------------------------------------------- -->
 			<fieldset class="dc-swp-fieldset">
-			<legend><?php esc_html_e( 'FullStory', 'dc-sw-prefetch' ); ?></legend>
+			<legend><?php esc_html_e( 'FullStory', 'dc-script-worker-prefetcher' ); ?></legend>
 			<table class="form-table">
 				<tr valign="top">
-					<th scope="row"><?php esc_html_e( 'Org ID', 'dc-sw-prefetch' ); ?></th>
+					<th scope="row"><?php esc_html_e( 'Org ID', 'dc-script-worker-prefetcher' ); ?></th>
 					<td>
 						<input type="text" name="dc_swp_fullstory_org_id" value="<?php echo esc_attr( $fullstory_org_id ); ?>"
 							placeholder="ABCDE" style="width:200px;font-family:monospace">
-						<p class="description"><?php echo wp_kses_post( __( 'Found in FullStory &#8594; Settings &#8594; General &#8594; General Settings. Injects the FullStory snippet via Partytown. <strong>strictProxyHas</strong> is automatically enabled to prevent false namespace conflicts. Leave blank to disable.', 'dc-sw-prefetch' ) ); ?></p>
+						<p class="description"><?php echo wp_kses_post( __( 'Found in FullStory &#8594; Settings &#8594; General &#8594; General Settings. Injects the FullStory snippet via Partytown. <strong>strictProxyHas</strong> is automatically enabled to prevent false namespace conflicts. Leave blank to disable.', 'dc-script-worker-prefetcher' ) ); ?></p>
 					</td>
 				</tr>
 			</table>
@@ -990,14 +990,14 @@ function dc_swp_admin_page_html() {
 
 			<!-- -- Intercom ------------------------------------------------------ -->
 			<fieldset class="dc-swp-fieldset">
-			<legend><?php esc_html_e( 'Intercom', 'dc-sw-prefetch' ); ?></legend>
+			<legend><?php esc_html_e( 'Intercom', 'dc-script-worker-prefetcher' ); ?></legend>
 			<table class="form-table">
 				<tr valign="top">
-					<th scope="row"><?php esc_html_e( 'App ID', 'dc-sw-prefetch' ); ?></th>
+					<th scope="row"><?php esc_html_e( 'App ID', 'dc-script-worker-prefetcher' ); ?></th>
 					<td>
 						<input type="text" name="dc_swp_intercom_app_id" value="<?php echo esc_attr( $intercom_app_id ); ?>"
 							placeholder="abc12345" style="width:200px;font-family:monospace">
-						<p class="description"><?php echo wp_kses_post( __( 'Found in Intercom &#8594; Settings &#8594; Installation &#8594; Your App ID. Injects the Intercom loader + boot call as a Partytown script. Leave blank to disable.', 'dc-sw-prefetch' ) ); ?></p>
+						<p class="description"><?php echo wp_kses_post( __( 'Found in Intercom &#8594; Settings &#8594; Installation &#8594; Your App ID. Injects the Intercom loader + boot call as a Partytown script. Leave blank to disable.', 'dc-script-worker-prefetcher' ) ); ?></p>
 					</td>
 				</tr>
 			</table>
@@ -1005,14 +1005,14 @@ function dc_swp_admin_page_html() {
 
 			<!-- -- TikTok Pixel -------------------------------------------------- -->
 			<fieldset class="dc-swp-fieldset">
-			<legend><?php esc_html_e( 'TikTok Pixel', 'dc-sw-prefetch' ); ?></legend>
+			<legend><?php esc_html_e( 'TikTok Pixel', 'dc-script-worker-prefetcher' ); ?></legend>
 			<table class="form-table">
 				<tr valign="top">
-					<th scope="row"><?php esc_html_e( 'Pixel ID', 'dc-sw-prefetch' ); ?></th>
+					<th scope="row"><?php esc_html_e( 'Pixel ID', 'dc-script-worker-prefetcher' ); ?></th>
 					<td>
 						<input type="text" name="dc_swp_tt_pixel_id" value="<?php echo esc_attr( $tt_pixel_id ); ?>"
 							placeholder="ABCDEFGH1234567890" style="width:260px;font-family:monospace">
-						<p class="description"><?php echo wp_kses_post( __( 'Found in TikTok Ads Manager &#8594; Assets &#8594; Events &#8594; Web Events &#8594; Pixel. Injects the TikTok base code as <code>type="text/partytown"</code> — offloading the Pixel to a web worker. <code>ttq.track</code>, <code>ttq.page</code>, and <code>ttq.load</code> are forwarded automatically. Leave blank to disable.', 'dc-sw-prefetch' ) ); ?></p>
+						<p class="description"><?php echo wp_kses_post( __( 'Found in TikTok Ads Manager &#8594; Assets &#8594; Events &#8594; Web Events &#8594; Pixel. Injects the TikTok base code as <code>type="text/partytown"</code> — offloading the Pixel to a web worker. <code>ttq.track</code>, <code>ttq.page</code>, and <code>ttq.load</code> are forwarded automatically. Leave blank to disable.', 'dc-script-worker-prefetcher' ) ); ?></p>
 					</td>
 				</tr>
 			</table>
@@ -1025,23 +1025,23 @@ function dc_swp_admin_page_html() {
 			<fieldset class="dc-swp-fieldset">
 			<table class="form-table">
 				<tr valign="top">
-					<th scope="row"><?php echo esc_html__( 'Partytown Health Monitor', 'dc-sw-prefetch' ); ?></th>
+					<th scope="row"><?php echo esc_html__( 'Partytown Health Monitor', 'dc-script-worker-prefetcher' ); ?></th>
 					<td>
 						<label class="pwa-toggle">
 							<input type="checkbox" name="dc_swp_health_monitor" value="yes" <?php checked( $health_monitor, true ); ?>>
 							<span class="pwa-slider"></span>
 						</label>
-						<p class="description"><?php echo esc_html__( 'Detects services that fail silently inside the Partytown worker (no network traffic observed within 15 seconds) and surfaces an admin notice. Disable if you experience false positives.', 'dc-sw-prefetch' ); ?></p>
+						<p class="description"><?php echo esc_html__( 'Detects services that fail silently inside the Partytown worker (no network traffic observed within 15 seconds) and surfaces an admin notice. Disable if you experience false positives.', 'dc-script-worker-prefetcher' ); ?></p>
 					</td>
 				</tr>
 				<tr valign="top">
-					<th scope="row"><?php echo esc_html__( 'Performance Metrics', 'dc-sw-prefetch' ); ?></th>
+					<th scope="row"><?php echo esc_html__( 'Performance Metrics', 'dc-script-worker-prefetcher' ); ?></th>
 					<td>
 						<label class="pwa-toggle">
 							<input type="checkbox" name="dc_swp_perf_monitor" value="yes" <?php checked( $perf_monitor, true ); ?>>
 							<span class="pwa-slider"></span>
 						</label>
-						<p class="description"><?php echo esc_html__( 'Collects anonymous TBT (Total Blocking Time) and INP (Interaction to Next Paint) measurements from real visitors and shows rolling averages + P75 percentiles in the admin -- giving tangible proof of Partytown\'s main-thread offloading benefit.', 'dc-sw-prefetch' ); ?></p>
+						<p class="description"><?php echo esc_html__( 'Collects anonymous TBT (Total Blocking Time) and INP (Interaction to Next Paint) measurements from real visitors and shows rolling averages + P75 percentiles in the admin -- giving tangible proof of Partytown\'s main-thread offloading benefit.', 'dc-script-worker-prefetcher' ); ?></p>
 					</td>
 				</tr>
 			</table>
@@ -1049,9 +1049,9 @@ function dc_swp_admin_page_html() {
 
 			<!-- -- Performance Dashboard ---------------------------------------- -->
 			<fieldset class="dc-swp-fieldset">
-			<legend><?php echo esc_html__( 'Performance Dashboard', 'dc-sw-prefetch' ); ?></legend>
+			<legend><?php echo esc_html__( 'Performance Dashboard', 'dc-script-worker-prefetcher' ); ?></legend>
 		<?php if ( ! is_array( $perf_metrics ) || empty( $perf_metrics['samples'] ) ) : ?>
-			<p class="description"><?php echo esc_html__( 'No performance data yet. Enable Performance Metrics and wait for visitor activity.', 'dc-sw-prefetch' ); ?></p>
+			<p class="description"><?php echo esc_html__( 'No performance data yet. Enable Performance Metrics and wait for visitor activity.', 'dc-script-worker-prefetcher' ); ?></p>
 		<?php else : ?>
 			<?php
 			$_tbt_avg    = (float) ( $perf_metrics['tbt_avg'] ?? 0 );
@@ -1068,7 +1068,7 @@ function dc_swp_admin_page_html() {
 			?>
 			<table class="form-table">
 				<tr>
-					<th scope="row"><?php echo esc_html__( 'Total Blocking Time (TBT)', 'dc-sw-prefetch' ); ?></th>
+					<th scope="row"><?php echo esc_html__( 'Total Blocking Time (TBT)', 'dc-script-worker-prefetcher' ); ?></th>
 					<td>
 						<p>Avg: <strong><?php echo esc_html( number_format( $_tbt_avg, 1 ) ); ?> ms</strong> &nbsp; P75: <strong><?php echo esc_html( number_format( $_tbt_p75, 1 ) ); ?> ms</strong></p>
 						<div style="background:#dcdcde;border-radius:3px;height:10px;width:300px;margin-bottom:4px">
@@ -1078,7 +1078,7 @@ function dc_swp_admin_page_html() {
 					</td>
 				</tr>
 				<tr>
-					<th scope="row"><?php echo esc_html__( 'Interaction to Next Paint (INP)', 'dc-sw-prefetch' ); ?></th>
+					<th scope="row"><?php echo esc_html__( 'Interaction to Next Paint (INP)', 'dc-script-worker-prefetcher' ); ?></th>
 					<td>
 						<p>Avg: <strong><?php echo esc_html( number_format( $_inp_avg, 1 ) ); ?> ms</strong> &nbsp; P75: <strong><?php echo esc_html( number_format( $_inp_p75, 1 ) ); ?> ms</strong></p>
 						<div style="background:#dcdcde;border-radius:3px;height:10px;width:300px;margin-bottom:4px">
@@ -1088,11 +1088,11 @@ function dc_swp_admin_page_html() {
 					</td>
 				</tr>
 				<tr>
-					<th scope="row"><?php echo esc_html__( 'Samples collected', 'dc-sw-prefetch' ); ?></th>
+					<th scope="row"><?php echo esc_html__( 'Samples collected', 'dc-script-worker-prefetcher' ); ?></th>
 					<td>
 						<strong><?php echo (int) $_perf_count; ?></strong>
 						<?php if ( '' !== $_last_upd ) : ?>
-							&nbsp;-- <?php echo esc_html__( 'Last updated', 'dc-sw-prefetch' ); ?>: <code><?php echo esc_html( $_last_upd ); ?></code>
+							&nbsp;-- <?php echo esc_html__( 'Last updated', 'dc-script-worker-prefetcher' ); ?>: <code><?php echo esc_html( $_last_upd ); ?></code>
 						<?php endif; ?>
 					</td>
 				</tr>
@@ -1100,7 +1100,7 @@ function dc_swp_admin_page_html() {
 					<th scope="row"></th>
 					<td>
 						<button type="button" id="dc-swp-perf-reset-btn" class="button button-secondary">
-							<?php echo esc_html__( 'Reset Metrics', 'dc-sw-prefetch' ); ?>
+							<?php echo esc_html__( 'Reset Metrics', 'dc-script-worker-prefetcher' ); ?>
 						</button>
 						<span id="dc-swp-perf-reset-spinner" class="spinner" style="float:none;margin-left:4px;display:none;"></span>
 						<span id="dc-swp-perf-reset-result" style="margin-left:6px;font-weight:600"></span>
@@ -1120,7 +1120,7 @@ function dc_swp_admin_page_html() {
 				if ( ! $sw_enabled ) :
 					?>
 					class="dc-swp-row-disabled"<?php endif; ?>>
-					<th scope="row"><?php echo esc_html__( 'Partytown Debug Mode', 'dc-sw-prefetch' ); ?></th>
+					<th scope="row"><?php echo esc_html__( 'Partytown Debug Mode', 'dc-script-worker-prefetcher' ); ?></th>
 					<td>
 						<label class="pwa-toggle">
 							<input type="checkbox" name="dc_swp_debug_mode" value="yes" <?php checked( $debug_mode && $sw_enabled, true ); ?>
@@ -1131,48 +1131,48 @@ function dc_swp_admin_page_html() {
 							>
 							<span class="pwa-slider"></span>
 						</label>
-						<p class="description"><?php echo wp_kses_post( __( 'Loads the unminified debug build of Partytown and enables all log flags. Output is emitted via <code>console.debug()</code> -- you must enable the <strong>Verbose</strong> level in the DevTools Console filter (hidden by default). Worker-side logs only appear in <strong>Atomics Bridge</strong> mode, which requires the <em>COI Headers</em> option above to be enabled. <strong>Use only in staging or local development -- enables verbose logging for all visitors.</strong>', 'dc-sw-prefetch' ) ); ?></p>
+						<p class="description"><?php echo wp_kses_post( __( 'Loads the unminified debug build of Partytown and enables all log flags. Output is emitted via <code>console.debug()</code> -- you must enable the <strong>Verbose</strong> level in the DevTools Console filter (hidden by default). Worker-side logs only appear in <strong>Atomics Bridge</strong> mode, which requires the <em>COI Headers</em> option above to be enabled. <strong>Use only in staging or local development -- enables verbose logging for all visitors.</strong>', 'dc-script-worker-prefetcher' ) ); ?></p>
 					</td>
 				</tr>
 			</table>
 			</fieldset>
 
 			<fieldset class="dc-swp-fieldset">
-			<legend><?php echo esc_html__( 'Benefits', 'dc-sw-prefetch' ); ?></legend>
+			<legend><?php echo esc_html__( 'Benefits', 'dc-script-worker-prefetcher' ); ?></legend>
 			<ul style="list-style: disc; margin-left: 20px;">
-				<li>&#x2705; <?php echo esc_html__( 'Third-party scripts run in a Web Worker -- unlike async/defer, they never execute on the browser main thread (no layout jank, no TBT penalty)', 'dc-sw-prefetch' ); ?></li>
-				<li>&#x2705; <?php echo esc_html__( 'Google Consent Mode v2 (GCMv2) -- all 7 consent parameters injected before GTM loads; live update signals fired on banner interaction', 'dc-sw-prefetch' ); ?></li>
-				<li>&#x2705; <?php echo esc_html__( 'Meta Pixel LDU -- fbq stub + consent-aware grant/revoke injected automatically; no CMP blocking of the pixel required', 'dc-sw-prefetch' ); ?></li>
-				<li>&#x2705; <?php echo esc_html__( 'Consent Gate -- optional WP Consent API integration; any compatible CMP (Complianz, Cookiebot, CookieYes...) is supported automatically', 'dc-sw-prefetch' ); ?></li>
-				<li>&#x2705; <?php echo esc_html__( 'Six pre-configured Partytown integrations: HubSpot, Klaviyo, Mixpanel, FullStory, Intercom, TikTok Pixel -- enter an ID and the snippet is auto-injected', 'dc-sw-prefetch' ); ?></li>
-				<li>&#x2705; <?php echo esc_html__( 'GTM managed injection with GCMv2 pre-configuration and step-by-step setup wizard', 'dc-sw-prefetch' ); ?></li>
-				<li>&#x2705; <?php echo esc_html__( 'Early Resource Hints -- preconnect and dns-prefetch links auto-emitted for all configured third-party hosts', 'dc-sw-prefetch' ); ?></li>
-				<li>&#x2705; <?php echo esc_html__( 'Cart, checkout, and account pages use the Service Worker bridge (Atomics auto-disabled) -- analytics scripts still fire without breaking payment gateways', 'dc-sw-prefetch' ); ?></li>
-				<li>&#x2705; <?php echo esc_html__( 'Bots and crawlers never receive Partytown scripts -- clean, unmodified HTML for search engines', 'dc-sw-prefetch' ); ?></li>
-				<li>&#x2705; <?php echo esc_html__( 'Third-party scripts auto-detected in one click via homepage scan', 'dc-sw-prefetch' ); ?></li>
-				<li>&#x2705; <?php echo esc_html__( 'Partytown library stays current via automated weekly GitHub Actions workflow', 'dc-sw-prefetch' ); ?></li>
+				<li>&#x2705; <?php echo esc_html__( 'Third-party scripts run in a Web Worker -- unlike async/defer, they never execute on the browser main thread (no layout jank, no TBT penalty)', 'dc-script-worker-prefetcher' ); ?></li>
+				<li>&#x2705; <?php echo esc_html__( 'Google Consent Mode v2 (GCMv2) -- all 7 consent parameters injected before GTM loads; live update signals fired on banner interaction', 'dc-script-worker-prefetcher' ); ?></li>
+				<li>&#x2705; <?php echo esc_html__( 'Meta Pixel LDU -- fbq stub + consent-aware grant/revoke injected automatically; no CMP blocking of the pixel required', 'dc-script-worker-prefetcher' ); ?></li>
+				<li>&#x2705; <?php echo esc_html__( 'Consent Gate -- optional WP Consent API integration; any compatible CMP (Complianz, Cookiebot, CookieYes...) is supported automatically', 'dc-script-worker-prefetcher' ); ?></li>
+				<li>&#x2705; <?php echo esc_html__( 'Six pre-configured Partytown integrations: HubSpot, Klaviyo, Mixpanel, FullStory, Intercom, TikTok Pixel -- enter an ID and the snippet is auto-injected', 'dc-script-worker-prefetcher' ); ?></li>
+				<li>&#x2705; <?php echo esc_html__( 'GTM managed injection with GCMv2 pre-configuration and step-by-step setup wizard', 'dc-script-worker-prefetcher' ); ?></li>
+				<li>&#x2705; <?php echo esc_html__( 'Early Resource Hints -- preconnect and dns-prefetch links auto-emitted for all configured third-party hosts', 'dc-script-worker-prefetcher' ); ?></li>
+				<li>&#x2705; <?php echo esc_html__( 'Cart, checkout, and account pages use the Service Worker bridge (Atomics auto-disabled) -- analytics scripts still fire without breaking payment gateways', 'dc-script-worker-prefetcher' ); ?></li>
+				<li>&#x2705; <?php echo esc_html__( 'Bots and crawlers never receive Partytown scripts -- clean, unmodified HTML for search engines', 'dc-script-worker-prefetcher' ); ?></li>
+				<li>&#x2705; <?php echo esc_html__( 'Third-party scripts auto-detected in one click via homepage scan', 'dc-script-worker-prefetcher' ); ?></li>
+				<li>&#x2705; <?php echo esc_html__( 'Partytown library stays current via automated weekly GitHub Actions workflow', 'dc-script-worker-prefetcher' ); ?></li>
 			</ul>
 			</fieldset>
 
 			<fieldset class="dc-swp-fieldset">
-			<legend><?php echo esc_html__( 'Known Limitations', 'dc-sw-prefetch' ); ?></legend>
+			<legend><?php echo esc_html__( 'Known Limitations', 'dc-script-worker-prefetcher' ); ?></legend>
 			<ul style="list-style: disc; margin-left: 20px;">
-				<li>&#9888; <?php echo wp_kses_post( __( '<strong>Full-page caching + Meta Pixel consent:</strong> The Meta Pixel LDU / <code>fbq("consent","revoke")</code> stub is injected by PHP at request time. If a full-page cache plugin (WP Rocket, Nginx FastCGI, static HTML export) serves a cached page without invoking PHP, the consent stub reflects the state of whoever filled the cache — not the current visitor\'s actual consent. Use per-visitor cache keys or disable full-page caching for logged-out visitors.', 'dc-sw-prefetch' ) ); ?></li>
-				<li>&#9888; <?php echo wp_kses_post( __( '<strong>Meta Pixel with no LDU and no Consent Gate:</strong> If both the <em>Meta LDU</em> toggle and the <em>Consent Gate</em> are disabled, Meta Pixel fires with no <code>fbq("consent",...)</code> signal. Meta receives data without any explicit consent declaration from this plugin. Enable Meta LDU, the Consent Gate, or both to emit meaningful consent signals.', 'dc-sw-prefetch' ) ); ?></li>
+				<li>&#9888; <?php echo wp_kses_post( __( '<strong>Full-page caching + Meta Pixel consent:</strong> The Meta Pixel LDU / <code>fbq("consent","revoke")</code> stub is injected by PHP at request time. If a full-page cache plugin (WP Rocket, Nginx FastCGI, static HTML export) serves a cached page without invoking PHP, the consent stub reflects the state of whoever filled the cache — not the current visitor\'s actual consent. Use per-visitor cache keys or disable full-page caching for logged-out visitors.', 'dc-script-worker-prefetcher' ) ); ?></li>
+				<li>&#9888; <?php echo wp_kses_post( __( '<strong>Meta Pixel with no LDU and no Consent Gate:</strong> If both the <em>Meta LDU</em> toggle and the <em>Consent Gate</em> are disabled, Meta Pixel fires with no <code>fbq("consent",...)</code> signal. Meta receives data without any explicit consent declaration from this plugin. Enable Meta LDU, the Consent Gate, or both to emit meaningful consent signals.', 'dc-script-worker-prefetcher' ) ); ?></li>
 			</ul>
 			</fieldset>
 
 			<fieldset class="dc-swp-fieldset">
-			<legend><?php echo esc_html__( 'Footer Credit', 'dc-sw-prefetch' ); ?></legend>
+			<legend><?php echo esc_html__( 'Footer Credit', 'dc-script-worker-prefetcher' ); ?></legend>
 			<table class="form-table">
 				<tr valign="top">
-					<th scope="row"><?php echo esc_html__( 'Footer Credit', 'dc-sw-prefetch' ); ?></th>
+					<th scope="row"><?php echo esc_html__( 'Footer Credit', 'dc-script-worker-prefetcher' ); ?></th>
 					<td>
 						<label>
 							<input type="checkbox" name="dc_swp_footer_credit" value="yes" <?php checked( $footer_credit, true ); ?>>
-							<?php echo esc_html__( 'Show some love and support development by adding a small link in the footer', 'dc-sw-prefetch' ); ?>
+							<?php echo esc_html__( 'Show some love and support development by adding a small link in the footer', 'dc-script-worker-prefetcher' ); ?>
 						</label>
-						<p class="description"><?php echo wp_kses_post( __( 'Inserts a discreet <a href="https://www.dampcig.dk" target="_blank">Dampcig.dk</a> link in the footer by linking the copyright symbol ©.', 'dc-sw-prefetch' ) ); ?></p>
+						<p class="description"><?php echo wp_kses_post( __( 'Inserts a discreet <a href="https://www.dampcig.dk" target="_blank">Dampcig.dk</a> link in the footer by linking the copyright symbol ©.', 'dc-script-worker-prefetcher' ) ); ?></p>
 					</td>
 				</tr>
 			</table>
@@ -1181,14 +1181,14 @@ function dc_swp_admin_page_html() {
 			</fieldset>
 
 			<fieldset class="dc-swp-fieldset">
-			<legend><?php esc_html_e( 'Support Development', 'dc-sw-prefetch' ); ?></legend>
+			<legend><?php esc_html_e( 'Support Development', 'dc-script-worker-prefetcher' ); ?></legend>
 			<div class="dc-swp-donate-wrap">
 				<p class="dc-swp-donate-speech">
 					<?php
 					echo wp_kses_post(
 						__(
 							'<strong>This plugin is free — and always will be.</strong> Building and maintaining it takes real time: fixing edge cases, keeping pace with WordPress updates, testing every WooCommerce release, and answering support questions. If it saved you an hour, spared you a headache, or just quietly made your store faster — please consider buying me a coffee or a treat for my dog. Every donation, no matter the size, keeps the motivation going and the updates coming. Thank you! 🐾',
-							'dc-sw-prefetch'
+							'dc-script-worker-prefetcher'
 						)
 					);
 					?>
@@ -1197,20 +1197,20 @@ function dc_swp_admin_page_html() {
 					<div class="dc-swp-donate-qr">
 						<img
 							src="<?php echo esc_url( plugins_url( 'assets/img/paypal-qr.png', __FILE__ ) ); ?>"
-							alt="<?php esc_attr_e( 'Scan to donate via PayPal', 'dc-sw-prefetch' ); ?>"
+							alt="<?php esc_attr_e( 'Scan to donate via PayPal', 'dc-script-worker-prefetcher' ); ?>"
 							width="150"
 							height="150"
 						>
-						<p class="description"><?php esc_html_e( 'Scan with your phone camera', 'dc-sw-prefetch' ); ?></p>
+						<p class="description"><?php esc_html_e( 'Scan with your phone camera', 'dc-script-worker-prefetcher' ); ?></p>
 					</div>
 					<div class="dc-swp-donate-actions">
-						<p><?php esc_html_e( 'Or click the button below:', 'dc-sw-prefetch' ); ?></p>
+						<p><?php esc_html_e( 'Or click the button below:', 'dc-script-worker-prefetcher' ); ?></p>
 						<a
 							href="<?php echo esc_url( 'https://www.paypal.com/donate?business=X2H3AGW3278BA&no_recurring=0&item_name=Support+my+development+of+free+to+use%2C+feature+rich+WooCommerce+Plugins.+Please+buy+me+a+coffee+or+treats+for+my+dog.&currency_code=DKK' ); ?>"
 							target="_blank"
 							rel="noopener noreferrer"
 							class="button button-primary dc-swp-donate-btn"
-						><?php esc_html_e( 'Donate with PayPal', 'dc-sw-prefetch' ); ?></a>
+						><?php esc_html_e( 'Donate with PayPal', 'dc-script-worker-prefetcher' ); ?></a>
 					</div>
 				</div>
 			</div>
@@ -1218,7 +1218,7 @@ function dc_swp_admin_page_html() {
 
 		</div><!-- /tab-advanced -->
 
-			<?php submit_button( __( 'Save Settings', 'dc-sw-prefetch' ) ); ?>
+			<?php submit_button( __( 'Save Settings', 'dc-script-worker-prefetcher' ) ); ?>
 		</form>
 	</div>
 
@@ -1228,54 +1228,54 @@ function dc_swp_admin_page_html() {
 		'dcSwpAdminData',
 		array(
 			'nonce'              => wp_create_nonce( 'dc_swp_detect_nonce' ),
-			'noScriptsMsg'       => __( 'No external scripts found on the homepage.', 'dc-sw-prefetch' ),
-			'unknownMsg'         => __( 'Compatibility unknown -- not on Partytown\'s verified services list. Test carefully before adding.', 'dc-sw-prefetch' ),
-			'knownMsg'           => __( '✔ Verified compatible service', 'dc-sw-prefetch' ),
-			'noBlocksMsg'        => __( 'No script blocks added yet.', 'dc-sw-prefetch' ),
-			'noEntriesMsg'       => esc_attr__( 'No patterns added yet. Click “+ Add Pattern” or use Auto-Detect.', 'dc-sw-prefetch' ),
-			'delMsg'             => __( 'Delete this script block?', 'dc-sw-prefetch' ),
+			'noScriptsMsg'       => __( 'No external scripts found on the homepage.', 'dc-script-worker-prefetcher' ),
+			'unknownMsg'         => __( 'Compatibility unknown -- not on Partytown\'s verified services list. Test carefully before adding.', 'dc-script-worker-prefetcher' ),
+			'knownMsg'           => __( '✔ Verified compatible service', 'dc-script-worker-prefetcher' ),
+			'noBlocksMsg'        => __( 'No script blocks added yet.', 'dc-script-worker-prefetcher' ),
+			'noEntriesMsg'       => esc_attr__( 'No patterns added yet. Click “+ Add Pattern” or use Auto-Detect.', 'dc-script-worker-prefetcher' ),
+			'delMsg'             => __( 'Delete this script block?', 'dc-script-worker-prefetcher' ),
 			'blocks'             => $inline_script_blocks,
 			'scriptListEntries'  => $script_list_entries,
 			'knownServices'      => dc_swp_get_known_services(),
 			'hostCategoryMap'    => dc_swp_get_service_category_map(),
-			'badgeSupported'     => __( '✓ Supported | Partytown', 'dc-sw-prefetch' ),
-			'badgeUnsupported'   => __( '⚠ Unsupported | Deferred', 'dc-sw-prefetch' ),
-			'forcePtLabel'       => __( 'Force Enable Partytown', 'dc-sw-prefetch' ),
-			'forcePtNotice'      => __( 'Running script with unknown Partytown compatibility -- test your site in debug mode to confirm no render errors.', 'dc-sw-prefetch' ),
-			'blockCategoryLabel' => __( 'Consent category', 'dc-sw-prefetch' ),
-			'blockSkipLoggedIn'  => __( 'Skip for logged-in users', 'dc-sw-prefetch' ),
+			'badgeSupported'     => __( '✓ Supported | Partytown', 'dc-script-worker-prefetcher' ),
+			'badgeUnsupported'   => __( '⚠ Unsupported | Deferred', 'dc-script-worker-prefetcher' ),
+			'forcePtLabel'       => __( 'Force Enable Partytown', 'dc-script-worker-prefetcher' ),
+			'forcePtNotice'      => __( 'Running script with unknown Partytown compatibility -- test your site in debug mode to confirm no render errors.', 'dc-script-worker-prefetcher' ),
+			'blockCategoryLabel' => __( 'Consent category', 'dc-script-worker-prefetcher' ),
+			'blockSkipLoggedIn'  => __( 'Skip for logged-in users', 'dc-script-worker-prefetcher' ),
 			'consentGateEnabled' => $consent_gate,
 			'consentCategories'  => array( 'marketing', 'statistics', 'statistics-anonymous', 'functional', 'preferences' ),
 			'gtm'                => array(
-				'valid'      => __( '✔ Valid tag ID', 'dc-sw-prefetch' ),
-				'invalid'    => __( '⚠ Invalid format. Expected: GTM-XXXXXXX, G-XXXXXXXXXX, or UA-XXXXXX-X.', 'dc-sw-prefetch' ),
-				'detected'   => __( 'Detected', 'dc-sw-prefetch' ),
-				'none'       => __( 'No active Google Tag found in page source.', 'dc-sw-prefetch' ),
-				'willBeUsed' => __( 'will be re-detected on every Save Settings', 'dc-sw-prefetch' ),
-				'active'     => __( 'Auto-detected and active', 'dc-sw-prefetch' ),
-				'saved'      => __( '✔ Saved', 'dc-sw-prefetch' ),
+				'valid'      => __( '✔ Valid tag ID', 'dc-script-worker-prefetcher' ),
+				'invalid'    => __( '⚠ Invalid format. Expected: GTM-XXXXXXX, G-XXXXXXXXXX, or UA-XXXXXX-X.', 'dc-script-worker-prefetcher' ),
+				'detected'   => __( 'Detected', 'dc-script-worker-prefetcher' ),
+				'none'       => __( 'No active Google Tag found in page source.', 'dc-script-worker-prefetcher' ),
+				'willBeUsed' => __( 'will be re-detected on every Save Settings', 'dc-script-worker-prefetcher' ),
+				'active'     => __( 'Auto-detected and active', 'dc-script-worker-prefetcher' ),
+				'saved'      => __( '✔ Saved', 'dc-script-worker-prefetcher' ),
 			),
 			'pixel'              => array(
-				'valid'      => __( '✔ Valid Pixel ID', 'dc-sw-prefetch' ),
-				'invalid'    => __( '⚠ Invalid format. Expected: 10–20 digits only.', 'dc-sw-prefetch' ),
-				'detected'   => __( 'Detected', 'dc-sw-prefetch' ),
-				'none'       => __( 'No Meta Pixel found in page source. Enter your Pixel ID manually.', 'dc-sw-prefetch' ),
-				'willBeUsed' => __( 'will be re-detected on every Save Settings', 'dc-sw-prefetch' ),
-				'active'     => __( 'Auto-detected and active', 'dc-sw-prefetch' ),
-				'saved'      => __( '✔ Saved', 'dc-sw-prefetch' ),
+				'valid'      => __( '✔ Valid Pixel ID', 'dc-script-worker-prefetcher' ),
+				'invalid'    => __( '⚠ Invalid format. Expected: 10–20 digits only.', 'dc-script-worker-prefetcher' ),
+				'detected'   => __( 'Detected', 'dc-script-worker-prefetcher' ),
+				'none'       => __( 'No Meta Pixel found in page source. Enter your Pixel ID manually.', 'dc-script-worker-prefetcher' ),
+				'willBeUsed' => __( 'will be re-detected on every Save Settings', 'dc-script-worker-prefetcher' ),
+				'active'     => __( 'Auto-detected and active', 'dc-script-worker-prefetcher' ),
+				'saved'      => __( '✔ Saved', 'dc-script-worker-prefetcher' ),
 			),
 			'gcm'                => array(
-				'checking'          => __( 'Checking for GCM v2 conflicts...', 'dc-sw-prefetch' ),
-				'conflictTitle'     => __( '⚠ Existing GCM v2 stub detected', 'dc-sw-prefetch' ),
-				'conflictBody'      => __( 'Another plugin or theme on your site already outputs a gtag(\'consent\',\'default\',...) call. Running two GCM v2 stubs simultaneously causes unpredictable consent behaviour -- whichever fires last wins, non-deterministically. Disable Google Consent Mode in the other plugin before enabling it here.', 'dc-sw-prefetch' ),
-				'noConsentApiTitle' => __( 'WP Consent API not installed', 'dc-sw-prefetch' ),
-				'noConsentApiBody'  => __( 'Our GCM v2 update script reads consent state via the WP Consent API plugin. Without it, consent signals cannot be delivered reliably to Google across different CMP plugins.', 'dc-sw-prefetch' ),
-				'noConsentApiLink'  => __( 'Install WP Consent API ↗', 'dc-sw-prefetch' ),
+				'checking'          => __( 'Checking for GCM v2 conflicts...', 'dc-script-worker-prefetcher' ),
+				'conflictTitle'     => __( '⚠ Existing GCM v2 stub detected', 'dc-script-worker-prefetcher' ),
+				'conflictBody'      => __( 'Another plugin or theme on your site already outputs a gtag(\'consent\',\'default\',...) call. Running two GCM v2 stubs simultaneously causes unpredictable consent behaviour -- whichever fires last wins, non-deterministically. Disable Google Consent Mode in the other plugin before enabling it here.', 'dc-script-worker-prefetcher' ),
+				'noConsentApiTitle' => __( 'WP Consent API not installed', 'dc-script-worker-prefetcher' ),
+				'noConsentApiBody'  => __( 'Our GCM v2 update script reads consent state via the WP Consent API plugin. Without it, consent signals cannot be delivered reliably to Google across different CMP plugins.', 'dc-script-worker-prefetcher' ),
+				'noConsentApiLink'  => __( 'Install WP Consent API ↗', 'dc-script-worker-prefetcher' ),
 				'wpConsentApiUrl'   => admin_url( 'plugin-install.php?tab=plugin-information&plugin=wp-consent-api' ),
 			),
 			'perf'               => array(
 				'resetNonce' => wp_create_nonce( 'dc_swp_perf_reset_nonce' ),
-				'resetted'   => '✔ ' . esc_html__( 'Metrics reset -- reload to confirm.', 'dc-sw-prefetch' ),
+				'resetted'   => '✔ ' . esc_html__( 'Metrics reset -- reload to confirm.', 'dc-script-worker-prefetcher' ),
 			),
 		)
 	);
@@ -1304,7 +1304,7 @@ function dc_swp_admin_health_notice(): void {
 	}
 	$hosts_html = implode( ', ', array_map( 'esc_html', $issues ) );
 	echo '<div class="notice notice-warning is-dismissible"><p>'
-		. esc_html__( '⚠ Partytown Health Monitor: These hosts produced no observable network traffic. They may be failing inside the Partytown worker:', 'dc-sw-prefetch' )
+		. esc_html__( '⚠ Partytown Health Monitor: These hosts produced no observable network traffic. They may be failing inside the Partytown worker:', 'dc-script-worker-prefetcher' )
 		. ' <strong>' . $hosts_html . '</strong>'  // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $hosts_html built exclusively from esc_html()-escaped values; implode does not introduce new HTML.
 		. '</p></div>' . "\n";
 }

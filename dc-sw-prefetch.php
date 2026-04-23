@@ -11,7 +11,7 @@
  * Author URI:  https://github.com/lennilg
  * License:           GPL-2.0-or-later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
- * Text Domain:       dc-sw-prefetch
+ * Text Domain:       dc-script-worker-prefetcher
  * Domain Path:       /languages
  * Requires at least: 6.8
  * Requires PHP:      8.0
@@ -59,7 +59,7 @@ register_activation_hook( __FILE__, 'dc_swp_migrate_options' );
 add_action(
 	'plugins_loaded',
 	function () {
-		load_plugin_textdomain( 'dc-sw-prefetch', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
+		load_plugin_textdomain( 'dc-script-worker-prefetcher', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
 	}
 );
 
@@ -389,7 +389,7 @@ define( 'DC_SWP_VERSION', '3.1.0' );
 // ============================================================
 // I18N -- LOAD TEXT DOMAIN
 // Loads .mo translation files from the /languages directory so
-// that __() / _e() / esc_html__() calls with the 'dc-sw-prefetch'
+// that __() / _e() / esc_html__() calls with the 'dc-script-worker-prefetcher'
 // text domain resolve to the admin user's locale.
 // ============================================================
 // ADMIN INTERFACE
@@ -431,7 +431,7 @@ function dc_swp_footer_credit_js() {
 	}
 
 	$url   = 'https://www.dampcig.dk';
-	$title = esc_html__( 'Powered by Dampcig.dk', 'dc-sw-prefetch' );
+	$title = esc_html__( 'Powered by Dampcig.dk', 'dc-script-worker-prefetcher' );
 	wp_register_script( 'dc-swp-footer-credit', plugins_url( 'assets/js/footer-credit.js', __FILE__ ), array(), DC_SWP_VERSION, array( 'in_footer' => true ) );
 	wp_localize_script(
 		'dc-swp-footer-credit',
